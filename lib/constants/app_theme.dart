@@ -32,12 +32,12 @@ final ThemeData appThemeData = ThemeData(
     bodySmall: _getFontFamily(size: 12.0),
   ),
   appBarTheme: const AppBarTheme(
-      backgroundColor: Constants.mainBackgroundColor,
-      titleTextStyle: TextStyle(
-          color: Constants.appBarColorTheme,
-          fontSize: 18.0,
-          fontWeight: FontWeight.bold)),
+    backgroundColor: Constants.mainBackgroundColor,
+    titleTextStyle: TextStyle(
+      color: Constants.appBarColorTheme, // Set the title color here
+      fontSize: 18.0,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
   iconTheme: const IconThemeData(color: Constants.appBarColorTheme),
-  // iconButtonTheme:  IconButtonThemeData(style:ButtonStyle(backgroundColor: appBarColorTheme)),
-  // backgroundColor: Constants.mainBackgroundColor,
 );

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test/models/settings_model.dart';
 import 'package:tonic/tonic.dart';
 import '../../../constants/scales/scales_data_v2.dart';
 import '../../../models/scale_model.dart';
@@ -19,7 +20,7 @@ final chordModelFretboardFingeringProvider =
   final mode = ref.read(modeDropdownValueProvider);
   // ref.watch(settingsStateNotifierProvider);
 
-  final settings =
+  final Settings settings =
       await ref.read(settingsStateNotifierProvider.notifier).settings;
 
   final List<String> scaleNotesNames = MusicUtils.createChords(

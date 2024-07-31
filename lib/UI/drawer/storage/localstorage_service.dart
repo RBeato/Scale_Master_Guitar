@@ -9,7 +9,7 @@ class LocalStorageService {
     fetchSettings();
   }
   Future<Settings> fetchSettings() async {
-    settings = await _loadSettingsFromDisk();
+    Settings settings = await _loadSettingsFromDisk();
     return settings;
   }
 

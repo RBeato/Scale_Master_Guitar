@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
 // import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
@@ -19,10 +20,16 @@ import 'UI/home_page/selection_page.dart';
 final logger = Logger();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final container = ProviderContainer();
   try {
+    WidgetsFlutterBinding.ensureInitialized();
+    final container = ProviderContainer();
     // await _configureSubscription();
+
+    // Await the settings from the provider
+    final settings =
+        await container.read(settingsStateNotifierProvider.notifier).settings;
+    print(settings); // Debugging purpose
+
     await container.read(chordModelFretboardFingeringProvider.future);
 
     FlutterNativeSplash.remove();

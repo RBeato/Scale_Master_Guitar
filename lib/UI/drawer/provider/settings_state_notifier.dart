@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/drawer/models/settings_state.dart';
+import 'package:test/models/settings_model.dart';
 
 import '../UI/drawer/settings_enum.dart';
 import '../storage/localstorage_service.dart';
@@ -16,14 +17,15 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
 
   final LocalStorageService localStorageProvider = LocalStorageService();
 
-  get settings => localStorageProvider.fetchSettings();
+  Future<Settings> get settings async {
+    return await localStorageProvider.fetchSettings();
+  }
 
-  Future getSettings() async {
+  Future<void> getSettings() async {
     state = const SettingsLoading();
     try {
       final settings = await localStorageProvider.fetchSettings();
       state = SettingsLoaded(settings);
-      return state;
     } catch (e) {
       state = const SettingsError("Couldn't FETCH settings!");
     }
