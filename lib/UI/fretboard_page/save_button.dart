@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
-// import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:test/UI/fretboard_page/widget_to_png.dart';
 
 class SaveImageButton extends StatelessWidget {
-  const SaveImageButton({Key? key}) : super(key: key);
+  const SaveImageButton({super.key});
 
-  // Future<void> _requestStoragePermission(BuildContext context) async {
-  //   // Request permission
-  //   PermissionStatus status = await Permission.storage.request();
+  Future<void> _requestStoragePermission(BuildContext context) async {
+    // Request permission
+    PermissionStatus status = await Permission.storage.request();
 
-  //   if (status.isGranted) {
-  //     _saveImage(context);
-  //   } else {
-  //     print('Storage permission denied.');
-  //   }
-  // }
+    if (status.isGranted) {
+      _saveImage(context);
+    } else {
+      print('Storage permission denied.');
+    }
+  }
 
   Future<void> _saveImage(BuildContext context) async {
     // Find the WidgetToPngExporterState

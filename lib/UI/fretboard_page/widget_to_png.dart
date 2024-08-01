@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'fretboard_options.dart';
 
 class WidgetToPngExporter extends ConsumerStatefulWidget {
@@ -13,8 +13,7 @@ class WidgetToPngExporter extends ConsumerStatefulWidget {
   final bool isDegreeSelected;
 
   const WidgetToPngExporter(
-      {Key? key, required this.isDegreeSelected, required this.child})
-      : super(key: key);
+      {super.key, required this.isDegreeSelected, required this.child});
 
   @override
   _WidgetToPngExporterState createState() => _WidgetToPngExporterState();
@@ -47,11 +46,11 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
   Future<String?> savePng(Uint8List imageBytes) async {
     try {
       // Request storage permissions
-      // var status = await Permission.storage.request();
-      // if (!status.isGranted) {
-      //   print('Storage permission not granted');
-      //   return null;
-      // }
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        print('Storage permission not granted');
+        return null;
+      }
 
       final directory = await getExternalStorageDirectory();
       final downloadsDir = Directory('/storage/emulated/0/Download');

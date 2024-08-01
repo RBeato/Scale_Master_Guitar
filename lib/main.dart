@@ -13,9 +13,9 @@ import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'UI/home_page/selection_page.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
-//TODO: Fork and update 'flutter_sequencer'. Check chatGPT
-//Revenue Cat: https://www.youtube.com/watch?v=nYCE6I6DvSk @ 12:00
-//HeyFlutter RevenueCat setup: https://www.youtube.com/waatch?v=6M2IeeVUXXw 29:32
+//TODO: Single payment of 2.99
+
+//Revenue Cat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
 
 final logger = Logger();
 
