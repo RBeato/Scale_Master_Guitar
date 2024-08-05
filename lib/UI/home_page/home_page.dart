@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../revenue_cat/provider/revenue_cat_provider.dart';
-import '../../revenue_cat/subscription_page.dart';
 import 'selection_page.dart';
 
 class HomePage extends ConsumerWidget {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 // import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 
@@ -15,7 +16,8 @@ import 'UI/home_page/selection_page.dart';
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
 //TODO: Single payment of 2.99
 
-//Revenue Cat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
+//RevenueCat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
+//RevenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
 
 final logger = Logger();
 
@@ -49,6 +51,57 @@ void main() async {
     logger.e('Setup has failed', error, stackTrace);
   }
 }
+
+// Future fetchOffers() async {
+//   final offerings = await PurchaseApi.fetchOffers();
+//   if (offerings.isEmpty) {
+//     Builder(
+//       builder: (BuildContext context) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text('No Plans Found')),
+//         );
+//         return Container(); // Return an empty container or any other widget
+//       },
+//     );
+//   } else {
+
+//       Builder(
+//       builder: (BuildContext context) {
+//     final packages = offerings
+//         .map((offer) => offer.availablePackages)
+//         .expand((pair) => pair)
+//         .toList();
+//         Utils.showSheet(context, (context)=> PaywallWidget(packages: packages, title: 'Upgrade Your Plan', description: 'Upgrade to a new plan to enjoy more features.', onClickedPackage: (package)async {
+
+//         }));
+//       },
+//     );
+//   }
+// }
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      // showPerformanceOverlay: true,
+      useInheritedMediaQuery: true,
+      // locale: DevicePreview.locale(context),s
+      // builder: DevicePreview.appBuilder,
+      title: 'Scale Master Guitar',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(),
+      home:
+          // const SelectionPage(),
+          const HomePage(title: 'Scale Master Guitar'),
+    );
+  }
+}
+
 
 // Future<void> _configureSubscription() async {
 //   await dotenv.load(fileName: ".env");
@@ -113,25 +166,3 @@ void main() async {
 //   }
 // }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      // showPerformanceOverlay: true,
-      useInheritedMediaQuery: true,
-      // locale: DevicePreview.locale(context),s
-      // builder: DevicePreview.appBuilder,
-      title: 'Scale Master Guitar',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(),
-      home:
-          // const SelectionPage(),
-          const HomePage(title: 'Scale Master Guitar'),
-    );
-  }
-}

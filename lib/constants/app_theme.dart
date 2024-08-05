@@ -23,7 +23,7 @@ final ThemeData appThemeData = ThemeData(
         size: 50.0, color: Constants.appBarColorTheme, weight: FontWeight.w400),
     headlineMedium: _getFontFamily(
         size: 20.0, color: Constants.appBarColorTheme, weight: FontWeight.w400),
-    headlineSmall: _getFontFamily(size: 18.0),
+    headlineSmall: _getFontFamily(size: 18.0, color: Colors.white),
     titleLarge: _getFontFamily(size: 20.0),
     titleMedium: _getFontFamily(size: 16.0),
     titleSmall: _getFontFamily(

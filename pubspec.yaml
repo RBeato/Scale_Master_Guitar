@@ -4,7 +4,7 @@ description: "A new Flutter project."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ">=2.19.0-146.2.beta <3.0.0"
@@ -26,8 +26,7 @@ dependencies:
   logger: ^1.0.0
   path_provider: ^2.0.9
   permission_handler: ^10.4.5
-  purchases_flutter: ^6.0.0
-  rename_app: ^1.6.1
+  purchases_flutter: ^6.30.2
   shared_preferences: ^2.0.5
   tonic: ^0.2.3
 
@@ -38,16 +37,12 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_launcher_icons: ^0.13.0
   flutter_lints: ^3.0.0
-
 flutter_icons:
-  android: true # can specify file name here e.g. "ic_launcher"
-  ios: true # can specify file name here e.g. "My-Launcher-Icon"
-  image_path_android: "assets/images/smg_icon.png"
-  image_path_ios: "assets/images/smg_icon.png"
-  adaptive_icon_foreground: "assets/images/smg_icon.png"
-  adaptive_icon_background: "#FFFFFF" # o
+  image_path: "assets/images/icon.png"
+  android: true
+  ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
