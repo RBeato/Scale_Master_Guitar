@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:test/revenue_cat_purchase_flutter/paywall_widget.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 // import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'UI/home_page/selection_page.dart';
 
@@ -17,13 +20,24 @@ import 'UI/home_page/selection_page.dart';
 //TODO: Single payment of 2.99
 
 //RevenueCat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
-//RevenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
+//REvenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
+//!go to 20:00
+
+//FROM REVENUECAT ON OFFERINS:
+// final offerings = await Purchases.getOfferings();
+// final current = offerings.current;
+// if (current != null) {
+//   final showNewBenefits = current.metadata["show_new_benefits"];
+//   final title = (current.metadata["title_strings"] as Map<String, Object>?)?["en_US"];
+//   final cta = (current.metadata["cta_strings"] as Map<String, Object>?)?["en_US"];
 
 final logger = Logger();
 
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    await dotenv.load(fileName: ".env");
+    await PurchaseApi.init(); //!use emulator wiht paystore activated
     final container = ProviderContainer();
     // await _configureSubscription();
 
@@ -52,30 +66,20 @@ void main() async {
   }
 }
 
-// Future fetchOffers() async {
-//   final offerings = await PurchaseApi.fetchOffers();
-//   if (offerings.isEmpty) {
-//     Builder(
-//       builder: (BuildContext context) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(content: Text('No Plans Found')),
-//         );
-//         return Container(); // Return an empty container or any other widget
-//       },
-//     );
-//   } else {
+// getPurchase() async {
+//   try {
+//     CustomerInfo purchaserInfo = await Purchases.purchasePackage(package);
+//     var isPro =
+//         purchaserInfo.entitlements.all("my_entitlement_identifier").isActive;
+//     if (isPro) {
+//       //Unlock pro features
+//     }
+//   } on PlatformException catch (e) {
+//     var errorCode = PurchasesErrorHelper.getErrorCode(e);
 
-//       Builder(
-//       builder: (BuildContext context) {
-//     final packages = offerings
-//         .map((offer) => offer.availablePackages)
-//         .expand((pair) => pair)
-//         .toList();
-//         Utils.showSheet(context, (context)=> PaywallWidget(packages: packages, title: 'Upgrade Your Plan', description: 'Upgrade to a new plan to enjoy more features.', onClickedPackage: (package)async {
-
-//         }));
-//       },
-//     );
+//     if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
+//       print(e);
+//     }
 //   }
 // }
 

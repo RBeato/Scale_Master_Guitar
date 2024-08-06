@@ -1,5 +1,6 @@
 key.properties
 app/upload-keystore.jks
+*.env
 
 # Miscellaneous
 *.class
