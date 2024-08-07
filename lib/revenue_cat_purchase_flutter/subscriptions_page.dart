@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:test/revenue_cat_purchase_flutter/paywall_widget.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenuecat_provider.dart';
+import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:test/revenue_cat_purchase_flutter/utils.dart';
 
@@ -43,7 +43,7 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final entitlement = ref.watch(revenuecatProvider);
+    final entitlement = ref.watch(revenueCatProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Subscribe')),
@@ -69,6 +69,16 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
                     final success = await PurchaseApi.purchasePackage(pkg);
                     if (success) {
                       // handle successful purchase
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Purchase successful')),
+                      );
+                      await ref
+                          .read(revenueCatProvider.notifier)
+                          .updatePurchaseStatus();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Purchase failed')),
+                      );
                     }
                   },
                   child: Text('Subscribe for ${pkg.storeProduct.priceString}'),
@@ -106,9 +116,7 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
   Future fetchOffers() async {
     final offerings = await PurchaseApi.fetchOffers();
     if (offerings.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('No Plans Found'),
-      ));
+      Utils.showSnackBar(context, 'No Plans Found');
     } else {
       final packages = offerings
           .map((offer) => offer.availablePackages)
@@ -121,7 +129,21 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
               packages: packages,
               title: 'Upgrade Your Plan',
               description: 'Upgrade to a new plan to enjoy more features.',
-              onClickedPackage: (package) async {}));
+              onClickedPackage: (package) async {
+                final success = await PurchaseApi.purchasePackage(package);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Purchase successful')),
+                  );
+                  await ref
+                      .read(revenueCatProvider.notifier)
+                      .updatePurchaseStatus();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Purchase failed')),
+                  );
+                }
+              }));
     }
   }
 }

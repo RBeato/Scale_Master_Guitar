@@ -7,8 +7,14 @@ class PurchaseApi {
       dotenv.env['REVENUE_CAT_API_KEY']!; //TODO: Check apikey.
 
   static Future<void> init() async {
-    await Purchases.setDebugLogsEnabled(true);
-    await Purchases.setup(_apiKey);
+    // Create a configuration instance
+    PurchasesConfiguration configuration = PurchasesConfiguration(_apiKey);
+
+    // Configure Purchases with the created configuration
+    await Purchases.configure(configuration);
+
+    // Set the log level
+    Purchases.setLogLevel(LogLevel.debug);
   }
 
   static Future<List<Offering>> fetchOffersByIds(List<String> ids) async {

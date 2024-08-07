@@ -1,29 +1,31 @@
 // import 'dart:nativewrappers/_internal/vm/lib/developer.dart';
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
-import 'package:test/revenue_cat_purchase_flutter/paywall_widget.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 // import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'UI/home_page/selection_page.dart';
+import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
 //TODO: Single payment of 2.99
+//TODO: Use Restore Purchases Button
 
 //RevenueCat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
 //REvenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
 //!go to 20:00
 
-//FROM REVENUECAT ON OFFERINS:
+//FROM REVENUECAT ON OFFERINGS:
 // final offerings = await Purchases.getOfferings();
 // final current = offerings.current;
 // if (current != null) {
@@ -35,17 +37,24 @@ final logger = Logger();
 
 void main() async {
   try {
-    WidgetsFlutterBinding.ensureInitialized();
+    WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
-    await PurchaseApi.init(); //!use emulator wiht paystore activated
+
+    await PurchaseApi.init(); //!use emulator wiht playstore activated
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      StoreConfig(
+        store: StoreChoice.appleStore,
+        apiKey: dotenv.env['APPLE_API_KEY']!,
+      );
+    } else if (Platform.isAndroid) {
+      StoreConfig(
+          store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
+    }
+
     final container = ProviderContainer();
-    // await _configureSubscription();
-
-    // Await the settings from the provider
-    final settings =
-        await container.read(settingsStateNotifierProvider.notifier).settings;
-    print(settings); // Debugging purpose
-
+    await container.read(settingsStateNotifierProvider.notifier).settings;
     await container.read(chordModelFretboardFingeringProvider.future);
 
     FlutterNativeSplash.remove();
@@ -66,33 +75,12 @@ void main() async {
   }
 }
 
-// getPurchase() async {
-//   try {
-//     CustomerInfo purchaserInfo = await Purchases.purchasePackage(package);
-//     var isPro =
-//         purchaserInfo.entitlements.all("my_entitlement_identifier").isActive;
-//     if (isPro) {
-//       //Unlock pro features
-//     }
-//   } on PlatformException catch (e) {
-//     var errorCode = PurchasesErrorHelper.getErrorCode(e);
-
-//     if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
-//       print(e);
-//     }
-//   }
-// }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // showPerformanceOverlay: true,
       useInheritedMediaQuery: true,
       // locale: DevicePreview.locale(context),s
       // builder: DevicePreview.appBuilder,
