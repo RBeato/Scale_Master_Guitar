@@ -4,6 +4,7 @@ import 'package:test/UI/fretboard/provider/fingerings_provider.dart';
 import 'package:test/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
 import 'package:test/UI/player_page/logic/sequencer_manager.dart';
 import 'package:test/UI/player_page/player/player_widget.dart';
+import 'package:test/UI/player_page/provider/is_playing_provider.dart';
 import 'package:test/UI/player_page/provider/player_page_title.dart';
 import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
 
@@ -40,8 +41,13 @@ class PlayerPage extends ConsumerWidget {
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
               // Stop the sequencer and navigate back
-              sequencerManager.handleStop(sequencerManager
-                  .sequence); // Make sure sequence is accessible
+              bool isPlaying = ref.read(isSequencerPlayingProvider);
+              if (isPlaying) {
+                sequencerManager.handleStop(sequencerManager
+                    .sequence); // Make sure sequence is accessible
+                ref.read(isSequencerPlayingProvider.notifier).state =
+                    !isPlaying;
+              }
               Navigator.of(context).pop();
             },
           ),
@@ -57,6 +63,15 @@ class PlayerPage extends ConsumerWidget {
                 }
                 if (f != null) {
                   ref.read(fretboardPageFingeringsProvider.notifier).update(f!);
+                }
+
+                bool isPlaying = ref.read(isSequencerPlayingProvider);
+                if (isPlaying) {
+                  // Stop the sequencer and navigate back
+                  sequencerManager.handleStop(sequencerManager
+                      .sequence); // Make sure sequence is accessible
+                  ref.read(isSequencerPlayingProvider.notifier).state =
+                      !isPlaying;
                 }
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => const FretboardPage()));
