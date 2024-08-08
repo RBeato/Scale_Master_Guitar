@@ -8,7 +8,7 @@ import '../scale_selection_dropdowns/scale_selection.dart';
 import 'wheel_piano_widget.dart';
 
 class SelectionPage extends ConsumerStatefulWidget {
-  const SelectionPage({Key? key}) : super(key: key);
+  const SelectionPage({super.key});
 
   @override
   SelectionPageState createState() => SelectionPageState();
@@ -23,7 +23,9 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[800],
-        title: const Text("Scale Master Guitar"),
+        title: const Text("Scale Master Guitar",
+            style: TextStyle(color: Colors.orange)),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             onPressed: () {

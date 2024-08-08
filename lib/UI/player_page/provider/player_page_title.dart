@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../fretboard/provider/fingerings_provider.dart';
 
 class PlayerPageTitle extends ConsumerWidget {
-  const PlayerPageTitle({Key? key}) : super(key: key);
+  const PlayerPageTitle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,7 +26,8 @@ class PlayerPageTitle extends ConsumerWidget {
                 TextSpan(
                   text: "${data.scaleModel!.scale}",
                   style: const TextStyle(
-                      fontSize: 12), // Smaller font size for this part
+                      fontSize: 12,
+                      color: Colors.white), // Smaller font size for this part
                 ),
               ],
             ),

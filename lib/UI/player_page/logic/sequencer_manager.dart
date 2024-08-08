@@ -20,7 +20,7 @@ final sequencerManagerProvider = Provider((ref) => SequencerManager());
 class SequencerManager {
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   // List<Track> tracks = [];
-  // late Sequence sequence;
+  late Sequence sequence;
   List _lastChords = [];
   // final List _lastExtensions = [];
   bool _lastTonicAsUniversalBassNote = true;
@@ -56,6 +56,7 @@ class SequencerManager {
     tempo,
     required List<Instrument> instruments,
   }) async {
+    this.sequence = sequence;
     if (isPlaying) {
       handleStop(sequence);
     }

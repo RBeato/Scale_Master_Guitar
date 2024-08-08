@@ -23,8 +23,8 @@ import 'chord_player_bar.dart';
 class PlayerWidget extends ConsumerStatefulWidget {
   const PlayerWidget(
     this.settings, {
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final Settings settings;
 

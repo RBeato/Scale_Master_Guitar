@@ -15,9 +15,9 @@ final chordModelFretboardFingeringProvider =
     FutureProvider.autoDispose<ChordScaleFingeringsModel?>((ref) async {
   ref.maintainState = true;
 
-  final topNote = ref.read(topNoteProvider);
-  final scale = ref.read(scaleDropdownValueProvider);
-  final mode = ref.read(modeDropdownValueProvider);
+  final topNote = ref.watch(topNoteProvider);
+  final scale = ref.watch(scaleDropdownValueProvider);
+  final mode = ref.watch(modeDropdownValueProvider);
   // ref.watch(settingsStateNotifierProvider);
 
   final Settings settings =
