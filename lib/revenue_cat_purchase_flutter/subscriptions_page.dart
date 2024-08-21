@@ -7,14 +7,14 @@ import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:test/revenue_cat_purchase_flutter/utils.dart';
 
-class SubscriptionsPage extends ConsumerStatefulWidget {
-  const SubscriptionsPage({super.key});
+class SubscriptionPage extends ConsumerStatefulWidget {
+  const SubscriptionPage({super.key});
 
   @override
   _SubscriptionsPageState createState() => _SubscriptionsPageState();
 }
 
-class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
+class _SubscriptionsPageState extends ConsumerState<SubscriptionPage> {
   bool isLoading = false;
   List<Package> packages = [];
 
@@ -81,7 +81,8 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
                       );
                     }
                   },
-                  child: Text('Subscribe for ${pkg.storeProduct.priceString}'),
+                  child: Text(
+                      'Make a one-time purchase for ${pkg.storeProduct.priceString}'),
                 );
               }),
           ],
@@ -92,13 +93,13 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionsPage> {
 
   Widget buildEntitlement(Entitlement entitlement) {
     switch (entitlement) {
-      case Entitlement.allCourses:
+      case Entitlement.paid:
         return buildEntitlementIcon(
             text: 'You are on Paid plan', icon: Icons.paid);
       case Entitlement.free:
       default:
         return buildEntitlementIcon(
-            text: 'You are on Free plan', icon: Icons.lock);
+            text: 'You are on a 7-day trial', icon: Icons.lock);
     }
   }
 

@@ -13,9 +13,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
-//TODO: Single payment of 2.99
 //TODO: Use Restore Purchases Button
-//TODO: Use physical device
+//!TODO: Use physical device
+//TODO: Check all scales
 
 //RevenueCat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
 //REvenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
@@ -37,17 +37,17 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    // await PurchaseApi.init(); //!use emulator wiht playstore activated
+    await PurchaseApi.init(); //!use emulator with playstore activated
 
-    // if (Platform.isIOS || Platform.isMacOS) {
-    //   StoreConfig(
-    //     store: StoreChoice.appleStore,
-    //     apiKey: dotenv.env['APPLE_API_KEY']!,
-    //   );
-    // } else if (Platform.isAndroid) {
-    //   StoreConfig(
-    //       store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
-    // }
+    if (Platform.isIOS || Platform.isMacOS) {
+      StoreConfig(
+        store: StoreChoice.appleStore,
+        apiKey: dotenv.env['APPLE_API_KEY']!,
+      );
+    } else if (Platform.isAndroid) {
+      StoreConfig(
+          store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
+    }
 
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;

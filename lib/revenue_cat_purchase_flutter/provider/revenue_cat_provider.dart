@@ -34,7 +34,7 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
     try {
       final purchaserInfo = await Purchases.getCustomerInfo();
       final entitlements = purchaserInfo.entitlements.active.values.toList();
-      state = entitlements.isEmpty ? Entitlement.free : Entitlement.allCourses;
+      state = entitlements.isEmpty ? Entitlement.free : Entitlement.paid;
     } on PlatformException catch (e) {
       debugPrint("Update purchase status error: ${e.toString()}");
       state = Entitlement.free;
