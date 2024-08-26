@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
+import '../../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../chords_list.dart';
 import '../metronome/metronome_display.dart';
 import '../metronome/metronome_icon.dart';
 
 class ChordPlayerBar extends ConsumerStatefulWidget {
   const ChordPlayerBar({
-    Key? key,
+    super.key,
     required this.selectedTrack,
     required this.isPlaying,
     required this.isLoading,
@@ -17,7 +19,7 @@ class ChordPlayerBar extends ConsumerStatefulWidget {
     required this.isLooping,
     required this.handleTogglePlayStop,
     required this.clearTracks,
-  }) : super(key: key);
+  });
 
   final bool isPlaying;
   final Track? selectedTrack;
@@ -37,6 +39,8 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final selectedChords = ref.watch(selectedChordsProvider);
+    //TODO: Fix entitlement in here
+    const entitlement = Entitlement.free; //ref.watch(revenueCatProvider);
 
     // Reset _showNoChordSelected when there are changes in selectedChords
     if (selectedChords.isNotEmpty) {
@@ -97,7 +101,15 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
             child: Padding(
               padding: const EdgeInsets.all(10.0),
               child: GestureDetector(
-                onTap: widget.handleTogglePlayStop,
+                onTap: entitlement == Entitlement.free
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Upgrade required to use this feature.')),
+                        );
+                      }
+                    : widget.handleTogglePlayStop,
                 child: Icon(
                   widget.isPlaying ? Icons.stop : Icons.play_arrow,
                   color: Colors.white70,

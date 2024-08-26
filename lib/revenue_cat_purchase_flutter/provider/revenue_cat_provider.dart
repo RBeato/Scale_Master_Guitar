@@ -34,7 +34,27 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
     try {
       final purchaserInfo = await Purchases.getCustomerInfo();
       final entitlements = purchaserInfo.entitlements.active.values.toList();
-      state = entitlements.isEmpty ? Entitlement.free : Entitlement.paid;
+
+      bool hasPremium = entitlements.any((entitlement) =>
+          entitlement.identifier == "premium"); // Check for premium entitlement
+
+      // Check if the premium entitlement has a trial period
+      bool isOnTrial = entitlements.any((entitlement) =>
+          entitlement.identifier == "premium" &&
+          entitlement.willRenew &&
+          entitlement.billingIssueDetectedAt == null &&
+          (DateTime.now()
+                  .difference(DateTime.parse(entitlement.latestPurchaseDate))
+                  .inDays <
+              7));
+
+      if (isOnTrial) {
+        state = Entitlement.trial;
+      } else if (hasPremium) {
+        state = Entitlement.paid;
+      } else {
+        state = Entitlement.free;
+      }
     } on PlatformException catch (e) {
       debugPrint("Update purchase status error: ${e.toString()}");
       state = Entitlement.free;

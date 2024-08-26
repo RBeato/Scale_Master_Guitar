@@ -24,7 +24,7 @@ class HomePage extends ConsumerWidget {
         } else if (snapshot.connectionState == ConnectionState.done) {
           if (entitlement == Entitlement.paid) {
             // Redirect to the SelectionPage if the user has the paid entitlement
-            WidgetsBinding.instance!.addPostFrameCallback((_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const SelectionPage()),
@@ -34,23 +34,15 @@ class HomePage extends ConsumerWidget {
                 .shrink(); // Return an empty widget while redirecting
           } else {
             // Show the subscription prompt if the user does not have the paid entitlement
-            return Scaffold(
-              appBar: AppBar(
-                title: Text(title),
-              ),
-              body: Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SubscriptionPage()),
-                    );
-                  },
-                  child: const Text('Subscribe Now'),
-                ),
-              ),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const SubscriptionPage()),
+              );
+            });
+            return const SizedBox
+                .shrink(); // Return an empty widget while redirecting
           }
         } else {
           // Handle the case where the future failed

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test/UI/fretboard_page/widget_to_png.dart';
+import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
-class SaveImageButton extends StatelessWidget {
+import '../../revenue_cat_purchase_flutter/entitlement.dart';
+
+class SaveImageButton extends ConsumerWidget {
   const SaveImageButton({super.key});
 
   Future<void> _requestStoragePermission(BuildContext context) async {
@@ -63,11 +67,20 @@ class SaveImageButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    //TODO: change entitlement in here
+    const entitlement = Entitlement.free; // ref.watch(revenueCatProvider);
     return Center(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: () {}, //=>_requestStoragePermission(context),
+        onTap: entitlement == Entitlement.free
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Upgrade required to use this feature.')),
+                );
+              }
+            : () => _requestStoragePermission(context),
         child: RotatedBox(
           quarterTurns: 1,
           child: Container(
