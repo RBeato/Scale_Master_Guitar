@@ -33,10 +33,14 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
 
   Future<void> changeValue(SettingsSelection settingSelection, value) async {
     try {
+      print(
+          "Attempting to change settings for: $settingSelection with value: $value");
       final settings =
           await localStorageProvider.changeSettings(settingSelection, value);
+      print("Settings updated successfully.");
       state = SettingsLoaded(settings);
     } catch (e) {
+      print("Error changing settings: $e");
       state = const SettingsError("Couldn't CHANGE the settings!");
     }
   }

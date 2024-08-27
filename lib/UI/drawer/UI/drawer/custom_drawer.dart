@@ -21,7 +21,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            DrawerPage(),
+            const DrawerPage(),
           ],
         ));
   }

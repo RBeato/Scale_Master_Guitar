@@ -15,6 +15,7 @@ class LocalStorageService {
 
   Future<Settings> changeSettings(
       SettingsSelection settingsSelection, value) async {
+    settings = await _loadSettingsFromDisk();
     _updateSettings(settingsSelection, value);
     await _saveSettingsToDisk(settings);
     return settings;
@@ -100,8 +101,11 @@ class LocalStorageService {
         SettingsSelection.drumsSound.toString(), settings.drumsSound);
   }
 
-  void _updateSettings(SettingsSelection settingsSelection, value) {
-    // Update the settings object based on the selection and value
+  Future<void> _updateSettings(
+      SettingsSelection? settingsSelection, value) async {
+    assert(settingsSelection != null, "SettingsSelection is null!");
+    assert(value != null, "Value is null!");
+
     if (settingsSelection == SettingsSelection.scaleDegrees) {
       settings.showScaleDegrees = value;
     } else if (settingsSelection == SettingsSelection.singleColor) {

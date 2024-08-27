@@ -13,6 +13,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
+//TODO: Drawer preferences bug
+//TODO: Dropdown bug. Scale dropdown bug. It is not rebuilding properly because it is being assigned the same value as initially set. But the UI is changing to a new value
+//TODO: Sound Drawer change not immediately reflected
+//TODO: Review trial detection and entitlements
 //TODO: Use Restore Purchases Button
 //!TODO: Use physical device
 //TODO: Check all scales
@@ -37,17 +41,17 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    await PurchaseApi.init(); //!use emulator with playstore activated
+    // await PurchaseApi.init(); //!use emulator with playstore activated
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      StoreConfig(
-        store: StoreChoice.appleStore,
-        apiKey: dotenv.env['APPLE_API_KEY']!,
-      );
-    } else if (Platform.isAndroid) {
-      StoreConfig(
-          store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
-    }
+    // if (Platform.isIOS || Platform.isMacOS) {
+    //   StoreConfig(
+    //     store: StoreChoice.appleStore,
+    //     apiKey: dotenv.env['APPLE_API_KEY']!,
+    //   );
+    // } else if (Platform.isAndroid) {
+    //   StoreConfig(
+    //       store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
+    // }
 
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;

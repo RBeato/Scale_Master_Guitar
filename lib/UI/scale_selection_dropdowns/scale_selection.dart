@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
@@ -15,16 +17,19 @@ class ScaleSelector extends ConsumerStatefulWidget {
 }
 
 class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
+  Timer? _timer;
+
   @override
   Widget build(BuildContext context) {
     final selectedScale = ref.watch(scaleDropdownValueProvider);
     final selectedMode = ref.watch(modeDropdownValueProvider);
-    final entitlement =
-        ref.watch(revenueCatProvider); // Watch user's entitlement status
+    final entitlement = ref.watch(revenueCatProvider);
 
     bool hasFullAccess =
         entitlement == Entitlement.paid || entitlement == Entitlement.trial;
     String defaultScale = 'Diatonic Major';
+
+    final scaleToDisplay = hasFullAccess ? selectedScale : defaultScale;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -33,36 +38,33 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
           Expanded(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width *
-                    0.4, // Adjust the max width as needed
+                maxWidth: MediaQuery.of(context).size.width * 0.4,
               ),
               child: DropdownButtonFormField<String>(
-                isExpanded: true, // Make the dropdown button expanded
+                isExpanded: true,
                 dropdownColor: Colors.grey[800],
-                value: hasFullAccess ? selectedScale : defaultScale,
+                value: scaleToDisplay,
                 onChanged: (newValue) {
                   if (hasFullAccess) {
                     ref.read(scaleDropdownValueProvider.notifier).state =
                         newValue!;
                     ref.read(modeDropdownValueProvider.notifier).state =
-                        Scales.data[newValue].keys.first as String;
+                        Scales.data[newValue]!.keys.first;
                   } else {
-                    // If the user doesn't have full access, reset to default
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
                             'Upgrade required to select this scale. Defaulting to Diatonic Major.'),
                       ),
                     );
-                    // ref.read(scaleDropdownValueProvider.notifier).state =
-                    //     defaultScale;
-                    // ref.read(modeDropdownValueProvider.notifier).state =
-                    //     Scales.data[defaultScale].keys.first as String;
+                    ref.read(scaleDropdownValueProvider.notifier).state =
+                        defaultScale;
+                    ref.read(modeDropdownValueProvider.notifier).state =
+                        Scales.data[defaultScale]!.keys.first;
                   }
                 },
                 items: Scales.data.keys
-                    .map<DropdownMenuItem<String>>((dynamic value) {
-                  String key = value as String;
+                    .map<DropdownMenuItem<String>>((String key) {
                   return DropdownMenuItem<String>(
                     value: key,
                     child: Text(key,
@@ -76,26 +78,23 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
               ),
             ),
           ),
-          const SizedBox(width: 20), // Adjust the width as needed
+          const SizedBox(width: 20),
           Expanded(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width *
-                    0.4, // Adjust the max width as needed
+                maxWidth: MediaQuery.of(context).size.width * 0.4,
               ),
               child: DropdownButtonFormField<String>(
-                isExpanded: true, // Make the dropdown button expanded
+                isExpanded: true,
                 dropdownColor: Colors.grey[800],
                 value: selectedMode,
                 onChanged: (newValue) {
-                  ref
-                      .read(modeDropdownValueProvider.notifier)
-                      .update((state) => newValue!);
+                  ref.read(modeDropdownValueProvider.notifier).state =
+                      newValue!;
                 },
                 items: Scales
-                    .data[hasFullAccess ? selectedScale : defaultScale].keys
-                    .map<DropdownMenuItem<String>>((dynamic value) {
-                  String key = value.toString();
+                    .data[hasFullAccess ? selectedScale : defaultScale]!.keys
+                    .map<DropdownMenuItem<String>>((String key) {
                   return DropdownMenuItem<String>(
                     value: key,
                     child: Text(key,

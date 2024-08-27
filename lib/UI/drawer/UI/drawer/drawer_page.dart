@@ -6,7 +6,7 @@ import 'package:test/constants/styles.dart';
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
-  const DrawerPage({Key? key}) : super(key: key);
+  const DrawerPage({super.key});
 
   @override
   ConsumerState<DrawerPage> createState() => _DrawerPageState();
@@ -19,9 +19,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
-          Column(
+          const Column(
             children: <Widget>[
-              const GeneralOptions(),
+              GeneralOptions(),
               SoundsDropdownColumn(),
             ],
           ),

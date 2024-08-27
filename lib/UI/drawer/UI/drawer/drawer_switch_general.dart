@@ -5,12 +5,12 @@ import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 
 class DrawerGeneralSwitch extends ConsumerWidget {
   const DrawerGeneralSwitch({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.settingSelection,
     required this.switchValue,
-  }) : super(key: key);
+  });
 
   final String title;
   final String subtitle;
@@ -28,8 +28,8 @@ class DrawerGeneralSwitch extends ConsumerWidget {
         ),
         trailing: Switch(
           value: switchValue,
-          onChanged: (value) {
-            ref
+          onChanged: (value) async {
+            await ref
                 .read(settingsStateNotifierProvider.notifier)
                 .changeValue(settingSelection, value);
           },
