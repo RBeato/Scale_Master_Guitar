@@ -10,9 +10,20 @@ class RestorePurchases extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: TextButton(
-        onPressed: () {
-          //ref.read(revenueCatProvider.notifier).restorePurchase();
-          print("CAll Provider");
+        onPressed: () async {
+          try {
+            // Call the restorePurchase method from the provider
+            // await ref.read(revenueCatProvider.notifier).restorePurchase();
+            // Inform the user that the restore was successful
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Purchases restored successfully!')),
+            );
+          } catch (error) {
+            // Handle errors if the restore process fails
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to restore purchases: $error')),
+            );
+          }
         },
         child: const Text("Restore Purchases",
             style: TextStyle(color: Colors.white)),

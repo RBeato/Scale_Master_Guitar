@@ -4,16 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
-//TODO: Drawer preferences bug
 //TODO: Dropdown bug. Scale dropdown bug. It is not rebuilding properly because it is being assigned the same value as initially set. But the UI is changing to a new value
 //TODO: Sound Drawer change not immediately reflected
 //TODO: Review trial detection and entitlements
@@ -75,8 +76,36 @@ void main() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // _checkExistingPurchases();
+  }
+
+  Future<void> _checkExistingPurchases() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      final entitlements = customerInfo.entitlements.active;
+
+      if (entitlements.isNotEmpty) {
+        // Assuming 'premium_access' is your entitlement identifier
+        if (entitlements.containsKey('premium_access')) {
+          //TODO: Or just 'premium'
+          ref.read(revenueCatProvider.notifier).setPaidEntitlement();
+        }
+      }
+    } catch (e) {
+      print("Error checking existing purchases: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
