@@ -3,8 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class PurchaseApi {
-  static final _apiKey =
-      dotenv.env['REVENUE_CAT_API_KEY']!; //TODO: Check apikey.
+  static final _apiKey = dotenv.env['REVENUE_CAT_API_KEY']!;
 
   static Future<void> init() async {
     // Create a configuration instance

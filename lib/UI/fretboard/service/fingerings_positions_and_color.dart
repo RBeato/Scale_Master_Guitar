@@ -90,7 +90,7 @@ class FingeringsCreator {
     }
     // scaleModel.scaleNotesNames = aux;
     scaleModel.completeChordNames = aux;
-    //TODO: Check if is correct
+    //TODO: Check if it is correct
   }
 
   setModeDegrees(scaleModel) {

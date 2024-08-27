@@ -45,8 +45,7 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
-    //TODO: Change the entitlement status
-    const entitlement = Entitlement.free; //ref.watch(revenueCatProvider);
+    final entitlement = ref.watch(revenueCatProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[900],
@@ -103,9 +102,10 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionPage> {
                             const SnackBar(
                                 content: Text('Purchase successful')),
                           );
-                          await ref
-                              .read(revenueCatProvider.notifier)
-                              .updatePurchaseStatus();
+                          //TODO; Uncomment the following line to update the entitlement
+                          // await ref
+                          //     .read(revenueCatProvider.notifier)
+                          //     .updatePurchaseStatus();
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Purchase failed')),
@@ -268,9 +268,10 @@ class _SubscriptionsPageState extends ConsumerState<SubscriptionPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Purchase successful')),
                   );
-                  await ref
-                      .read(revenueCatProvider.notifier)
-                      .updatePurchaseStatus();
+                  //TODO: Uncomment this line if you want to update the purchase status
+                  // await ref
+                  //     .read(revenueCatProvider.notifier)
+                  //     .updatePurchaseStatus();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Purchase failed')),

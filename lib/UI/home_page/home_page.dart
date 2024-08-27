@@ -15,49 +15,50 @@ class HomePage extends ConsumerWidget {
     final entitlement = ref.watch(revenueCatProvider);
 
     // Use a FutureBuilder to update the UI based on the entitlement status
-    return FutureBuilder(
-      future: ref.read(revenueCatProvider.notifier).updatePurchaseStatus(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show a loading spinner while waiting for the future to complete
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.connectionState == ConnectionState.done) {
-          if (entitlement == Entitlement.paid) {
-            // Redirect to the SelectionPage if the user has the paid entitlement
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const SelectionPage()),
-              );
-            });
-            return const SizedBox
-                .shrink(); // Return an empty widget while redirecting
-          } else {
-            // Show the subscription prompt if the user does not have the paid entitlement
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const SubscriptionPage()),
-              );
-            });
-            return const SizedBox
-                .shrink(); // Return an empty widget while redirecting
-          }
-        } else {
-          // Handle the case where the future failed
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(title),
-            ),
-            body: const Center(
-              child:
-                  Text('Failed to check entitlement. Please try again later.'),
-            ),
-          );
-        }
-      },
-    );
+    return const SelectionPage();
+    // FutureBuilder(
+    //   future: ref.read(revenueCatProvider.notifier).updatePurchaseStatus(),
+    //   builder: (context, snapshot) {
+    //     if (snapshot.connectionState == ConnectionState.waiting) {
+    //       // Show a loading spinner while waiting for the future to complete
+    //       return const Center(child: CircularProgressIndicator());
+    //     } else if (snapshot.connectionState == ConnectionState.done) {
+    //       if (entitlement == Entitlement.paid) {
+    //         // Redirect to the SelectionPage if the user has the paid entitlement
+    //         WidgetsBinding.instance.addPostFrameCallback((_) {
+    //           Navigator.pushReplacement(
+    //             context,
+    //             MaterialPageRoute(builder: (context) => const SelectionPage()),
+    //           );
+    //         });
+    //         return const SizedBox
+    //             .shrink(); // Return an empty widget while redirecting
+    //       } else {
+    //         // Show the subscription prompt if the user does not have the paid entitlement
+    //         WidgetsBinding.instance.addPostFrameCallback((_) {
+    //           Navigator.pushReplacement(
+    //             context,
+    //             MaterialPageRoute(
+    //                 builder: (context) => const SubscriptionPage()),
+    //           );
+    //         });
+    //         return const SizedBox
+    //             .shrink(); // Return an empty widget while redirecting
+    //       }
+    //     } else {
+    //       // Handle the case where the future failed
+    //       return Scaffold(
+    //         appBar: AppBar(
+    //           title: Text(title),
+    //         ),
+    //         body: const Center(
+    //           child:
+    //               Text('Failed to check entitlement. Please try again later.'),
+    //         ),
+    //       );
+    //     }
+    //   },
+    // );
   }
 }
 

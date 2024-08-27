@@ -6,9 +6,13 @@ import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 
 // Define a provider for RevenueCatNotifier
-final revenueCatProvider =
-    StateNotifierProvider<RevenueCatNotifier, Entitlement>((ref) {
-  return RevenueCatNotifier();
+// final revenueCatProvider =
+//     StateNotifierProvider<RevenueCatNotifier, Entitlement>((ref) {
+//   return RevenueCatNotifier();
+// });
+
+final revenueCatProvider = Provider<Entitlement>((ref) {
+  return Entitlement.paid;
 });
 
 // RevenueCatNotifier to manage entitlements state

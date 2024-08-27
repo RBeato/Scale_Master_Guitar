@@ -11,7 +11,8 @@ class RestorePurchases extends ConsumerWidget {
       padding: const EdgeInsets.all(8.0),
       child: TextButton(
         onPressed: () {
-          ref.read(revenueCatProvider.notifier).restorePurchase();
+          //ref.read(revenueCatProvider.notifier).restorePurchase();
+          print("CAll Provider");
         },
         child: const Text("Restore Purchases",
             style: TextStyle(color: Colors.white)),

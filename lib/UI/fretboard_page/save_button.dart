@@ -68,8 +68,7 @@ class SaveImageButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    //TODO: change entitlement in here
-    const entitlement = Entitlement.free; // ref.watch(revenueCatProvider);
+    final entitlement = ref.watch(revenueCatProvider);
     return Center(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,

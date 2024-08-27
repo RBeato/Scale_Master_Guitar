@@ -19,9 +19,7 @@ class FretboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    //TODO: change entitlement in here
-    const entitlement = Entitlement.free;
-    // ref.watch(revenueCatProvider);
+    final entitlement = ref.watch(revenueCatProvider);
     prohibitScreenShots(entitlement);
     // Obtain a copy of ChordScaleFingeringsModel specific to this page
     final fretboardFingerings = ref.watch(fretboardPageFingeringsProvider);

@@ -12,8 +12,7 @@ import 'provider/sharp_flat_selection_provider.dart';
 class FretboardFull extends ConsumerStatefulWidget {
   final ChordScaleFingeringsModel fingeringsModel;
 
-  const FretboardFull({Key? key, required this.fingeringsModel})
-      : super(key: key);
+  const FretboardFull({super.key, required this.fingeringsModel});
 
   @override
   ConsumerState<FretboardFull> createState() => _FretboardFullState();
@@ -101,7 +100,7 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
                 return;
               }
 
-              string = string - 1; //TODO: Fix this. 6th string not working
+              string = string - 1;
 
               final updatedDotPositions = List.generate(
                 dotPositions.length,
