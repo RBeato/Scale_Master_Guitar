@@ -132,20 +132,25 @@ class MusicUtils {
     // print("scaleDegrees: $scaleDegrees");
 
     if (scaleDegrees.length == 8) {
-      if (scaleDegrees.contains(Interval.M3) &&
-          scaleDegrees.contains(Interval.m3)) {
-        intervals.addAll([
-          scaleDegrees[0]!,
-          scaleDegrees[3]!,
-          scaleDegrees[5]!,
-        ]);
-      } else {
-        intervals.addAll([
-          scaleDegrees[0]!,
-          scaleDegrees[2]!,
-          scaleDegrees[4]!,
-        ]);
-      }
+      intervals.addAll([
+        scaleDegrees[0]!,
+        scaleDegrees[2]!,
+        scaleDegrees[4]!,
+      ]);
+      // if (scaleDegrees.contains(Interval.M3) &&
+      //     scaleDegrees.contains(Interval.m3)) {
+      //   intervals.addAll([
+      //     scaleDegrees[0]!,
+      //     scaleDegrees[3]!,
+      //     scaleDegrees[5]!,
+      //   ]);
+      // } else {
+      //   intervals.addAll([
+      //     scaleDegrees[0]!,
+      //     scaleDegrees[2]!,
+      //     scaleDegrees[4]!,
+      //   ]);
+      // }
     }
 
     if (scaleDegrees.length == 7) {
@@ -283,10 +288,10 @@ class MusicUtils {
       fixedOrderedScaleDegrees.add(fixIntervals(orderedScale));
     }
 
-    for (int i = 0; i < fixedOrderedScaleDegrees.length; i++) {
-      print(
-          "${orderedScaleDegrees[i]} fixed orderedScaleDegrees $i: ${fixedOrderedScaleDegrees[i]}");
-    }
+    // for (int i = 0; i < fixedOrderedScaleDegrees.length; i++) {
+    //   print(
+    //       "${orderedScaleDegrees[i]} fixed orderedScaleDegrees $i: ${fixedOrderedScaleDegrees[i]}");
+    // }
     scaleModel.notesIntervalsRelativeToTonicForBuildingChordsList =
         scaleDegrees;
 

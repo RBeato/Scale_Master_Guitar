@@ -54,12 +54,16 @@ class ChordUtils {
       return '7';
     }
     if (chordPattern == 'P1,d3,m6') {
-      return 'ERROR'; //return 'mMaj7';
+      return 'aug sus2';
     }
     if (chordPattern == 'P1,m3,M6') {
       return 'dim/3';
     }
     if (chordPattern == 'P1,P4,M6') {
+      //*inversion
+      return 'M64';
+    }
+    if (chordPattern == '6sus4') {
       //*inversion
       return 'M64';
     }
@@ -70,7 +74,6 @@ class ChordUtils {
       //*inversion
       return 'm64';
     }
-
     if (chordPattern == 'P1,P4,m7') {
       //*inversion
       return 'sus4/2';
@@ -110,6 +113,9 @@ class ChordUtils {
     if (type == 'm') {
       return Interval.P1;
     }
+    if (type == 'min/maj7') {
+      return Interval.P1;
+    }
     if (type == 'M') {
       return Interval.P1;
     }
@@ -126,44 +132,57 @@ class ChordUtils {
     if (type == '7') {
       return Interval.P1;
     }
-
-    if (type == 'P1,d3,m6') {}
+    if (type == 'P1,d3,m6') {
+      //TODO: Double check this
+      return Interval.m6;
+    }
     if (type == 'dim/3') {
       return Interval.M6;
     }
     if (type == 'M64') {
       return Interval.P4;
     }
+    if (type == 'm♭6') {
+      return Interval.m6;
+    }
     if (type == 'm6') {
       return Interval.M6;
     }
-
+    if (type == '6') {
+      //TODO: Double check this
+      return Interval.M6;
+    }
     if (type == 'm64') {
       return Interval.P4;
     }
     if (type == 'sus4/2') {
       return Interval.P4;
     }
-
     if (type == '1/4/7') {
+      return Interval.P1;
+    }
+
+    if (type == '7sus4') {
+      return Interval.P1;
+    }
+    if (type == '6sus4') {
       return Interval.P1;
     }
     if (type == '7/5/3') {
       return Interval.M2;
     }
-
     if (type == '7/3 #4') {
       return Interval.M2;
     }
-
+    if (type == '7/3') {
+      return Interval.A4;
+    }
     if (type == 'dim/4') {
       return Interval.A4;
     }
-
     if (type == 'Maj7#11') {
       return Interval.P1;
     }
-
     if (type == 'mMaj7') {
       return Interval.P1;
     }
@@ -173,13 +192,17 @@ class ChordUtils {
     if (type == 'aug Maj7') {
       return Interval.P1;
     }
+    if (type == 'aug sus2') {
+      return Interval.P1;
+    }
     if (type == '°') {
       return Interval.P1;
     }
     if (type == '+') {
       return Interval.P1;
     } else {
-      throw Exception('Unknown chord type');
+      print('Unknown chord type. Chord type is $type');
+      throw Exception('Unknown chord type. Chord type is $type');
     }
   }
 }

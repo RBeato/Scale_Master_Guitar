@@ -20,17 +20,7 @@ Map octatonics = {
     ],
   },
   'Half-Whole': {
-    'scaleStepsRoman': [
-      'I',
-      '♭II',
-      '♭III',
-      'III',
-      '♯IV',
-      'V',
-      'VI',
-      '♭VII',
-      '♭VII'
-    ],
+    'scaleStepsRoman': ['I', '♭II', '♭III', 'III', '♯IV', 'V', 'VI', '♭VII'],
     'intervals': [0, 1, 3, 4, 6, 7, 9, 10],
     'scaleDegrees': [
       Interval.P1,

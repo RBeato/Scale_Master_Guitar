@@ -16,11 +16,9 @@ import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
 //TODO: Dropdown bug. Scale dropdown bug. It is not rebuilding properly because it is being assigned the same value as initially set. But the UI is changing to a new value
-//TODO: Sound Drawer change not immediately reflected
 //TODO: Review trial detection and entitlements
-//TODO: Use Restore Purchases Button
 //!TODO: Use physical device
-//TODO: Check all scales
+//TODO: fix blues and major blues chord names, probably being indexed from 0 to 5 and leaving 6 out. should be leaving out the passing tone
 
 //RevenueCat tutorial: https://www.youtube.com/watch?v=3w15dLLi-K8&t=576s
 //REvenueCat updated: https://www.youtube.com/watch?v=31mM8ozGyE8&t=403s
@@ -99,7 +97,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         // Assuming 'premium_access' is your entitlement identifier
         if (entitlements.containsKey('premium_access')) {
           //TODO: Or just 'premium'
-          ref.read(revenueCatProvider.notifier).setPaidEntitlement();
+          // ref.read(revenueCatProvider.notifier).setPaidEntitlement();
         }
       }
     } catch (e) {
