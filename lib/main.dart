@@ -8,11 +8,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'revenue_cat_purchase_flutter/store_config.dart';
 
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
 //TODO: Dropdown bug. Scale dropdown bug. It is not rebuilding properly because it is being assigned the same value as initially set. But the UI is changing to a new value

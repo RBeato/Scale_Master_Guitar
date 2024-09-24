@@ -73,12 +73,11 @@ class SequencerManager {
     try {
       // Create tracks
       List<Track> createdTracks = await sequence.createTracks(instruments);
-
       tracks = createdTracks;
       selectedTrack = tracks[0];
 
       for (Track track in tracks) {
-        trackVolumes[track.id] = 0.0;
+        trackVolumes[track.id] = 0.8; // Set an initial volume for all tracks
         trackStepSequencerStates[track.id] = StepSequencerState();
       }
 
@@ -110,6 +109,8 @@ class SequencerManager {
   }) async {
     ProjectState project = ProjectState.empty(stepCount);
 
+    print("Creating project with ${selectedChords.length} chords");
+
     for (int i = 0; i < selectedChords.length; i++) {
       ChordModel chord = selectedChords[i];
       for (var note in chord.chordNotesInversionWithIndexes!) {
@@ -137,11 +138,21 @@ class SequencerManager {
       }
 
       var bassMidiValue = MusicConstants.midiValues["$note$index"]!;
+      print("Adding bass note: Chord ${i + 1}/${selectedChords.length}");
+      print("  Position: ${chord.position}");
+      print("  Note: $note");
+      print("  MIDI Value: $bassMidiValue");
+      print("  Velocity: 0.89");
 
-      print(
-          "TonicAsUniversalNote: $tonicAsUniversalBassNote, bass note: $note, midi value: $bassMidiValue , index: $index");
+      project.bassState.setVelocity(
+          chord.position, bassMidiValue, 0.89); // Increase velocity if needed
 
-      project.bassState.setVelocity(chord.position, bassMidiValue, 0.79);
+      // Verify if the note was added successfully
+      double? addedVelocity =
+          project.bassState.getVelocity(chord.position, bassMidiValue);
+      print("  Bass note added successfully. Velocity: $addedVelocity");
+
+      print(""); //
     }
 
     if (isMetronomeSelected && playAllInstruments) {
@@ -172,6 +183,15 @@ class SequencerManager {
       sequence.stop();
       ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     } else {
+      var tracks = sequence.getTracks();
+      print("PlayAllInstruments: $playAllInstruments");
+      print("Playing sequence. Tracks: ${tracks.length}");
+      if (tracks.length > 2) {
+        print("Bass track events: ${tracks[2].events.length}");
+        print("Bass track volume: ${trackVolumes[tracks[2].id]}");
+      } else {
+        print("Not enough tracks available");
+      }
       sequence.play();
     }
   }
@@ -187,10 +207,7 @@ class SequencerManager {
     } else {
       sequence.unsetLoop();
     }
-
-    // setState(() {
     isTrackLooping = nextIsLooping;
-    // });
   }
 
   handleToggleLoop(bool isLooping, Sequence sequence) {

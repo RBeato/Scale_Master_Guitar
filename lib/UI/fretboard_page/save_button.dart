@@ -1,3 +1,4 @@
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -23,46 +24,94 @@ class SaveImageButton extends ConsumerWidget {
     }
   }
 
+// Function to get the directory path
+
+// Helper function to check if Scoped Storage is required
+  Future<bool> _isScopedStorageRequired() async {
+    // For Android 11+ (API level 30 and above)
+    return (Platform.isAndroid &&
+        (await DeviceInfoPlugin().androidInfo).version.sdkInt! >= 30);
+  }
+
   Future<void> _saveImage(BuildContext context) async {
+    print('Starting the saveImage process...');
+
+    // Request storage permissions
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
+      print('Storage permission denied.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Storage permission is required to save images')),
+      );
+      return;
+    } else {
+      print('Storage permission granted.');
+    }
+
     // Find the WidgetToPngExporterState
     final widgetToPngExporterState = WidgetToPngExporter.of(context);
-    if (widgetToPngExporterState != null) {
-      // Call the capturePng method
-      Uint8List? pngBytes = await widgetToPngExporterState.capturePng();
-      if (pngBytes != null) {
-        try {
-          // Get the directory for saving files
-          Directory? downloadsDirectory = await getExternalStorageDirectory();
-          String? directoryPath;
+    if (widgetToPngExporterState == null) {
+      print('WidgetToPngExporterState not found.');
+      return;
+    }
 
-          if (downloadsDirectory != null) {
-            directoryPath = '/storage/emulated/0/Download';
-          } else {
-            // Fallback to application directory if Downloads directory is not accessible
-            downloadsDirectory = await getApplicationDocumentsDirectory();
-            directoryPath = downloadsDirectory.path;
-          }
+    // Capture PNG bytes
+    Uint8List? pngBytes = await widgetToPngExporterState.capturePng();
+    if (pngBytes == null) {
+      print('Error capturing PNG image.');
+      return;
+    } else {
+      print('PNG image captured successfully. Byte size: ${pngBytes.length}');
+    }
 
-          String filePath = '$directoryPath/SMG_image.png';
-
-          // Write the PNG bytes to the file
-          await File(filePath).writeAsBytes(pngBytes);
-
-          print('PNG image saved: $filePath');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Image saved to $filePath')),
-          );
-        } catch (e) {
-          print('Error saving PNG image: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error saving image')),
-          );
+    try {
+      // Get the directory for saving files
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Android-specific handling for scoped storage
+        if (await _isScopedStorageRequired()) {
+          // Use an internal directory if Scoped Storage is required
+          directory = await getApplicationDocumentsDirectory();
+          print('Using internal storage: ${directory.path}');
+        } else {
+          // For Android versions below 11, use the external storage directory
+          directory = await getExternalStorageDirectory();
+          print('Using external storage: ${directory?.path}');
         }
       } else {
-        print('Error capturing PNG image.');
+        // For iOS or other platforms
+        directory = await getApplicationDocumentsDirectory();
+        print(
+            'Using application directory for non-Android platforms: ${directory.path}');
       }
-    } else {
-      print('WidgetToPngExporterState not found.');
+
+      if (directory == null) {
+        print('Could not retrieve a valid directory.');
+        return;
+      }
+
+      // Generate a unique filename with timestamp
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      String filePath = '${directory.path}/SMG_image_$timestamp.png';
+      print('File path set: $filePath');
+
+      // Write the PNG bytes to the file
+      print('Attempting to write PNG bytes to file...');
+      File file = File(filePath);
+      await file.writeAsBytes(pngBytes);
+      print('PNG image saved successfully: $filePath');
+
+      // Notify the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image saved to $filePath')),
+      );
+    } catch (e, stackTrace) {
+      print('Error saving PNG image: $e');
+      print('Stack trace: $stackTrace');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error saving image')),
+      );
     }
   }
 
