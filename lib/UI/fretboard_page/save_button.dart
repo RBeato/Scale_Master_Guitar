@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test/UI/fretboard_page/widget_to_png.dart';
 import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:path/path.dart'
+    as path; // Import path package for file handling
 
 import '../../revenue_cat_purchase_flutter/entitlement.dart';
 
@@ -24,9 +26,7 @@ class SaveImageButton extends ConsumerWidget {
     }
   }
 
-// Function to get the directory path
-
-// Helper function to check if Scoped Storage is required
+  // Helper function to check if Scoped Storage is required
   Future<bool> _isScopedStorageRequired() async {
     // For Android 11+ (API level 30 and above)
     return (Platform.isAndroid &&
@@ -35,7 +35,6 @@ class SaveImageButton extends ConsumerWidget {
 
   Future<void> _saveImage(BuildContext context) async {
     print('Starting the saveImage process...');
-
     // Request storage permissions
     var status = await Permission.storage.request();
     if (!status.isGranted) {
@@ -66,34 +65,25 @@ class SaveImageButton extends ConsumerWidget {
     }
 
     try {
-      // Get the directory for saving files
-      Directory? directory;
+      // Use the Downloads directory
+      Directory? downloadsDirectory;
       if (Platform.isAndroid) {
-        // Android-specific handling for scoped storage
-        if (await _isScopedStorageRequired()) {
-          // Use an internal directory if Scoped Storage is required
-          directory = await getApplicationDocumentsDirectory();
-          print('Using internal storage: ${directory.path}');
-        } else {
-          // For Android versions below 11, use the external storage directory
-          directory = await getExternalStorageDirectory();
-          print('Using external storage: ${directory?.path}');
-        }
+        // For Android, get the Downloads directory
+        downloadsDirectory = Directory('/storage/emulated/0/Download');
       } else {
         // For iOS or other platforms
-        directory = await getApplicationDocumentsDirectory();
-        print(
-            'Using application directory for non-Android platforms: ${directory.path}');
+        downloadsDirectory = await getApplicationDocumentsDirectory();
       }
 
-      if (directory == null) {
-        print('Could not retrieve a valid directory.');
+      if (!await downloadsDirectory.exists()) {
+        print('Could not retrieve a valid Downloads directory.');
         return;
       }
 
       // Generate a unique filename with timestamp
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String filePath = '${directory.path}/SMG_image_$timestamp.png';
+      String filePath =
+          path.join(downloadsDirectory.path, 'SMG_image_$timestamp.png');
       print('File path set: $filePath');
 
       // Write the PNG bytes to the file
