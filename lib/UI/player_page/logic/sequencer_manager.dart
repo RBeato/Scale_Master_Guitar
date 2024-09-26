@@ -77,7 +77,8 @@ class SequencerManager {
       selectedTrack = tracks[0];
 
       for (Track track in tracks) {
-        trackVolumes[track.id] = 0.8; // Set an initial volume for all tracks
+        trackVolumes[track.id] =
+            1.0; // Set maximum initial volume for all tracks
         trackStepSequencerStates[track.id] = StepSequencerState();
       }
 
@@ -113,9 +114,10 @@ class SequencerManager {
 
     for (int i = 0; i < selectedChords.length; i++) {
       ChordModel chord = selectedChords[i];
+      print("Chord: $chord");
       for (var note in chord.chordNotesInversionWithIndexes!) {
         project.pianoState.setVelocity(
-            chord.position, MusicConstants.midiValues[note]!, 0.99);
+            chord.position, MusicConstants.midiValues[note]!, 0.89);
       }
 
       var note = tonicAsUniversalBassNote
@@ -142,10 +144,9 @@ class SequencerManager {
       print("  Position: ${chord.position}");
       print("  Note: $note");
       print("  MIDI Value: $bassMidiValue");
-      print("  Velocity: 0.89");
 
       project.bassState.setVelocity(
-          chord.position, bassMidiValue, 0.89); // Increase velocity if needed
+          chord.position, bassMidiValue, 0.99); // Increase velocity if needed
 
       // Verify if the note was added successfully
       double? addedVelocity =
@@ -157,7 +158,7 @@ class SequencerManager {
 
     if (isMetronomeSelected && playAllInstruments) {
       for (int i = 0; i < nBeats; i++) {
-        project.drumState.setVelocity(i, 44, 0.19);
+        project.drumState.setVelocity(i, 44, 0.29);
       }
     }
     return project;
@@ -188,7 +189,8 @@ class SequencerManager {
       print("Playing sequence. Tracks: ${tracks.length}");
       if (tracks.length > 2) {
         print("Bass track events: ${tracks[2].events.length}");
-        print("Bass track volume: ${trackVolumes[tracks[2].id]}");
+        // print("Bass track volume: ${trackVolumes[tracks[2].id]}");
+        print("Bass track volume: ${tracks[2].getVolume()}");
       } else {
         print("Not enough tracks available");
       }

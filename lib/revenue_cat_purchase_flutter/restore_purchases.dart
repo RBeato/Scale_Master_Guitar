@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
 class RestorePurchases extends ConsumerWidget {
   const RestorePurchases({super.key});

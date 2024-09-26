@@ -18,8 +18,7 @@ import '../utils/debouncing.dart';
 import 'custom_piano.dart';
 
 class CustomPianoSoundController extends ConsumerStatefulWidget {
-  const CustomPianoSoundController(this.scaleModel, {Key? key})
-      : super(key: key);
+  const CustomPianoSoundController(this.scaleModel, {super.key});
 
   final ScaleModel? scaleModel;
 

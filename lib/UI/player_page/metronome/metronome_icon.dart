@@ -9,7 +9,7 @@ import 'metrome_custom_painter.dart';
 class MetronomeButton extends ConsumerWidget {
   bool _isOn = false;
 
-  MetronomeButton({Key? key}) : super(key: key);
+  MetronomeButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,8 +37,7 @@ class MetronomeIcon extends StatelessWidget {
   final double size;
   final bool isOn;
 
-  const MetronomeIcon({Key? key, required this.size, required this.isOn})
-      : super(key: key);
+  const MetronomeIcon({super.key, required this.size, required this.isOn});
 
   @override
   Widget build(BuildContext context) {

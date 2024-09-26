@@ -9,8 +9,7 @@ import 'provider/palette_color_provider.dart';
 import 'sharp_flats_selection_button.dart';
 
 class FretboardOptionButtons extends ConsumerWidget {
-  const FretboardOptionButtons(this.isDegreeSelected, {Key? key})
-      : super(key: key);
+  const FretboardOptionButtons(this.isDegreeSelected, {super.key});
 
   final bool isDegreeSelected;
 

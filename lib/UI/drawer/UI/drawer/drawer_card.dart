@@ -11,13 +11,12 @@ class DrawerCard extends ConsumerWidget {
   SettingsSelection settingsSelection;
 
   DrawerCard(
-      {Key? key,
+      {super.key,
       required this.title,
       required this.subtitle,
       required this.dropdownList,
       required this.savedValue,
-      required this.settingsSelection})
-      : super(key: key);
+      required this.settingsSelection});
 
   late String _selection;
 

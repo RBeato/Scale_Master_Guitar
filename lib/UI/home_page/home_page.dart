@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/home_page/selection_page.dart';
-import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:test/revenue_cat_purchase_flutter/subscriptions_page.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key, required this.title});

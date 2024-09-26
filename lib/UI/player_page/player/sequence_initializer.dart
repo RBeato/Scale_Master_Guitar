@@ -17,8 +17,7 @@ import '../provider/is_metronome_selected.dart';
 import '../provider/metronome_tempo_provider.dart';
 
 class SequencerInitializer extends ConsumerStatefulWidget {
-  const SequencerInitializer(this.scaleModel, this.musicPlayer, {Key? key})
-      : super(key: key);
+  const SequencerInitializer(this.scaleModel, this.musicPlayer, {super.key});
 
   final ScaleModel? scaleModel;
   final Widget musicPlayer;

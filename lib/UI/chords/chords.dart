@@ -16,7 +16,7 @@ import 'info_about_chords_button.dart';
 enum Taps { single, double }
 
 class Chords extends ConsumerWidget {
-  const Chords({Key? key}) : super(key: key);
+  const Chords({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -6,8 +6,7 @@ import '../../utils/music_utils.dart';
 import 'custom_piano_key.dart';
 
 class CustomPiano extends StatefulWidget {
-  const CustomPiano(this.scaleInfo, {required this.onKeyPressed, Key? key})
-      : super(key: key);
+  const CustomPiano(this.scaleInfo, {required this.onKeyPressed, super.key});
 
   final ScaleModel? scaleInfo;
   final Function(String) onKeyPressed;

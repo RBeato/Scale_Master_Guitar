@@ -6,7 +6,7 @@ import '../provider/is_playing_provider.dart';
 import '../provider/metronome_tempo_provider.dart';
 
 class MetronomeDisplay extends ConsumerWidget {
-  const MetronomeDisplay({
+  const MetronomeDisplay({super.key, 
     required this.selectedTempo,
     // required this.handleChange,
   });
@@ -47,7 +47,7 @@ class MetronomeDisplay extends ConsumerWidget {
 }
 
 class BPMSelector extends ConsumerWidget {
-  BPMSelector({
+  BPMSelector({super.key, 
     required this.selectedTempo,
     // required this.handleChange,
   });
@@ -64,7 +64,7 @@ class BPMSelector extends ConsumerWidget {
     double listHeight = 256.toDouble() * itemHeight;
     double offset = (listHeight / selectedTempo * itemHeight);
     // print('itemHeight: ${(selectedTempo / 2).round()}');
-    WidgetsBinding.instance!
+    WidgetsBinding.instance
         .addPostFrameCallback((_) => _controller.jumpTo(offset));
 
     return Dialog(

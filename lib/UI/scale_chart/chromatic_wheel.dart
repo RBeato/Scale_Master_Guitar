@@ -7,6 +7,8 @@ import '../../constants/music_constants.dart';
 import '../chromatic_wheel/provider/top_note_provider.dart';
 
 class ChromaticWheel extends ConsumerStatefulWidget {
+  const ChromaticWheel({super.key});
+
   @override
   _ChromaticWheelState createState() => _ChromaticWheelState();
 }

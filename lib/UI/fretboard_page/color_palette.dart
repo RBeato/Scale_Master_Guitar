@@ -7,10 +7,10 @@ class ColorPalette extends ConsumerWidget {
   final Function(Color) onColorSelected;
 
   const ColorPalette({
-    Key? key,
+    super.key,
     required this.colors,
     required this.onColorSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

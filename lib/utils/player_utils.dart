@@ -37,11 +37,20 @@ class SoundPlayerUtils {
     if (key == 'keys' && instSound == 'Rhodes') {
       sound = 'Rhodes';
     }
+    if (key == 'keys' && instSound == 'Organ') {
+      sound = 'Organ';
+    }
+    if (key == 'keys' && instSound == 'Pad') {
+      sound = 'Pad';
+    }
     if (key == 'bass' && instSound == 'Double Bass') {
       sound = 'Double Bass';
     }
     if (key == 'bass' && instSound == 'Electric') {
       sound = 'Electric';
+    }
+    if (key == 'bass' && instSound == 'Synth') {
+      sound = 'Synth';
     }
     if (key == 'drums' && instSound == 'Electronic') {
       sound = 'Electronic';

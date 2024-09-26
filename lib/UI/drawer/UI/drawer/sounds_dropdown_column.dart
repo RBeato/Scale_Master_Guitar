@@ -8,7 +8,7 @@ import 'package:test/models/settings_model.dart';
 import 'drawer_card.dart';
 
 class SoundsDropdownColumn extends ConsumerWidget {
-  const SoundsDropdownColumn({Key? key}) : super(key: key);
+  const SoundsDropdownColumn({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,14 +34,14 @@ Widget buildColumnWithData(BuildContext context, Settings settings) {
     DrawerCard(
       title: 'Keyboard Sound',
       subtitle: 'Choose the type of keyboard sound you prefer',
-      dropdownList: const ['Piano', 'Rhodes'],
+      dropdownList: const ['Piano', 'Rhodes', 'Organ', 'Pad'],
       savedValue: settings.keyboardSound,
       settingsSelection: SettingsSelection.keyboardSound,
     ),
     DrawerCard(
       title: 'Bass Sound',
       subtitle: 'Choose the type of bass sound you prefer',
-      dropdownList: const ['Double Bass', 'Electric'],
+      dropdownList: const ['Double Bass', 'Electric', 'Synth'],
       savedValue: settings.bassSound,
       settingsSelection: SettingsSelection.bassSound,
     ),

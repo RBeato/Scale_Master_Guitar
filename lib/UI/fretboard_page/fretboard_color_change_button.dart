@@ -4,7 +4,7 @@ import 'package:test/UI/fretboard_page/provider/fretboard_color_provider.dart';
 import 'color_picker_dialog.dart'; // Ensure this import is correct
 
 class FretboardColorChangeButton extends ConsumerWidget {
-  const FretboardColorChangeButton({Key? key}) : super(key: key);
+  const FretboardColorChangeButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,7 +16,7 @@ class FretboardColorChangeButton extends ConsumerWidget {
         showDialog(
           context: context,
           builder: (context) {
-            return ColorPickerDialog();
+            return const ColorPickerDialog();
           },
         );
       },

@@ -6,7 +6,7 @@ import '../custom_piano/custom_piano_player.dart';
 import '../fretboard/provider/fingerings_provider.dart';
 
 class WheelAndPianoColumn extends ConsumerWidget {
-  const WheelAndPianoColumn({Key? key}) : super(key: key);
+  const WheelAndPianoColumn({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

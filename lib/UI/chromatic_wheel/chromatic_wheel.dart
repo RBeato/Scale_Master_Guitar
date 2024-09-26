@@ -11,7 +11,7 @@ import '../../constants/scales/scales_data_v2.dart';
 import 'provider/top_note_provider.dart';
 
 class ChromaticWheel extends ConsumerStatefulWidget {
-  const ChromaticWheel(this.scaleModel, {Key? key}) : super(key: key);
+  const ChromaticWheel(this.scaleModel, {super.key});
   final ScaleModel scaleModel;
 
   @override

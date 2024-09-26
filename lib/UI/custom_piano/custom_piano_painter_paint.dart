@@ -4,8 +4,8 @@ import '../../models/scale_model.dart';
 import 'custom_piano_painter.dart';
 
 class CustomPianoTest extends ConsumerStatefulWidget {
-  const CustomPianoTest(this.scaleInfo, {required this.onKeyPressed, Key? key})
-      : super(key: key);
+  const CustomPianoTest(this.scaleInfo,
+      {required this.onKeyPressed, super.key});
 
   final ScaleModel? scaleInfo;
   final Function(String) onKeyPressed;

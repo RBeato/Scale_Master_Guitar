@@ -33,11 +33,14 @@ class Constants {
     },
     'keys': {
       'Piano': "assets/sounds/sf2/kawai_grand_piano.sf2",
-      'Rhodes': "assets/sounds/sf2/Toy_Rhodes.sf2"
+      'Rhodes': "assets/sounds/sf2/Toy_Rhodes.sf2",
+      'Organ': "assets/sounds/sf2/organ.sf2",
+      'Pad': "assets/sounds/sf2/pad.sf2"
     },
     'bass': {
       'Double Bass': "assets/sounds/sf2/jazz_bass.sf2",
-      'Electric': "assets/sounds/sf2/tek_bass.sf2"
+      'Electric': "assets/sounds/sf2/tek_bass.sf2",
+      'Synth': "assets/sounds/sf2/synth_bass.sf2"
     },
   };
 

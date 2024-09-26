@@ -9,8 +9,8 @@ import 'drawer_switch_general.dart';
 
 class GeneralOptions extends ConsumerWidget {
   const GeneralOptions({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,7 +36,7 @@ class GeneralOptions extends ConsumerWidget {
 }
 
 class GeneralOptionsCards extends StatelessWidget {
-  GeneralOptionsCards(this.settings, {Key? key}) : super(key: key);
+  GeneralOptionsCards(this.settings, {super.key});
   Settings settings;
 
   @override

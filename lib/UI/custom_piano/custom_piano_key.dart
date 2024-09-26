@@ -8,13 +8,13 @@ class CustomPianoKey extends StatefulWidget {
   final Color? containerColor;
 
   const CustomPianoKey({
-    Key? key,
+    super.key,
     required this.isBlack,
     required this.note,
     required this.onKeyPressed,
     required this.containerColor,
     this.isInScale = false,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomPianoKey> createState() => _CustomPianoKeyState();

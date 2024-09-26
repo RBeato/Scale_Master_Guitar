@@ -5,7 +5,7 @@ import 'package:test/UI/utils/ui_utils.dart';
 class BaseWidget extends StatelessWidget {
   final Widget Function(
       BuildContext context, SizingInformation sizingInformation) builder;
-  const BaseWidget({Key? key, required this.builder}) : super(key: key);
+  const BaseWidget({super.key, required this.builder});
 
   @override
   Widget build(BuildContext context) {

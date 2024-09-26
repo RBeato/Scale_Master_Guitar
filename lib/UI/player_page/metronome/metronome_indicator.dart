@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../fretboard/provider/beat_counter_provider.dart';
 
 class MetronomeIndicator extends ConsumerWidget {
-  const MetronomeIndicator({
+  const MetronomeIndicator({super.key, 
     required this.currentStep,
     required this.labelCellSize,
     required this.isBass,

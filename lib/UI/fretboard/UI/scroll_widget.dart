@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ScrollWidget extends StatelessWidget {
-  const ScrollWidget({Key? key, required this.child, this.controller})
-      : super(key: key);
+  const ScrollWidget({super.key, required this.child, this.controller});
 
   final Widget child;
   final ScrollController? controller;

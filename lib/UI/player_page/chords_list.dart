@@ -5,9 +5,9 @@ import 'metronome_indicator.dart';
 
 class ChordListWidget extends StatelessWidget {
   const ChordListWidget({
-    Key? key,
+    super.key,
     required this.chordList,
-  }) : super(key: key);
+  });
   final List<ChordModel> chordList;
 
   @override

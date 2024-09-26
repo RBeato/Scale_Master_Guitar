@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../fretboard/provider/beat_counter_provider.dart';
 
 class MetronomeIndicator extends ConsumerWidget {
-  const MetronomeIndicator({Key? key}) : super(key: key);
+  const MetronomeIndicator({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

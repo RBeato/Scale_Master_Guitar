@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class FretboardSharpFlatToggleButton extends ConsumerWidget {
-  const FretboardSharpFlatToggleButton({Key? key}) : super(key: key);
+  const FretboardSharpFlatToggleButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

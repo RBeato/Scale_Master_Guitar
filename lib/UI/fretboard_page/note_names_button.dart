@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'provider/note_names_visibility_provider.dart';
 
 class NoteNamesButton extends ConsumerWidget {
-  const NoteNamesButton({Key? key}) : super(key: key);
+  const NoteNamesButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

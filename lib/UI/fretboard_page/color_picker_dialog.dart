@@ -4,7 +4,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:test/UI/fretboard_page/provider/fretboard_color_provider.dart';
 
 class ColorPickerDialog extends ConsumerStatefulWidget {
-  const ColorPickerDialog({Key? key}) : super(key: key);
+  const ColorPickerDialog({super.key});
 
   @override
   _ColorPickerDialogState createState() => _ColorPickerDialogState();

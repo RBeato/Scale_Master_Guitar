@@ -4,7 +4,7 @@ import 'package:test/UI/fretboard/UI/fretboard_painter.dart';
 import '../provider/fingerings_provider.dart';
 
 class Fretboard extends ConsumerWidget {
-  Fretboard({Key? key}) : super(key: key);
+  Fretboard({super.key});
 
   final _scrollController = ScrollController();
 
