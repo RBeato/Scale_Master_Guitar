@@ -158,7 +158,7 @@ class SequencerManager {
 
     if (isMetronomeSelected && playAllInstruments) {
       for (int i = 0; i < nBeats; i++) {
-        project.drumState.setVelocity(i, 44, 0.29);
+        project.drumState.setVelocity(i, 44, 0.59);
       }
     }
     return project;

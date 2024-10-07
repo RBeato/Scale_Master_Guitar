@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -6,6 +8,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -35,17 +39,17 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    // await PurchaseApi.init(); //!use emulator with playstore activated
+    await PurchaseApi.init(); //!use emulator with playstore activated
 
-    // if (Platform.isIOS || Platform.isMacOS) {
-    //   StoreConfig(
-    //     store: StoreChoice.appleStore,
-    //     apiKey: dotenv.env['APPLE_API_KEY']!,
-    //   );
-    // } else if (Platform.isAndroid) {
-    //   StoreConfig(
-    //       store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
-    // }
+    if (Platform.isIOS || Platform.isMacOS) {
+      StoreConfig(
+        store: StoreChoice.appleStore,
+        apiKey: dotenv.env['APPLE_API_KEY']!,
+      );
+    } else if (Platform.isAndroid) {
+      StoreConfig(
+          store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
+    }
 
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;
@@ -80,7 +84,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    // _checkExistingPurchases();
+    _checkExistingPurchases();
   }
 
   Future<void> _checkExistingPurchases() async {
@@ -90,7 +94,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
       if (entitlements.isNotEmpty) {
         // Assuming 'premium_access' is your entitlement identifier
-        if (entitlements.containsKey('premium_access')) {
+        if (entitlements.containsKey('premium')) {
           //TODO: Or just 'premium'
           // ref.read(revenueCatProvider.notifier).setPaidEntitlement();
         }

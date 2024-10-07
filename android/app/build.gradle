@@ -44,10 +44,10 @@ android {
         applicationId = "com.rbsoundz.scalemasterguitar"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutterVersionCode.toInteger()
-        versionName = flutterVersionName
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 5
+        versionName = "1.0.5"
     }
 
     signingConfigs {
@@ -61,7 +61,6 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
             signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
