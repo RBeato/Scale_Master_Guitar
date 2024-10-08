@@ -585,10 +585,18 @@ packages:
     dependency: "direct main"
     description:
       name: purchases_flutter
-      sha256: "83f58c4ef331c06af0548b009632ec2c45b119b87bf02a74f8f77a40e0f64bad"
+      sha256: "4d33c0c310ac4b166dbad02bc4994bf882d0ef42783d1c27b9aa6d0e8e2bc268"
       url: "https://pub.dev"
     source: hosted
-    version: "6.30.2"
+    version: "7.0.2"
+  purchases_ui_flutter:
+    dependency: "direct main"
+    description:
+      name: purchases_ui_flutter
+      sha256: "81c2b174526f45ab94967feee5149b2ab5625bb863d17e78585939e13e030083"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.2"
   riverpod:
     dependency: transitive
     description:

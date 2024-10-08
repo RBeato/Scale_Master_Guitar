@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+//Create paywall manually ... Have restore logic and button for that.
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
 //TODO: Dropdown bug. Scale dropdown bug. It is not rebuilding properly because it is being assigned the same value as initially set. But the UI is changing to a new value
 //TODO: Review trial detection and entitlements
@@ -39,8 +40,6 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    await PurchaseApi.init(); //!use emulator with playstore activated
-
     if (Platform.isIOS || Platform.isMacOS) {
       StoreConfig(
         store: StoreChoice.appleStore,
@@ -54,6 +53,8 @@ void main() async {
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;
     await container.read(chordModelFretboardFingeringProvider.future);
+
+    await PurchaseApi.init(); //!use emulator with playstore activated
 
     FlutterNativeSplash.remove();
     SystemChrome.setPreferredOrientations([
@@ -89,16 +90,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   Future<void> _checkExistingPurchases() async {
     try {
-      final customerInfo = await Purchases.getCustomerInfo();
-      final entitlements = customerInfo.entitlements.active;
-
-      if (entitlements.isNotEmpty) {
-        // Assuming 'premium_access' is your entitlement identifier
-        if (entitlements.containsKey('premium')) {
-          //TODO: Or just 'premium'
-          // ref.read(revenueCatProvider.notifier).setPaidEntitlement();
-        }
-      }
+      await ref.read(revenueCatProvider.notifier).updatePurchaseStatus();
     } catch (e) {
       print("Error checking existing purchases: $e");
     }

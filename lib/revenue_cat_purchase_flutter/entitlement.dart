@@ -1,1 +1,1 @@
-enum Entitlement { paid, trial, free }
+enum Entitlement { premium, free }

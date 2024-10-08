@@ -3,17 +3,35 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class PurchaseApi {
-  static final _apiKey = dotenv.env['REVENUE_CAT_API_KEY']!;
+  static final _apiKey = dotenv.env['GOOGLE_API_KEY']!;
 
   static Future<void> init() async {
-    // Create a configuration instance
-    PurchasesConfiguration configuration = PurchasesConfiguration(_apiKey);
+    PurchasesConfiguration configuration = PurchasesConfiguration(_apiKey)
+      ..purchasesAreCompletedBy = const PurchasesAreCompletedByRevenueCat();
 
-    // Configure Purchases with the created configuration
     await Purchases.configure(configuration);
 
     // Set the log level
     Purchases.setLogLevel(LogLevel.debug);
+  }
+
+  static Future<CustomerInfo> getCustomerInfo() async {
+    try {
+      return await Purchases.getCustomerInfo();
+    } on PlatformException catch (e) {
+      print('Error fetching customer info: ${e.message}');
+      rethrow;
+    }
+  }
+
+  static Future<bool> isPremiumUser() async {
+    try {
+      final customerInfo = await getCustomerInfo();
+      return customerInfo.entitlements.active.containsKey('premium');
+    } catch (e) {
+      print('Error checking premium status: $e');
+      return false;
+    }
   }
 
   static Future<List<Offering>> fetchOffersByIds(List<String> ids) async {

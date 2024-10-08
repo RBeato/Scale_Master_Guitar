@@ -1,86 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-class PaywallWidget extends StatefulWidget {
-  final String title;
-  final String description;
-  final List<Package> packages;
-  final void Function(Package) onClickedPackage;
+class PaywallWidget extends StatelessWidget {
+  final Offering offering;
+  final Function(Package) onPurchase;
 
   const PaywallWidget({
     super.key,
-    required this.title,
-    required this.description,
-    required this.packages,
-    required this.onClickedPackage,
+    required this.offering,
+    required this.onPurchase,
   });
 
   @override
-  _PaywallWidgetState createState() => _PaywallWidgetState();
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            offering.serverDescription ?? 'Choose your plan',
+            style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+        ),
+        ...offering.availablePackages.map(
+          (package) =>
+              PackageItem(package: package, onTap: () => onPurchase(package)),
+        ),
+      ],
+    );
+  }
 }
 
-class _PaywallWidgetState extends State<PaywallWidget> {
+class PackageItem extends StatelessWidget {
+  final Package package;
+  final VoidCallback onTap;
+
+  const PackageItem({super.key, required this.package, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              widget.title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              widget.description,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            buildPackages(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildPackages() {
-    return ListView.builder(
-      shrinkWrap: true,
-      primary: false,
-      itemCount: widget.packages.length,
-      itemBuilder: (context, index) {
-        final package = widget.packages[index];
-        return buildPackage(context, package);
-      },
-    );
-  }
-
-  Widget buildPackage(BuildContext context, Package package) {
-    final product = package.storeProduct;
     return Card(
-      color: Theme.of(context).colorScheme.secondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Theme(
-        data: ThemeData.light(),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(8),
-          title: Text(
-            product.title,
-            style: const TextStyle(fontSize: 18),
-          ),
-          subtitle: Text(
-            product.description,
-            style: const TextStyle(fontSize: 14),
-          ),
-          onTap: () => widget.onClickedPackage(package),
-        ),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: ListTile(
+        title: Text(package.storeProduct.title),
+        subtitle: Text(package.storeProduct.description),
+        trailing: Text(package.storeProduct.priceString),
+        onTap: onTap,
       ),
     );
   }

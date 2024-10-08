@@ -27,9 +27,11 @@ dependencies:
   flutter_windowmanager: ^0.2.0
   google_fonts: ^4.0.3
   logger: ^1.0.0
+  # modal_progress_hud_nsn: ^0.5.1
   path_provider: ^2.0.9
   permission_handler: ^10.4.5
-  purchases_flutter: ^6.30.2
+  purchases_flutter: ^7.0.0
+  purchases_ui_flutter: ^7.0.0
   shared_preferences: ^2.0.5
   tonic: ^0.2.3
 
