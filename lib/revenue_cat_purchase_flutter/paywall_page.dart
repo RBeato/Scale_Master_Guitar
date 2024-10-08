@@ -91,7 +91,7 @@ class _PaywallPageState extends State<PaywallPage> {
                 children: [
                   const SizedBox(height: 20),
                   Image.asset(
-                    'assets/images/scale_master_logo.png',
+                    'assets/images/splash_logo.png',
                     height: 80,
                   ),
                   const SizedBox(height: 20),
