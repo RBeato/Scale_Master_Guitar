@@ -20,39 +20,52 @@ class _PaywallPageState extends State<PaywallPage> {
   }
 
   Future<void> fetchOffers() async {
-    setState(() => isLoading = true);
-    try {
-      final offers = await PurchaseApi.fetchOffers(all: false);
-      if (offers.isNotEmpty && offers.first.availablePackages.isNotEmpty) {
-        setState(() => package = offers.first.availablePackages.first);
-      }
-    } catch (e) {
-      print('Error fetching offers: $e');
-    } finally {
-      setState(() => isLoading = false);
-    }
+    // setState(() => isLoading = true);
+    // try {
+    //   final offers = await PurchaseApi.fetchOffers(all: false);
+    //   if (offers.isNotEmpty && offers.first.availablePackages.isNotEmpty) {
+    //     setState(() => package = offers.first.availablePackages.first);
+    //   }
+    // } catch (e) {
+    //   print('Error fetching offers: $e');
+    // } finally {
+    //   setState(() => isLoading = false);
+    // }
   }
 
   Future<void> makePurchase() async {
-    if (package == null) return;
-    setState(() => isLoading = true);
-    try {
-      final success = await PurchaseApi.purchasePackage(package!);
-      if (success) {
-        Navigator.of(context).pop(true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Purchase failed')),
-        );
-      }
-    } catch (e) {
-      print('Error making purchase: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred during purchase')),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
+//Test code
+//     final offering = await PurchaseApi.fetchSpecificOffering('premium');
+//     if (offering != null) {
+//       print('Fetched offering: ${offering.identifier}');
+//       print(
+//           'Available packages: ${offering.availablePackages.map((p) => p.identifier)}');
+//     } else {
+//       print('Failed to fetch specific offering');
+//     }
+// //
+//     final package = await PurchaseApi.fetchPremiumPackage();
+//     print("second test: PremiumPackage function result: $package");
+
+//     if (package == null) return;
+//     setState(() => isLoading = true);
+//     try {
+//       final success = await PurchaseApi.purchasePackage(package);
+//       if (success) {
+//         Navigator.of(context).pop(true);
+//       } else {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text('Purchase failed')),
+//         );
+//       }
+    // } catch (e) {
+    //   print('Error making purchase: $e');
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('An error occurred during purchase')),
+    //   );
+    // } finally {
+    //   setState(() => isLoading = false);
+    // }
   }
 
   Future<void> restorePurchases() async {
@@ -142,6 +155,12 @@ class _PaywallPageState extends State<PaywallPage> {
                       'For a single lifetime payment of ${package!.storeProduct.priceString}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white70),
+                    )
+                  else
+                    const Text(
+                      'Unable to load offer details',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red),
                     ),
                   const SizedBox(height: 20),
                   ElevatedButton(

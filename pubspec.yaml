@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
   auto_size_text: ^3.0.0
   async: ^2.8.2
+  connectivity_plus: ^3.0.2
   device_preview: ^1.1.0
   device_info_plus: ^4.0.0
   equatable: ^2.0.2
@@ -30,8 +31,8 @@ dependencies:
   # modal_progress_hud_nsn: ^0.5.1
   path_provider: ^2.0.9
   permission_handler: ^10.4.5
-  purchases_flutter: ^7.0.0
-  purchases_ui_flutter: ^7.0.0
+  purchases_flutter: ^6.30.2
+  # purchases_ui_flutter: ^7.0.0
   shared_preferences: ^2.0.5
   tonic: ^0.2.3
 
@@ -52,7 +53,7 @@ flutter_icons:
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
-# The following section is specific to Flutter packages.
+# The following sectiois specific to Flutter packages.
 flutter:
   uses-material-design: true
 

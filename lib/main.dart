@@ -12,6 +12,9 @@ import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+//TODO: fix too many beats error in the player. when trashing set beat counter to 0.
 
 //Create paywall manually ... Have restore logic and button for that.
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
@@ -54,7 +57,13 @@ void main() async {
     await container.read(settingsStateNotifierProvider.notifier).settings;
     await container.read(chordModelFretboardFingeringProvider.future);
 
-    await PurchaseApi.init(); //!use emulator with playstore activated
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      print('No internet connection');
+      // Handle no internet scenario
+    } else {
+      // await PurchaseApi.init();
+    }
 
     FlutterNativeSplash.remove();
     SystemChrome.setPreferredOrientations([
