@@ -19,7 +19,9 @@ class DrawerPage extends ConsumerStatefulWidget {
 class _DrawerPageState extends ConsumerState<DrawerPage> {
   @override
   Widget build(BuildContext context) {
-    final entitlement = ref.watch(revenueCatProvider);
+    // final entitlement = ref.watch(revenueCatProvider);
+    //TODO: Revert this
+    final entitlement = Entitlement.premium;
 
     return Padding(
       padding: const EdgeInsets.all(8.0),

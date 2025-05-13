@@ -43,15 +43,16 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      StoreConfig(
-        store: StoreChoice.appleStore,
-        apiKey: dotenv.env['APPLE_API_KEY']!,
-      );
-    } else if (Platform.isAndroid) {
-      StoreConfig(
-          store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
-    }
+    //TODO: Revert this
+    // if (Platform.isIOS || Platform.isMacOS) {
+    //   StoreConfig(
+    //     store: StoreChoice.appleStore,
+    //     apiKey: dotenv.env['APPLE_API_KEY']!,
+    //   );
+    // } else if (Platform.isAndroid) {
+    //   StoreConfig(
+    //       store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
+    // }
 
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;
@@ -79,7 +80,7 @@ void main() async {
           );
     });
   } catch (error, stackTrace) {
-    logger.e('Setup has failed', error, stackTrace);
+    logger.e('Setup has failed', error: error, stackTrace: stackTrace);
   }
 }
 
@@ -94,7 +95,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    _checkExistingPurchases();
+    //TODO: Revert this
+    // _checkExistingPurchases();
   }
 
   Future<void> _checkExistingPurchases() async {

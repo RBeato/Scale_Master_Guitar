@@ -14,31 +14,34 @@ dependencies:
     sdk: flutter
   auto_size_text: ^3.0.0
   async: ^2.8.2
-  connectivity_plus: ^3.0.2
-  device_preview: ^1.1.0
-  device_info_plus: ^4.0.0
+  connectivity_plus: ^6.1.4
+  device_preview: ^1.2.0
+  device_info_plus: ^11.2.0
   equatable: ^2.0.2
-  file_picker: ^4.6.1
+  file_picker: ^10.1.7
   flutter_colorpicker: ^1.0.3
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^5.2.1
   flutter_native_splash: ^2.2.1
   flutter_virtual_piano: ^0.0.9
-  flutter_riverpod: ^1.0.0
-  flutter_sequencer: ^0.4.4
+  flutter_riverpod: ^2.6.1
+  flutter_sequencer:
+    git:
+      url: https://github.com/RBeato/flutter_sequencer_plus.git
+      ref: target_13
   flutter_windowmanager: ^0.2.0
-  google_fonts: ^4.0.3
-  logger: ^1.0.0
+  google_fonts: ^6.2.1
+  logger: ^2.5.0
   # modal_progress_hud_nsn: ^0.5.1
-  path_provider: ^2.0.9
+  path_provider: ^2.1.0
   permission_handler: ^10.4.5
-  purchases_flutter: ^6.30.2
+  purchases_flutter: ^8.6.0
   # purchases_ui_flutter: ^7.0.0
-  shared_preferences: ^2.0.5
+  shared_preferences: ^2.5.0
   tonic: ^0.2.3
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
+  # # The following adds the Cupertino Icons font to your application.
+  # # Use with the CupertinoIcons class for iOS style icons.
+  # cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:

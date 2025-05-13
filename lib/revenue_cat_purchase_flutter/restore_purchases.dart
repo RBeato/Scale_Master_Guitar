@@ -11,6 +11,7 @@ class RestorePurchases extends ConsumerWidget {
       child: TextButton(
         onPressed: () async {
           try {
+            //TODO: Revert this
             // Call the restorePurchase method from the provider
             // await ref.read(revenueCatProvider.notifier).restorePurchase();
             // Inform the user that the restore was successful

@@ -22,7 +22,10 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
   Widget build(BuildContext context) {
     final selectedScale = ref.watch(scaleDropdownValueProvider);
     final selectedMode = ref.watch(modeDropdownValueProvider);
-    final entitlement = ref.watch(revenueCatProvider);
+    // final entitlement = ref.watch(revenueCatProvider);
+
+    //TODO: Revert this
+    final entitlement = Entitlement.premium;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),

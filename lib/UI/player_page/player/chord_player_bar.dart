@@ -39,7 +39,10 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final selectedChords = ref.watch(selectedChordsProvider);
-    final entitlement = ref.watch(revenueCatProvider);
+    // final entitlement = ref.watch(revenueCatProvider);
+
+    //TODO: Revert this
+    final entitlement = Entitlement.premium;
 
     // Reset _showNoChordSelected when there are changes in selectedChords
     if (selectedChords.isNotEmpty) {
