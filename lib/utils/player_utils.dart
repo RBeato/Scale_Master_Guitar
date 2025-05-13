@@ -1,8 +1,7 @@
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:test/models/settings_model.dart';
-
+import '../constants/gm_programs.dart';
 import '../UI/drawer/UI/drawer/settings_enum.dart';
-import '../constants.dart';
 
 class SoundPlayerUtils {
   static getInstruments(Settings settings, {bool onlyKeys = false}) {
@@ -11,56 +10,36 @@ class SoundPlayerUtils {
       _getSound(SettingsSelection.keyboardSound, settings.keyboardSound),
       _getSound(SettingsSelection.bassSound, settings.bassSound),
     ];
-
     return instruments;
   }
 
   static _getSound(instrument, instSound) {
-    // All instrument paths now point to FluidR3_GM.sf2 for consistency.
-    String key = '';
+    // All instruments use FluidR3_GM.sf2 and select the correct presetIndex (program number)
+    String gmName = '';
     switch (instrument) {
       case SettingsSelection.keyboardSound:
-        key = 'keys';
+        gmName = instSound;
         break;
       case SettingsSelection.bassSound:
-        key = 'bass';
+        gmName = instSound;
         break;
       case SettingsSelection.drumsSound:
-        key = 'drums';
+        gmName = 'Synth Drum'; // or 'Drums' if you want to use a melodic drum preset
         break;
+      default:
+        throw Exception('Unknown instrument type: $instrument');
     }
 
-    String sound = '';
-
-    if (key == 'keys' && instSound == 'Piano') {
-      sound = 'Piano';
+    final presetIndex = gmProgramNumbers[gmName];
+    if (presetIndex == null) {
+      print('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
+      throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
     }
-    if (key == 'keys' && instSound == 'Rhodes') {
-      sound = 'Rhodes';
-    }
-    if (key == 'keys' && instSound == 'Organ') {
-      sound = 'Organ';
-    }
-    if (key == 'keys' && instSound == 'Pad') {
-      sound = 'Pad';
-    }
-    if (key == 'bass' && instSound == 'Double Bass') {
-      sound = 'Double Bass';
-    }
-    if (key == 'bass' && instSound == 'Electric') {
-      sound = 'Electric';
-    }
-    if (key == 'bass' && instSound == 'Synth') {
-      sound = 'Synth';
-    }
-    if (key == 'drums' && instSound == 'Electronic') {
-      sound = 'Electronic';
-    }
-    if (key == 'drums' && instSound == 'Acoustic') {
-      sound = 'Acoustic';
-    }
-
+    print('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex');
     return Sf2Instrument(
-        path: Constants.soundPath[key]![sound] as String, isAsset: true);
+      path: "assets/sounds/sf2/FluidR3_GM.sf2",
+      isAsset: true,
+      presetIndex: presetIndex,
+    );
   }
 }

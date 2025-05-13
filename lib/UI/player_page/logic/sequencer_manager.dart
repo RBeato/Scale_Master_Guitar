@@ -14,6 +14,8 @@ import '../provider/bass_note_index_provider.dart';
 import '../provider/is_playing_provider.dart';
 import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
+import '../../../utils/player_utils.dart';
+import '../../../constants/gm_programs.dart';
 
 final sequencerManagerProvider = Provider((ref) => SequencerManager());
 
@@ -75,6 +77,14 @@ class SequencerManager {
       List<Track> createdTracks = await sequence.createTracks(instruments);
       tracks = createdTracks;
       selectedTrack = tracks[0];
+
+      // Set the correct program for each track based on instrument order
+      // Order: drums, keys, bass
+      final instrumentNames = ['Drums', 'Piano', 'Double Bass'];
+      for (int i = 0; i < tracks.length && i < instrumentNames.length; i++) {
+        final program = gmProgramNumbers[instrumentNames[i]] ?? 0;
+        tracks[i].setProgram(program);
+      }
 
       for (Track track in tracks) {
         trackVolumes[track.id] =
