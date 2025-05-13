@@ -27,20 +27,21 @@ class Constants {
   ];
 
   static const Map<String, Map<String, String>> soundPath = {
+    // All instrument types now use FluidR3_GM.sf2 for consistency and completeness.
     'drums': {
-      'Electronic': "assets/sounds/sf2/TR-808.sf2",
-      'Acoustic': "assets/sounds/sf2/drums_171k_G.sf2"
+      'Electronic': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Acoustic': "assets/sounds/sf2/FluidR3_GM.sf2"
     },
     'keys': {
-      'Piano': "assets/sounds/sf2/kawai_grand_piano.sf2",
-      'Rhodes': "assets/sounds/sf2/Toy_Rhodes.sf2",
-      'Organ': "assets/sounds/sf2/organ.sf2",
-      'Pad': "assets/sounds/sf2/pad.sf2"
+      'Piano': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Rhodes': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Organ': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Pad': "assets/sounds/sf2/FluidR3_GM.sf2"
     },
     'bass': {
-      'Double Bass': "assets/sounds/sf2/jazz_bass.sf2",
-      'Electric': "assets/sounds/sf2/tek_bass.sf2",
-      'Synth': "assets/sounds/sf2/synth_bass.sf2"
+      'Double Bass': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Electric': "assets/sounds/sf2/FluidR3_GM.sf2",
+      'Synth': "assets/sounds/sf2/FluidR3_GM.sf2"
     },
   };
 

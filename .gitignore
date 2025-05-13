@@ -2,6 +2,8 @@ key.properties
 app/upload-keystore.jks
 .env
 
+# Do not ignore FluidR3_GM.sf2, it is tracked with Git LFS
+# If you add other large audio files, use Git LFS or exclude them
 FluidR3_GM.sf2
 
 # Miscellaneous

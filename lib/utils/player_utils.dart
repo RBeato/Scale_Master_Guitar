@@ -16,6 +16,7 @@ class SoundPlayerUtils {
   }
 
   static _getSound(instrument, instSound) {
+    // All instrument paths now point to FluidR3_GM.sf2 for consistency.
     String key = '';
     switch (instrument) {
       case SettingsSelection.keyboardSound:
