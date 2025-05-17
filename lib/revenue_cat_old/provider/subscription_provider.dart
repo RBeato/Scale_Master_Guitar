@@ -15,7 +15,7 @@
 //   try {
 //     final ProductDetailsResponse response =
 //         await iap.queryProductDetails(_kIds);
-//     print('Product Details Response: $response');
+//     debugPrint('Product Details Response: $response');
 
 //     if (response.error != null) {
 //       // Handle response error

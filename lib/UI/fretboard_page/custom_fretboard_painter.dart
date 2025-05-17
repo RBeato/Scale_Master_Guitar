@@ -38,7 +38,7 @@ class CustomFretboardPainter extends CustomPainter {
       ..color = fretboardColor
       ..strokeWidth = 2.0;
 
-    print(
+    debugPrint(
         "inside customPainter width ${this.size.width} height ${this.size.height}");
 
     double fretWidth = this.size.width * 4 / (fretCount);

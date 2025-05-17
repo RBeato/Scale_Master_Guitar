@@ -21,15 +21,20 @@ class PlayerPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('[PlayerPage] build called');
     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
     final sequencerManager = ref.read(sequencerManagerProvider);
+    debugPrint('[PlayerPage] sequencerManager.sequence: \\${sequencerManager.sequence}');
+    // debugPrint('[PlayerPage] fingerings state: \\${fingerings}');
 
     return WillPopScope(
       onWillPop: () async {
+        debugPrint('[PlayerPage] WillPopScope triggered');
         // Stop the sequencer
         sequencerManager.handleStop(
             sequencerManager.sequence); // Make sure sequence is accessible
         ref.read(selectedChordsProvider.notifier).removeAll();
+        debugPrint('[PlayerPage] Sequencer stopped and chords removed');
         return true;
       },
       child: Scaffold(
@@ -40,20 +45,24 @@ class PlayerPage extends ConsumerWidget {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
+              debugPrint('[PlayerPage] Back button pressed');
               // Stop the sequencer and navigate back
               bool isPlaying = ref.read(isSequencerPlayingProvider);
               if (isPlaying) {
+                debugPrint('[PlayerPage] Stopping sequencer before pop');
                 sequencerManager.handleStop(sequencerManager
                     .sequence); // Make sure sequence is accessible
                 ref.read(isSequencerPlayingProvider.notifier).state =
                     !isPlaying;
               }
               Navigator.of(context).pop();
+              debugPrint('[PlayerPage] Navigated back');
             },
           ),
           actions: [
             IconButton(
               onPressed: () {
+                debugPrint('[PlayerPage] Forward button pressed');
                 if (fingerings.value!.scaleModel!.scaleNotesNames
                     .take(5)
                     .any((s) => s.contains('♭'))) {
@@ -67,6 +76,7 @@ class PlayerPage extends ConsumerWidget {
 
                 bool isPlaying = ref.read(isSequencerPlayingProvider);
                 if (isPlaying) {
+                  debugPrint('[PlayerPage] Stopping sequencer before forward navigation');
                   // Stop the sequencer and navigate back
                   sequencerManager.handleStop(sequencerManager
                       .sequence); // Make sure sequence is accessible
@@ -75,6 +85,7 @@ class PlayerPage extends ConsumerWidget {
                 }
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => const FretboardPage()));
+                debugPrint('[PlayerPage] Navigated forward to FretboardPage');
               },
               icon: const Icon(Icons.arrow_forward_ios,
                   color: Colors.orangeAccent),
@@ -84,6 +95,7 @@ class PlayerPage extends ConsumerWidget {
         body: SafeArea(
             child: fingerings.when(
                 data: (data) {
+                  debugPrint('[PlayerPage] fingerings.when: data received');
                   f = data;
                   return Stack(
                     children: [
@@ -96,16 +108,26 @@ class PlayerPage extends ConsumerWidget {
                               flex: 6, child: Center(child: Chords())),
                           Expanded(
                               flex: 8,
-                              child: PlayerWidget(data!.scaleModel!.settings!)),
+                              child: Builder(
+                                builder: (context) {
+                                  debugPrint('[PlayerPage] Building PlayerWidget');
+                                  return PlayerWidget(data!.scaleModel!.settings!);
+                                },
+                              )),
                           const SizedBox(height: 40),
                         ],
                       ),
                     ],
                   );
                 },
-                loading: () =>
-                    const CircularProgressIndicator(color: Colors.orange),
-                error: (error, stackTrace) => Text('Error: $error'))),
+                loading: () {
+                  debugPrint('[PlayerPage] fingerings.when: loading');
+                  return const CircularProgressIndicator(color: Colors.orange);
+                },
+                error: (error, stackTrace) {
+                  debugPrint('[PlayerPage] fingerings.when: error: $error');
+                  return Text('Error: $error');
+                })),
       ),
     );
   }

@@ -73,7 +73,7 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
           widget.fingeringsModel.scaleModel!.settings!.showScaleDegrees,
       child: LayoutBuilder(builder: (context, constraints) {
         Size size = constraints.biggest;
-        print("Layout builder width ${size.width} height ${size.height}");
+        debugPrint("Layout builder width ${size.width} height ${size.height}");
         return SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: GestureDetector(
@@ -91,7 +91,7 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
 
               int string = (rotatedPosition.dy / stringHeight).floor();
               int fret = (rotatedPosition.dx / fretWidth).floor();
-              print("Fret $fret String $string");
+              debugPrint("Fret $fret String $string");
 
               if (string < 0 ||
                   string > stringCount ||

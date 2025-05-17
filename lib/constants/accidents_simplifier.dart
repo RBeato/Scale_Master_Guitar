@@ -1,5 +1,5 @@
 String simplifyAccidents(String noteSubString) {
-  // print('Called flatsOnlyNoteNomenclature');
+  // debugPrint('Called flatsOnlyNoteNomenclature');
   switch (noteSubString) {
     case 'C♭':
       noteSubString = 'B';

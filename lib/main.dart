@@ -60,7 +60,7 @@ void main() async {
 
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
-      print('No internet connection');
+      debugPrint('No internet connection');
       // Handle no internet scenario
     } else {
       // await PurchaseApi.init();
@@ -103,7 +103,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     try {
       await ref.read(revenueCatProvider.notifier).updatePurchaseStatus();
     } catch (e) {
-      print("Error checking existing purchases: $e");
+      debugPrint("Error checking existing purchases: $e");
     }
   }
 

@@ -157,7 +157,7 @@ class Chords extends ConsumerWidget {
       index,
       List<ChordModel> alreadySelectedChords) {
     var chordNotes = MusicUtils.getChordInfo(scaleFingerings, index);
-    print("chordNotes: $chordNotes");
+    debugPrint("chordNotes: $chordNotes");
 
     var position = alreadySelectedChords.isEmpty
         ? 0

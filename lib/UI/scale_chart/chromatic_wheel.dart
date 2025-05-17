@@ -42,7 +42,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
 
   @override
   Widget build(BuildContext context) {
-    // print("Top note function: ${getTopNote()}");
+    // debugPrint("Top note function: ${getTopNote()}");
 
     return GestureDetector(
       onPanStart: (details) {

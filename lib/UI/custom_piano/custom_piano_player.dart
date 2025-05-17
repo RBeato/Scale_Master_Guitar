@@ -48,16 +48,14 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   }
 
   Future<void> initializeSequencer() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
-
     isPlaying = ref.read(isSequencerPlayingProvider);
     sequencerManager = ref.read(sequencerManagerProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
-
     sequence = Sequence(tempo: tempo, endBeat: stepCount);
-
     tracks = await sequencerManager.initialize(
         ref: ref,
         tracks: tracks,
@@ -77,39 +75,48 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
         isScaleTonicSelected:
             widget.scaleModel!.settings!.isTonicUniversalBassNote,
         tempo: ref.read(metronomeTempoProvider));
-
-    // Start ticker
+    if (!mounted) return;
     ticker = createTicker((Duration elapsed) {
+      if (!mounted) return;
       setState(() {
         tempo = 120;
-        //sequence.getTempo();
         position = sequence.getBeat();
         isPlaying = sequence.getIsPlaying();
-
-        ref
-            .read(currentBeatProvider.notifier)
-            .update((state) => position.toInt());
-
+        ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
         for (var track in tracks) {
           trackVolumes[track.id] = track.getVolume();
         }
-        setState(() {
-          isLoading = false;
-        });
+        isLoading = false;
       });
     });
     ticker.start();
+    if (!mounted) return;
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
   void dispose() {
-    ticker.dispose();
+    debugPrint('[CustomPianoPlayer] Disposing: stopping sequencer and cleaning up tracks');
+    try {
+      if (ticker.isActive) {
+        ticker.dispose();
+      }
+      if (sequence != null) {
+        sequencerManager.handleStop(sequence);
+      }
+      sequencerManager.dispose();
+      tracks.clear();
+    } catch (e, st) {
+      debugPrint('[CustomPianoPlayer] Error during dispose: $e\n$st');
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // print("tracks: ${tracks[0]}");
+    // debugPrint("tracks: ${tracks[0]}");
     // return CustomPianoTest(
     //   widget.scaleModel,
     //   onKeyPressed: (note) =>

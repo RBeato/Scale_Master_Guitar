@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/global_state.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
@@ -40,6 +41,9 @@ class SequencerManager {
   bool isLoading = false;
   bool playAllInstruments = true;
 
+  // Add a set to keep track of currently pressed notes
+  final Set<int> _activeMidiNotes = {};
+
   Future<List<Track>> initialize({
     ref,
     tracks,
@@ -75,16 +79,10 @@ class SequencerManager {
     try {
       // Create tracks
       List<Track> createdTracks = await sequence.createTracks(instruments);
+      // Wait for SoundFont to load (workaround for plugin race condition)
+      await Future.delayed(const Duration(milliseconds: 500));
       tracks = createdTracks;
       selectedTrack = tracks[0];
-
-      // Set the correct program for each track based on instrument order
-      // Order: drums, keys, bass
-      final instrumentNames = ['Drums', 'Piano', 'Double Bass'];
-      for (int i = 0; i < tracks.length && i < instrumentNames.length; i++) {
-        final program = gmProgramNumbers[instrumentNames[i]] ?? 0;
-        tracks[i].setProgram(program);
-      }
 
       for (Track track in tracks) {
         trackVolumes[track.id] =
@@ -104,8 +102,8 @@ class SequencerManager {
       // Load project state
       loadProjectState(project!, tracks, sequence);
     } catch (e, stackTrace) {
-      print('Error during initialization: $e');
-      print(stackTrace);
+      debugPrint('Error during initialization: $e');
+      debugPrint(stackTrace.toString());
       // Handle the error as needed
     }
     return tracks;
@@ -120,11 +118,11 @@ class SequencerManager {
   }) async {
     ProjectState project = ProjectState.empty(stepCount);
 
-    print("Creating project with ${selectedChords.length} chords");
+    debugPrint("Creating project with ${selectedChords.length} chords");
 
     for (int i = 0; i < selectedChords.length; i++) {
       ChordModel chord = selectedChords[i];
-      print("Chord: $chord");
+      debugPrint("Chord: $chord");
       for (var note in chord.chordNotesInversionWithIndexes!) {
         project.pianoState.setVelocity(
             chord.position, MusicConstants.midiValues[note]!, 0.89);
@@ -133,7 +131,7 @@ class SequencerManager {
       var note = tonicAsUniversalBassNote
           ? chord.parentScaleKey
           : MusicUtils.extractNoteName(chord.completeChordName!);
-      // print('Chord: $chord, bass note $note');
+      // debugPrint('Chord: $chord, bass note $note');
 
       note = MusicUtils.filterNoteNameWithSlash(note);
       note = MusicUtils.flatsAndSharpsToFlats(note);
@@ -150,10 +148,10 @@ class SequencerManager {
       }
 
       var bassMidiValue = MusicConstants.midiValues["$note$index"]!;
-      print("Adding bass note: Chord ${i + 1}/${selectedChords.length}");
-      print("  Position: ${chord.position}");
-      print("  Note: $note");
-      print("  MIDI Value: $bassMidiValue");
+      debugPrint("Adding bass note: Chord ${i + 1}/${selectedChords.length}");
+      debugPrint("  Position: ${chord.position}");
+      debugPrint("  Note: $note");
+      debugPrint("  MIDI Value: $bassMidiValue");
 
       project.bassState.setVelocity(
           chord.position, bassMidiValue, 0.99); // Increase velocity if needed
@@ -161,9 +159,9 @@ class SequencerManager {
       // Verify if the note was added successfully
       double? addedVelocity =
           project.bassState.getVelocity(chord.position, bassMidiValue);
-      print("  Bass note added successfully. Velocity: $addedVelocity");
+      debugPrint("  Bass note added successfully. Velocity: $addedVelocity");
 
-      print(""); //
+      debugPrint(""); //
     }
 
     if (isMetronomeSelected && playAllInstruments) {
@@ -174,16 +172,50 @@ class SequencerManager {
     return project;
   }
 
-  playPianoNote(String note, tracks, Sequence sequence) {
-    sequence.loopState = LoopState.Off;
-    sequence.tempo = 200;
-    note = MusicUtils.filterNoteNameWithSlash(note);
-    int midiValue = MusicConstants.midiValues[note]!;
-    tracks[1].events.clear();
-    trackStepSequencerStates[tracks[1].id]!.clear();
-    trackStepSequencerStates[tracks[1].id]!.setVelocity(0, midiValue, 0.60);
-    _syncTrack(tracks[1]);
-    sequence.play();
+  void playPianoNote(String note, List<Track> tracks, Sequence sequence) {
+    final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
+    final pianoTrack = tracks[1];
+
+    // Add note to active set
+    _activeMidiNotes.add(midiValue);
+
+    // Clear only the events, not the state, to avoid duplicate notes
+    pianoTrack.events.clear();
+    trackStepSequencerStates[pianoTrack.id]!.clear();
+
+    // Add all currently active notes
+    for (final midi in _activeMidiNotes) {
+      trackStepSequencerStates[pianoTrack.id]!.setVelocity(0, midi, 0.60);
+    }
+
+    _syncTrack(pianoTrack);
+
+    // Only start playing if not already playing
+    if (!sequence.getIsPlaying()) {
+      sequence.play();
+    }
+  }
+
+  // Call this on key release (you'll need to wire this up in the UI)
+  void stopPianoNote(String note, List<Track> tracks, Sequence sequence) {
+    final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
+    final pianoTrack = tracks[1];
+
+    _activeMidiNotes.remove(midiValue);
+
+    pianoTrack.events.clear();
+    trackStepSequencerStates[pianoTrack.id]!.clear();
+
+    for (final midi in _activeMidiNotes) {
+      trackStepSequencerStates[pianoTrack.id]!.setVelocity(0, midi, 0.60);
+    }
+
+    _syncTrack(pianoTrack);
+
+    // If no notes are left, stop the sequence
+    if (_activeMidiNotes.isEmpty) {
+      sequence.stop();
+    }
   }
 
   handleTogglePlayStop(WidgetRef ref, Sequence sequence) {
@@ -195,14 +227,14 @@ class SequencerManager {
       ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     } else {
       var tracks = sequence.getTracks();
-      print("PlayAllInstruments: $playAllInstruments");
-      print("Playing sequence. Tracks: ${tracks.length}");
+      debugPrint("PlayAllInstruments: $playAllInstruments");
+      debugPrint("Playing sequence. Tracks: ${tracks.length}");
       if (tracks.length > 2) {
-        print("Bass track events: ${tracks[2].events.length}");
-        // print("Bass track volume: ${trackVolumes[tracks[2].id]}");
-        print("Bass track volume: ${tracks[2].getVolume()}");
+        debugPrint("Bass track events: ${tracks[2].events.length}");
+        // debugPrint("Bass track volume: ${trackVolumes[tracks[2].id]}");
+        debugPrint("Bass track volume: ${tracks[2].getVolume()}");
       } else {
-        print("Not enough tracks available");
+        debugPrint("Not enough tracks available");
       }
       sequence.play();
     }
@@ -356,5 +388,30 @@ class SequencerManager {
   Function eq = const ListEquality().equals;
   bool _listEquals(List list1, List list2) {
     return eq(list1, list2);
+  }
+
+  void dispose() {
+    debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
+    try {
+      if (sequence != null) {
+        debugPrint('[SequencerManager] Stopping sequence');
+        handleStop(sequence);
+        if (sequence.getTracks().isNotEmpty) {
+          for (final track in sequence.getTracks()) {
+            try {
+              debugPrint('[SequencerManager] Would dispose track id: \\${track.id} (no dispose method available)');
+            } catch (e) {
+              debugPrint('[SequencerManager] Error disposing track: $e');
+            }
+          }
+        }
+        debugPrint('[SequencerManager] Would dispose sequence (no dispose method available)');
+      }
+      trackStepSequencerStates.clear();
+      trackVolumes.clear();
+      // Optionally clear other state if needed
+    } catch (e, st) {
+      debugPrint('[SequencerManager] Error during dispose: $e\n$st');
+    }
   }
 }

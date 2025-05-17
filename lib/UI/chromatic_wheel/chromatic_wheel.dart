@@ -47,7 +47,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
     List temp = [];
 
     var scaleDegrees = List<String>.from(widget.scaleModel.degreeFunction);
-    print("Degrees : $scaleDegrees");
+    debugPrint("Degrees : $scaleDegrees");
 
     for (int i = 0; i < scaleIntervals.length; i++) {
       if (scaleIntervals[i] != null) {

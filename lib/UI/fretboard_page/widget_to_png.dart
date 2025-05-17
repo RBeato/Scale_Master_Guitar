@@ -38,7 +38,7 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
           await image.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
-      print('Error capturing PNG: $e');
+      debugPrint('Error capturing PNG: $e');
       return null;
     }
   }
@@ -48,7 +48,7 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
       // Request storage permissions
       var status = await Permission.storage.request();
       if (!status.isGranted) {
-        print('Storage permission not granted');
+        debugPrint('Storage permission not granted');
         return null;
       }
 
@@ -57,10 +57,10 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
       final path = '${downloadsDir.path}/captured_image.png';
       final file = File(path);
       await file.writeAsBytes(imageBytes);
-      print('Image saved to $path');
+      debugPrint('Image saved to $path');
       return path;
     } catch (e) {
-      print('Error saving PNG: $e');
+      debugPrint('Error saving PNG: $e');
       return null;
     }
   }

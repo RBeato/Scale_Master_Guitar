@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -13,7 +14,7 @@ class PurchaseApi {
     try {
       return await Purchases.getCustomerInfo();
     } on PlatformException catch (e) {
-      print('Error fetching customer info: ${e.message}');
+      debugPrint('Error fetching customer info: ${e.message}');
       rethrow;
     }
   }
@@ -23,7 +24,7 @@ class PurchaseApi {
       final customerInfo = await getCustomerInfo();
       return customerInfo.entitlements.active.containsKey(_premiumOfferingId);
     } catch (e) {
-      print('Error checking premium status: $e');
+      debugPrint('Error checking premium status: $e');
       return false;
     }
   }
@@ -33,7 +34,7 @@ class PurchaseApi {
       final offerings = await Purchases.getOfferings();
       return offerings.all[_premiumOfferingId];
     } on PlatformException catch (e) {
-      print('Error fetching premium offering: ${e.message}');
+      debugPrint('Error fetching premium offering: ${e.message}');
       return null;
     }
   }
@@ -43,7 +44,7 @@ class PurchaseApi {
       final purchaserInfo = await Purchases.purchasePackage(package);
       return purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
-      print('Error purchasing package: ${e.message}');
+      debugPrint('Error purchasing package: ${e.message}');
       return false;
     }
   }
@@ -53,7 +54,7 @@ class PurchaseApi {
       final restoredInfo = await Purchases.restorePurchases();
       return restoredInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
-      print('Error restoring purchases: ${e.message}');
+      debugPrint('Error restoring purchases: ${e.message}');
       return false;
     }
   }

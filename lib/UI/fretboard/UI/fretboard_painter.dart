@@ -19,7 +19,7 @@ class FretboardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // print("FingeringsModel : ${fingeringsModel.chordModel}");
+    // debugPrint("FingeringsModel : ${fingeringsModel.chordModel}");
 
     var neckPaint = Paint()
       ..color = Colors.grey[700]!

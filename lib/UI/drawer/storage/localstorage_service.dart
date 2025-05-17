@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:test/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/settings_model.dart';
@@ -45,8 +46,8 @@ class LocalStorageService {
       value = settings.isSingleColor;
     }
 
-    // Debugging statement to print the settings object
-    print('LocalStorageService getFiltered() $settings');
+    // Debugging statement to debugPrint the settings object
+    debugPrint('LocalStorageService getFiltered() $settings');
 
     // Return the settings object after filtering based on the selection
     return settings;

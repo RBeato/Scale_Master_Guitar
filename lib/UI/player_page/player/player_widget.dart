@@ -38,13 +38,13 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   List<Track> tracks = [];
   Map<int, double> trackVolumes = {};
   // Track? selectedTrack;
-  late Ticker ticker;
+  Ticker? ticker;
   SequencerManager sequencerManager = SequencerManager();
   double tempo = Constants.INITIAL_TEMPO;
   double position = 0.0;
   late bool isPlaying;
   bool isLooping = Constants.INITIAL_IS_LOOPING;
-  late Sequence sequence;
+  Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
 
@@ -55,18 +55,32 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   }
 
   Future<void> initializeSequencer() async {
+    debugPrint('[PlayerWidget] initializeSequencer: called');
+    // Dispose old ticker if exists
+    if (ticker != null && ticker!.isActive) {
+      debugPrint('[PlayerWidget] Disposing old ticker before re-initializing');
+      ticker!.dispose();
+      ticker = null;
+    }
+    if (!mounted) return;
+    debugPrint('[PlayerWidget] initializeSequencer: start');
     setState(() {
       isLoading = true;
     });
-
-    // Initialize sequencer manager
     isPlaying = ref.read(isSequencerPlayingProvider);
     sequencerManager = ref.read(sequencerManagerProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
-
+    final selectedChords = ref.read(selectedChordsProvider);
+    debugPrint('[PlayerWidget] initializeSequencer: selectedChords.length = \${selectedChords.length}');
+    if (selectedChords.isEmpty) {
+      debugPrint('[PlayerWidget] initializeSequencer: selectedChords is empty, skipping sequencer initialization');
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     sequence = Sequence(tempo: tempo, endBeat: stepCount);
-    // print("selectedTrack ${selectedTrack.hashCode}");
-    // Initialize sequencer and tracks
+    debugPrint('[PlayerWidget] initializeSequencer: calling sequencerManager.initialize');
     tracks = await sequencerManager.initialize(
       ref: ref,
       tracks: tracks,
@@ -77,37 +91,53 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       stepCount: ref.read(beatCounterProvider),
       trackVolumes: trackVolumes,
       trackStepSequencerStates: trackStepSequencerStates,
-      selectedChords: ref.read(selectedChordsProvider),
+      selectedChords: selectedChords,
       isLoading: isLoading,
       isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
       isScaleTonicSelected: widget.settings.isTonicUniversalBassNote,
       tempo: ref.read(metronomeTempoProvider),
     );
-
-    // Start ticker
+    debugPrint('[PlayerWidget] initializeSequencer: sequencerManager.initialize complete, tracks.length = \${tracks.length}');
+    if (!mounted) return;
+    debugPrint('[PlayerWidget] initializeSequencer: creating ticker');
+    int tickCount = 0;
     ticker = createTicker((Duration elapsed) {
+      if (!mounted) return;
+      tickCount++;
+      if (tickCount % 30 == 0) { // throttle logs
+        debugPrint('[PlayerWidget] ticker tick: elapsed = \${elapsed.inMilliseconds}ms');
+      }
       setState(() {
-        tempo = ref.read(metronomeTempoProvider); //sequence.getTempo();
-
-        position = sequence.getBeat();
-        isPlaying = sequence.getIsPlaying();
-
-        ref
-            .read(currentBeatProvider.notifier)
-            .update((state) => position.toInt());
-
+        tempo = ref.read(metronomeTempoProvider);
+        position = sequence!.getBeat();
+        isPlaying = sequence!.getIsPlaying();
+        ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
         for (var track in tracks) {
           trackVolumes[track.id] = track.getVolume();
         }
-        setState(() {
-          isLoading = false;
-        });
+        isLoading = false;
       });
     });
-    ticker.start();
+    ticker!.start();
+    debugPrint('[PlayerWidget] initializeSequencer: ticker started');
+    if (!mounted) return;
+    setState(() {
+      isLoading = false;
+    });
+    debugPrint('[PlayerWidget] initializeSequencer: end');
   }
 
   Future<void> getSequencer() async {
+    debugPrint('[PlayerWidget] getSequencer: start');
+    final selectedChords = ref.read(selectedChordsProvider);
+    debugPrint('[PlayerWidget] getSequencer: selectedChords.length = \${selectedChords.length}');
+    if (selectedChords.isEmpty) {
+      debugPrint('[PlayerWidget] getSequencer: selectedChords is empty, skipping sequencer initialization');
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     tracks = await sequencerManager.initialize(
       ref: ref,
       tracks: tracks,
@@ -118,37 +148,67 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       stepCount: ref.read(beatCounterProvider),
       trackVolumes: trackVolumes,
       trackStepSequencerStates: trackStepSequencerStates,
-      selectedChords: ref.read(selectedChordsProvider),
+      selectedChords: selectedChords,
       // selectedTrack: selectedTrack,
       isLoading: isLoading,
       isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
       isScaleTonicSelected: widget.settings.isTonicUniversalBassNote,
       tempo: ref.read(metronomeTempoProvider),
     );
+    debugPrint('[PlayerWidget] getSequencer: sequencerManager.initialize complete, tracks.length = \${tracks.length}');
+    debugPrint('[PlayerWidget] getSequencer: end');
   }
 
   @override
   void dispose() {
-    ticker.dispose();
+    debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
+    try {
+      if (ticker != null && ticker!.isActive) {
+        ticker!.dispose();
+        ticker = null;
+      }
+      if (sequence != null) {
+        sequencerManager.handleStop(sequence!);
+        // If the plugin exposes a dispose method for sequence or tracks, call it here
+        // sequence!.dispose(); // Uncomment if available
+      }
+      // Optionally clear tracks list for GC
+      tracks.clear();
+    } catch (e, st) {
+      debugPrint('[PlayerWidget] Error during dispose: $e\n$st');
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[PlayerWidget] build called');
     isPlaying = ref.watch(isSequencerPlayingProvider);
-    if (!isPlaying) {
-      sequencerManager.handleStop(sequence);
+    if (!isPlaying && sequence != null) {
+      debugPrint('[PlayerWidget] Not playing, stopping sequencer');
+      sequencerManager.handleStop(sequence!);
     }
     final selectedChords = ref.watch(selectedChordsProvider);
     ref.watch(metronomeTempoProvider);
-
     final isMetronomeSelected = ref.watch(isMetronomeSelectedProvider);
 
-    updateSequencer(
-      selectedChords,
-      isMetronomeSelected,
-    );
+    ref.listen<List>(selectedChordsProvider, (previous, next) {
+      debugPrint('[PlayerWidget] selectedChordsProvider changed: ' + next.toString());
+      final isMetronomeSelected = ref.read(isMetronomeSelectedProvider);
+      if ((previous == null || previous.isEmpty) && next.isNotEmpty) {
+        debugPrint('[PlayerWidget] selectedChordsProvider: chords added to empty list, initializing sequencer');
+        initializeSequencer();
+      } else {
+        updateSequencer(next, isMetronomeSelected);
+      }
+    });
+    ref.listen<bool>(isMetronomeSelectedProvider, (previous, next) {
+      debugPrint('[PlayerWidget] isMetronomeSelectedProvider changed: ' + next.toString());
+      final selectedChords = ref.read(selectedChordsProvider);
+      updateSequencer(selectedChords, next);
+    });
 
+    debugPrint('[PlayerWidget] returning ChordPlayerBar');
     return ChordPlayerBar(
       selectedTrack: tracks.isEmpty ? null : tracks[0],
       isLoading: isLoading,
@@ -156,13 +216,19 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       tempo: ref.read(metronomeTempoProvider),
       isLooping: isLooping,
       clearTracks: () {
+        debugPrint('[PlayerWidget] clearTracks called');
         Debouncer.handleButtonPress(() {
-          sequencerManager.clearTracks(ref, tracks, sequence);
+          if (sequence != null) {
+            sequencerManager.clearTracks(ref, tracks, sequence!);
+          }
         });
       },
       handleTogglePlayStop: () {
+        debugPrint('[PlayerWidget] handleTogglePlayStop called');
         Debouncer.handleButtonPress(() {
-          sequencerManager.handleTogglePlayStop(ref, sequence);
+          if (sequence != null) {
+            sequencerManager.handleTogglePlayStop(ref, sequence!);
+          }
         });
       },
     );
@@ -173,21 +239,21 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     bool isMetronomeSelected,
   ) {
     if (sequencerManager.needToUpdateSequencer(
-      sequence,
+      sequence!,
       selectedChords,
       tempo,
       widget.settings.isTonicUniversalBassNote,
       isMetronomeSelected,
     )) {
+      if (!mounted) return;
       setState(() {
-        isLoading = true; // Set loading flag to true when initialization starts
+        isLoading = true;
       });
-
-      //add new chords to sequence.
-      getSequencer();
-      // selectedTrack = tracks[0];
-      setState(() {
-        isLoading = false;
+      getSequencer().then((_) {
+        if (!mounted) return;
+        setState(() {
+          isLoading = false;
+        });
       });
     }
   }

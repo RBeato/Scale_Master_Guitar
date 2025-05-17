@@ -2,7 +2,7 @@ import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:test/models/settings_model.dart';
 import '../constants/gm_programs.dart';
 import '../UI/drawer/UI/drawer/settings_enum.dart';
-
+import 'package:flutter/material.dart' as material;
 class SoundPlayerUtils {
   static getInstruments(Settings settings, {bool onlyKeys = false}) {
     List<Instrument> instruments = [
@@ -32,10 +32,10 @@ class SoundPlayerUtils {
 
     final presetIndex = gmProgramNumbers[gmName];
     if (presetIndex == null) {
-      print('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
+      material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
       throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
     }
-    print('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex');
+    material.debugPrint('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex');
     return Sf2Instrument(
       path: "assets/sounds/sf2/FluidR3_GM.sf2",
       isAsset: true,

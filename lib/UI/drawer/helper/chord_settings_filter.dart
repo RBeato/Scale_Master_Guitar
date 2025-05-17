@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../../../constants/guitar_chord_voicings.dart';
 
 List<String> createBottomStringList(String chordVoicing) {
@@ -27,7 +29,7 @@ List<String> createBottomStringList(String chordVoicing) {
       default:
     }
   } catch (e) {
-    print('Voicing not selected: $e');
+    debugPrint('Voicing not selected: $e');
   }
   return bottomStringOptions;
 }

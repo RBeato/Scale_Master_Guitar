@@ -51,7 +51,7 @@
 //       chordsPitchesList.add(note.toString());
 //     }
 //     counter++;
-//     //print('Original chordsPitchesList: $chordsPitchesList');
+//     //debugPrint('Original chordsPitchesList: $chordsPitchesList');
 //     return chordsPitchesList;
 //   }
 
@@ -67,7 +67,7 @@
 //       notesList.add(notesList[0]);
 //       notesList.removeAt(0);
 //     }
-//     // print('Reordered first chord notes list: $notesList');
+//     // debugPrint('Reordered first chord notes list: $notesList');
 //     return notesList;
 //   }
 
@@ -91,7 +91,7 @@
 //           .where((e) => e >= indexOfHighestNote || e <= indexOfHighestNote)
 //           .toList()
 //         ..sort();
-//       // print('Reordered Chord Indexes: $reorderedChordIndexes');
+//       // debugPrint('Reordered Chord Indexes: $reorderedChordIndexes');
 
 //       List<String> reorderedChordNotes = [];
 //       for (var index in reorderedChordIndexes) {
@@ -126,7 +126,7 @@
 //         }
 //         auxHashCodes.add(item.hashCode);
 //       }
-//       // print('SelectedChordsNotes   ${item.chordModel.organizedPitches} ');
+//       // debugPrint('SelectedChordsNotes   ${item.chordModel.organizedPitches} ');
 //     }
 //     auxHashCodes.clear();
 //   }

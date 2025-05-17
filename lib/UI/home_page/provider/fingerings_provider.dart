@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/models/chord_scale_model.dart';
 
@@ -15,7 +16,7 @@ class FingeringsNotifier
           await ref.read(chordModelFretboardFingeringProvider.future);
       state = AsyncValue.data(fingerings);
     } catch (error) {
-      print("Error fetching fingerings data");
+      debugPrint("Error fetching fingerings data");
     }
   }
 

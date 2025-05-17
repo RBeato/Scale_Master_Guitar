@@ -28,7 +28,7 @@
 //           await image.toByteData(format: ui.ImageByteFormat.png);
 //       return byteData?.buffer.asUint8List();
 //     } catch (e) {
-//       print('Error capturing PNG: $e');
+//       debugPrint('Error capturing PNG: $e');
 //       return null;
 //     }
 //   }

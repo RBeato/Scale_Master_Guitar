@@ -10,7 +10,13 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const SelectionPage();
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SelectionPage()),
+            );
+          });
+          return const SizedBox.shrink();
 
 
 //TODO: Use this

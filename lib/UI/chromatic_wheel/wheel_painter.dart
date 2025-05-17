@@ -33,7 +33,7 @@ class WheelPainter extends CustomPainter {
     }
 
     for (int i = 0; i < chromaticNotes.length; i++) {
-      // print(
+      // debugPrint(
       //     "i=$i, ${getDegreeColor(chromaticNotes[i], i)}, null:${scaleIntervals[i] == null}");
 
       double angle = 2 * math.pi * i / chromaticNotes.length - math.pi / 2;
@@ -65,7 +65,7 @@ class WheelPainter extends CustomPainter {
     canvas.drawCircle(center, innerRadius, knobPaint);
 
     for (int i = 0; i < MusicConstants.notesWithFlatsAndSharps.length; i++) {
-      // print(
+      // debugPrint(
       //     "i=$i, MusicConstants.notesWithFlatsAndSharps[i]: ${MusicConstants.notesWithFlatsAndSharps[i]}, ");
       double angle =
           2 * math.pi * i / MusicConstants.notesWithFlatsAndSharps.length +

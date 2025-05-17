@@ -1,5 +1,5 @@
 import 'package:tonic/tonic.dart';
-
+import 'package:flutter/material.dart' as material;
 class ChordUtils {
   static String handleCustomPatterns(List<Interval?> intervals) {
     List<String> intervalNames = intervals.map((interval) {
@@ -201,7 +201,7 @@ class ChordUtils {
     if (type == '+') {
       return Interval.P1;
     } else {
-      print('Unknown chord type. Chord type is $type');
+      material.debugPrint('Unknown chord type. Chord type is $type');
       throw Exception('Unknown chord type. Chord type is $type');
     }
   }

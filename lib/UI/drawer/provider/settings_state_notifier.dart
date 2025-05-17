@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/drawer/models/settings_state.dart';
 import 'package:test/models/settings_model.dart';
@@ -33,14 +34,14 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
 
   Future<void> changeValue(SettingsSelection settingSelection, value) async {
     try {
-      print(
+      debugPrint(
           "Attempting to change settings for: $settingSelection with value: $value");
       final settings =
           await localStorageProvider.changeSettings(settingSelection, value);
-      print("Settings updated successfully.");
+      debugPrint("Settings updated successfully.");
       state = SettingsLoaded(settings);
     } catch (e) {
-      print("Error changing settings: $e");
+      debugPrint("Error changing settings: $e");
       state = const SettingsError("Couldn't CHANGE the settings!");
     }
   }
@@ -50,7 +51,7 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
       final settings = await localStorageProvider.getFiltered(settingSelection);
       return settings;
     } catch (e) {
-      // print("Didn't get filtered Value");
+      // debugPrint("Didn't get filtered Value");
     }
   }
 

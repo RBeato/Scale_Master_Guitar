@@ -9,7 +9,7 @@ import '../models/chord_scale_model.dart';
 import '../models/scale_model.dart';
 import '../models/settings_model.dart';
 import 'chord_utils.dart';
-
+import 'package:flutter/material.dart' as material;
 class MusicUtils {
   static List<String> createChords(
       Settings settings, String key, String scale, String mode) {
@@ -129,7 +129,7 @@ class MusicUtils {
         scaleDegrees.contains(Interval.M7);
 
     List<Interval> intervals = [];
-    // print("scaleDegrees: $scaleDegrees");
+    // debugPrint("scaleDegrees: $scaleDegrees");
 
     if (scaleDegrees.length == 8) {
       intervals.addAll([
@@ -169,7 +169,7 @@ class MusicUtils {
               .addAll([scaleDegrees[0]!, scaleDegrees[2]!, scaleDegrees[4]!]);
         }
       } else {
-        print("Something wrong with the scale degrees");
+        material.debugPrint("Something wrong with the scale degrees");
       }
     }
     if (scaleDegrees.length == 6) {
@@ -289,7 +289,7 @@ class MusicUtils {
     }
 
     // for (int i = 0; i < fixedOrderedScaleDegrees.length; i++) {
-    //   print(
+    //   debugPrint(
     //       "${orderedScaleDegrees[i]} fixed orderedScaleDegrees $i: ${fixedOrderedScaleDegrees[i]}");
     // }
     scaleModel.notesIntervalsRelativeToTonicForBuildingChordsList =
@@ -367,7 +367,7 @@ class MusicUtils {
 
     // Iterate from the selected mode to the end
     for (var mode in scaleModes.keys) {
-      // print(mode);
+      // debugPrint(mode);
       if (foundSelectedMode) {
         final scaleDegrees =
             (scaleModes[mode]!['scaleDegrees'] as List<Interval?>)
@@ -390,7 +390,7 @@ class MusicUtils {
     // Iterate from the beginning to the selected mode (excluding selected mode)
     for (var mode in scaleModes.keys) {
       if (mode == scaleModel.mode) break;
-      // print(mode);
+      // debugPrint(mode);
 
       final scaleDegrees =
           (scaleModes[mode]!['scaleDegrees'] as List<Interval?>)
@@ -531,7 +531,7 @@ class MusicUtils {
   }
 
   static flatsAndSharpsToFlats(String noteSubString) {
-    // print('Called flatsOnlyNoteNomenclature');
+    // debugPrint('Called flatsOnlyNoteNomenclature');
     switch (noteSubString) {
       case 'C':
         noteSubString = 'C';

@@ -22,7 +22,7 @@ class SaveImageButton extends ConsumerWidget {
     if (status.isGranted) {
       _saveImage(context);
     } else {
-      print('Storage permission denied.');
+      debugPrint('Storage permission denied.');
     }
   }
 
@@ -34,34 +34,34 @@ class SaveImageButton extends ConsumerWidget {
   }
 
   Future<void> _saveImage(BuildContext context) async {
-    print('Starting the saveImage process...');
+    debugPrint('Starting the saveImage process...');
     // Request storage permissions
     var status = await Permission.storage.request();
     if (!status.isGranted) {
-      print('Storage permission denied.');
+      debugPrint('Storage permission denied.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Storage permission is required to save images')),
       );
       return;
     } else {
-      print('Storage permission granted.');
+      debugPrint('Storage permission granted.');
     }
 
     // Find the WidgetToPngExporterState
     final widgetToPngExporterState = WidgetToPngExporter.of(context);
     if (widgetToPngExporterState == null) {
-      print('WidgetToPngExporterState not found.');
+      debugPrint('WidgetToPngExporterState not found.');
       return;
     }
 
     // Capture PNG bytes
     Uint8List? pngBytes = await widgetToPngExporterState.capturePng();
     if (pngBytes == null) {
-      print('Error capturing PNG image.');
+      debugPrint('Error capturing PNG image.');
       return;
     } else {
-      print('PNG image captured successfully. Byte size: ${pngBytes.length}');
+      debugPrint('PNG image captured successfully. Byte size: ${pngBytes.length}');
     }
 
     try {
@@ -76,7 +76,7 @@ class SaveImageButton extends ConsumerWidget {
       }
 
       if (!await downloadsDirectory.exists()) {
-        print('Could not retrieve a valid Downloads directory.');
+        debugPrint('Could not retrieve a valid Downloads directory.');
         return;
       }
 
@@ -84,21 +84,21 @@ class SaveImageButton extends ConsumerWidget {
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       String filePath =
           path.join(downloadsDirectory.path, 'SMG_image_$timestamp.png');
-      print('File path set: $filePath');
+      debugPrint('File path set: $filePath');
 
       // Write the PNG bytes to the file
-      print('Attempting to write PNG bytes to file...');
+      debugPrint('Attempting to write PNG bytes to file...');
       File file = File(filePath);
       await file.writeAsBytes(pngBytes);
-      print('PNG image saved successfully: $filePath');
+      debugPrint('PNG image saved successfully: $filePath');
 
       // Notify the user
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Image saved to $filePath')),
       );
     } catch (e, stackTrace) {
-      print('Error saving PNG image: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('Error saving PNG image: $e');
+      debugPrint('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error saving image')),
       );

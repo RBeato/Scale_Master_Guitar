@@ -27,7 +27,7 @@ class _PaywallPageState extends State<PaywallPage> {
     //     setState(() => package = offers.first.availablePackages.first);
     //   }
     // } catch (e) {
-    //   print('Error fetching offers: $e');
+    //   debugPrint('Error fetching offers: $e');
     // } finally {
     //   setState(() => isLoading = false);
     // }
@@ -37,15 +37,15 @@ class _PaywallPageState extends State<PaywallPage> {
 //Test code
 //     final offering = await PurchaseApi.fetchSpecificOffering('premium');
 //     if (offering != null) {
-//       print('Fetched offering: ${offering.identifier}');
-//       print(
+//       debugPrint('Fetched offering: ${offering.identifier}');
+//       debugPrint(
 //           'Available packages: ${offering.availablePackages.map((p) => p.identifier)}');
 //     } else {
-//       print('Failed to fetch specific offering');
+//       debugPrint('Failed to fetch specific offering');
 //     }
 // //
 //     final package = await PurchaseApi.fetchPremiumPackage();
-//     print("second test: PremiumPackage function result: $package");
+//     debugPrint("second test: PremiumPackage function result: $package");
 
 //     if (package == null) return;
 //     setState(() => isLoading = true);
@@ -59,7 +59,7 @@ class _PaywallPageState extends State<PaywallPage> {
 //         );
 //       }
     // } catch (e) {
-    //   print('Error making purchase: $e');
+    //   debugPrint('Error making purchase: $e');
     //   ScaffoldMessenger.of(context).showSnackBar(
     //     const SnackBar(content: Text('An error occurred during purchase')),
     //   );
@@ -80,7 +80,7 @@ class _PaywallPageState extends State<PaywallPage> {
         );
       }
     } catch (e) {
-      print('Error restoring purchases: $e');
+      debugPrint('Error restoring purchases: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('An error occurred during restore')),
       );

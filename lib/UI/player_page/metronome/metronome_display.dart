@@ -63,7 +63,7 @@ class BPMSelector extends ConsumerWidget {
         .round(); //empirical value for 'remembering' bpm value when opening dialog
     double listHeight = 256.toDouble() * itemHeight;
     double offset = (listHeight / selectedTempo * itemHeight);
-    // print('itemHeight: ${(selectedTempo / 2).round()}');
+    // debugPrint('itemHeight: ${(selectedTempo / 2).round()}');
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _controller.jumpTo(offset));
 

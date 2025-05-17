@@ -64,7 +64,7 @@ class FingeringsCreator {
     buildVoicingIntervalsList();
     chordsStringFretPositions();
     scalesStringFretPositions();
-    // print(_scaleChordPositions);
+    // debugPrint(_scaleChordPositions);
 
     _scaleChordPositions = ChordScaleFingeringsModel(
       scaleModel: scaleModel,
@@ -139,12 +139,12 @@ class FingeringsCreator {
         case 'Drop':
           if (randomChoice == 1) {
             //Drop2
-            // print('RANDOM  CHOICE: DROP2');
+            // debugPrint('RANDOM  CHOICE: DROP2');
             _voicingIntervalsNumbers = [1, 5, 7, 3];
             _stringDistribution = [0, -1, -2, -3];
           } else {
             // 'Drop 3'
-            // print('RANDOM  CHOICE: DROP3');
+            // debugPrint('RANDOM  CHOICE: DROP3');
             _stringDistribution = [0, -2, -3, -4];
             _voicingIntervalsNumbers = [1, 7, 3, 5];
           }
@@ -200,7 +200,7 @@ class FingeringsCreator {
           }
         }
       }
-      // print('\"All chord tones\" chordNotesPositions: $_chordNotesPositions');
+      // debugPrint('\"All chord tones\" chordNotesPositions: $_chordNotesPositions');
     }
     if (_chordVoicings == 'CAGED') {
       //CAGED NOTES POSITIONS
@@ -211,7 +211,7 @@ class FingeringsCreator {
       final chord = tonic.Chord.parse('$_key $chordType');
       final instrument = tonic.Instrument.guitar;
       final fretting = tonic.bestFrettingFor(chord, instrument).toString();
-      // print('Fretting : $fretting');
+      // debugPrint('Fretting : $fretting');
       try {
         int stringNumber = 6;
         for (int i = 0; i < 6; i++) {
@@ -223,9 +223,9 @@ class FingeringsCreator {
             stringNumber--;
           }
         }
-        // print('_chordNotesPositions $_chordNotesPositions');
+        // debugPrint('_chordNotesPositions $_chordNotesPositions');
       } catch (e) {
-        print('Parsing error: $e');
+        debugPrint('Parsing error: $e');
       }
     }
     //CHORD VOICINGS == 'drop2' || ChordVoicings == 'drop3'|| ChordVoicings == 'close voicing'
@@ -245,7 +245,7 @@ class FingeringsCreator {
             noteNameWithoutIndex =
                 flatsOnlyNoteNomenclature(noteNameWithoutIndex);
             if (string == 0) {
-              print("STRING == 0");
+              debugPrint("STRING == 0");
             }
             fret = fretboardNotesNamesFlats[string - 1]
                 .indexOf(noteNameWithoutIndex, notesRepetitionsInOneString[k]);
@@ -255,15 +255,15 @@ class FingeringsCreator {
             auxValue = fret;
             proximityList.add(fret);
             _chordNotesPositions.add([string, fret]);
-            // print('_proximityList : $_proximityList');
-            // print('_chordNotesPositions: $_chordNotesPositions');
+            // debugPrint('_proximityList : $_proximityList');
+            // debugPrint('_chordNotesPositions: $_chordNotesPositions');
           }
         }
         //Calculate the average value fret for the chord and correct the position
         var averageFretPosition =
             proximityList.map((m) => m).reduce((a, b) => a + b) /
                 proximityList.length;
-        print('Average result: $averageFretPosition');
+        debugPrint('Average result: $averageFretPosition');
 
         for (int frt = 0; frt < _chordNotesPositions.length; frt++) {
           _chordNotesPositions.removeWhere((item) =>
@@ -283,7 +283,7 @@ class FingeringsCreator {
         .map((e) => e.toString().substring(0, e.toString().length - 1))
         .toList();
     _modeNotes = _modeNotes!.map((e) => flatsOnlyNoteNomenclature(e)).toList();
-    // print('ModeNotes: ${_modeNotes}');
+    // debugPrint('ModeNotes: ${_modeNotes}');
 
     // var notesRepetitionsInOneString = [0, 2, 3];
     for (int string = 0; string < 6; string++) {
@@ -315,13 +315,13 @@ class FingeringsCreator {
     // for (int string = 0; string < 6; string++) {
     //   for (int i = 0; i < _modeNotes!.length; i++) {
     //     for (int n = 0; n < notesRepetitionsInOneString.length; n++) {
-    //       print(
+    //       debugPrint(
     //           " _modeNotes![i], ${_modeNotes![i]} notesRepetitionsInOneString[n]${notesRepetitionsInOneString[n]}");
     //       int fret = fretboardNotesNamesFlats[string].indexOf(
     //         _modeNotes![i],
     //         notesRepetitionsInOneString[n],
     //       );
-    //       print("Fret: $fret");
+    //       debugPrint("Fret: $fret");
     //       bool contains = false;
     //       for (var k in _scaleNotesPositions) {
     //         if (k[0] == string + 1 && k[1] == fret) contains = true;
@@ -330,14 +330,14 @@ class FingeringsCreator {
     //         _scaleNotesPositions.add([string + 1, fret]);
     //         _scaleColorfulMap["${string + 1},$fret"] =
     //             scaleTonicColorMap[_modeIntervals![i]]!;
-    //         print("_scaleNotesPositions $_scaleNotesPositions");
-    //         print("_scaleColorfulMap $_scaleColorfulMap");
+    //         debugPrint("_scaleNotesPositions $_scaleNotesPositions");
+    //         debugPrint("_scaleColorfulMap $_scaleColorfulMap");
     //       }
     //     }
     //   }
     // }
     //! IF 'scalesOnly' is selected and IF brainin colors are selected show colorful fretboard
-    // print('_scaleNotesPositions $_scaleNotesPositions');
+    // debugPrint('_scaleNotesPositions $_scaleNotesPositions');
   }
 
   Map cagedVoicings = {
