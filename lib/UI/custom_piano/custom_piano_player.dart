@@ -33,7 +33,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   Map<int, double> trackVolumes = {};
   Track? selectedTrack;
   late Ticker ticker;
-  SequencerManager sequencerManager = SequencerManager();
+  late SequencerManager sequencerManager;
   double tempo = Constants.INITIAL_TEMPO;
   double position = 0.0;
   late bool isPlaying;
@@ -44,6 +44,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   @override
   void initState() {
     super.initState();
+    sequencerManager = ref.read(sequencerManagerProvider);
     initializeSequencer();
   }
 
@@ -53,11 +54,9 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
       isLoading = true;
     });
     isPlaying = ref.read(isSequencerPlayingProvider);
-    sequencerManager = ref.read(sequencerManagerProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
     sequence = Sequence(tempo: tempo, endBeat: stepCount);
     tracks = await sequencerManager.initialize(
-        ref: ref,
         tracks: tracks,
         sequence: sequence,
         playAllInstruments: false,
@@ -106,7 +105,6 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
       if (sequence != null) {
         sequencerManager.handleStop(sequence);
       }
-      sequencerManager.dispose();
       tracks.clear();
     } catch (e, st) {
       debugPrint('[CustomPianoPlayer] Error during dispose: $e\n$st');

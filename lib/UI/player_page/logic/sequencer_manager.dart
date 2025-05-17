@@ -18,9 +18,12 @@ import 'package:collection/collection.dart';
 import '../../../utils/player_utils.dart';
 import '../../../constants/gm_programs.dart';
 
-final sequencerManagerProvider = Provider((ref) => SequencerManager());
+final sequencerManagerProvider = Provider((ref) => SequencerManager(ref));
 
 class SequencerManager {
+  final Ref _ref;
+  SequencerManager(this._ref);
+
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   // List<Track> tracks = [];
   late Sequence sequence;
@@ -45,9 +48,8 @@ class SequencerManager {
   final Set<int> _activeMidiNotes = {};
 
   Future<List<Track>> initialize({
-    ref,
-    tracks,
-    sequence,
+    required List<Track> tracks,
+    required Sequence sequence,
     playAllInstruments,
     isPlaying,
     stepCount,
@@ -92,7 +94,6 @@ class SequencerManager {
 
       // Create project state
       ProjectState? project = await _createProject(
-        ref: ref,
         selectedChords: selectedChords,
         stepCount: stepCount,
         nBeats: stepCount,
@@ -110,7 +111,6 @@ class SequencerManager {
   }
 
   Future<ProjectState>? _createProject({
-    required WidgetRef ref,
     required List<ChordModel> selectedChords,
     required int stepCount,
     required int nBeats,
@@ -136,7 +136,7 @@ class SequencerManager {
       note = MusicUtils.filterNoteNameWithSlash(note);
       note = MusicUtils.flatsAndSharpsToFlats(note);
 
-      var index = ref.read(bassNoteIndexProvider);
+      var index = _ref.read(bassNoteIndexProvider);
 
       if (i > 0) {
         index = MusicUtils.calculateIndexForBassNote(
@@ -144,7 +144,7 @@ class SequencerManager {
           note,
           index,
         );
-        ref.read(bassNoteIndexProvider.notifier).update((state) => index);
+        _ref.read(bassNoteIndexProvider.notifier).update((state) => index);
       }
 
       var bassMidiValue = MusicConstants.midiValues["$note$index"]!;
@@ -230,31 +230,31 @@ class SequencerManager {
     }
   }
 
-  handleTogglePlayStop(WidgetRef ref, Sequence sequence) {
-    ref.read(isSequencerPlayingProvider.notifier).update((state) => !state);
-    bool isPlaying = ref.read(isSequencerPlayingProvider);
+  handleTogglePlayStop(Sequence sequence) {
+    bool currentIsPlaying = _ref.read(isSequencerPlayingProvider);
+    bool nextIsPlaying = !currentIsPlaying;
 
-    if (!isPlaying) {
-      sequence.stop();
-      ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
-    } else {
+    if (nextIsPlaying) {
       var tracks = sequence.getTracks();
       debugPrint("PlayAllInstruments: $playAllInstruments");
       debugPrint("Playing sequence. Tracks: ${tracks.length}");
       if (tracks.length > 2) {
         debugPrint("Bass track events: ${tracks[2].events.length}");
-        // debugPrint("Bass track volume: ${trackVolumes[tracks[2].id]}");
         debugPrint("Bass track volume: ${tracks[2].getVolume()}");
       } else {
         debugPrint("Not enough tracks available");
       }
       sequence.play();
+      _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+    } else {
+      sequence.stop();
+      _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     }
   }
 
   handleStop(Sequence sequence) {
     sequence.stop();
-    // ref.read(isSequencerPlayingProvider.notifier).update((state) => !state);
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
   }
 
   _handleSetLoop(bool nextIsLooping, Sequence sequence) {
@@ -297,9 +297,15 @@ class SequencerManager {
     // });
   }
 
-  _handleTempoChange(double nextTempo, Sequence sequence) {
-    if (nextTempo <= 0) return;
+  void handleTempoChange(double nextTempo, Sequence sequence) {
+    if (nextTempo <= 0) {
+        debugPrint('[SequencerManager] Invalid tempo: $nextTempo. Must be > 0.');
+        return;
+    }
+    debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
     sequence.setTempo(nextTempo);
+    // Update local tempo if SequencerManager keeps its own tempo state that needs to match
+    this.tempo = nextTempo; 
   }
 
   // handleTrackChange(Track nextTrack) {
@@ -322,19 +328,83 @@ class SequencerManager {
     _syncTrack(track);
   }
 
-  _syncTrack(track) {
+  _syncTrack(Track track) {
     track.clearEvents();
-    trackStepSequencerStates[track.id]!
-        .iterateEvents((step, noteNumber, velocity) {
-      if (step < stepCount) {
-        track.addNote(
+    final List<ChordModel> currentChords = _ref.read(selectedChordsProvider);
+    StepSequencerState? stepState = trackStepSequencerStates[track.id];
+
+    if (stepState == null) {
+      debugPrint('[SequencerManager._syncTrack] No StepSequencerState for track ID ${track.id}. Skipping sync.');
+      return;
+    }
+
+    // Determine track purpose - A more robust mapping should ideally be established during track creation.
+    // For now, assuming IDs based on common order: 0=Drums, 1=Piano, 2=Bass.
+    // This requires tracks to be created in a consistent order and IDs assigned sequentially by the plugin.
+    // These IDs would ideally come from constants or a mapping established in `initialize`.
+    const int assumedDrumsTrackId = 0;
+    const int assumedPianoTrackId = 1;
+    const int assumedBassTrackId = 2;
+
+    bool isDrumTrack = track.id == assumedDrumsTrackId;
+    bool isPianoTrack = track.id == assumedPianoTrackId;
+    bool isBassTrack = track.id == assumedBassTrackId;
+
+    if (isPianoTrack || isBassTrack) {
+      Map<int, ChordModel> chordAtPosition = {};
+      for (var chord in currentChords) {
+        chordAtPosition[chord.position] = chord;
+      }
+
+      stepState.iterateEvents((step, noteNumber, velocity) {
+        if (velocity > 0) { // Only active notes
+          ChordModel? currentEventChord = chordAtPosition[step];
+          double durationBeats = 1.0; // Default duration if no specific chord found at this step
+
+          if (currentEventChord != null) {
+            durationBeats = currentEventChord.duration.toDouble();
+          } else {
+            // This situation (a note in stepState at a step that isn't a chord start)
+            // should ideally not happen for piano/bass if stepState is built correctly from chords.
+            // If it does, it means there are orphaned notes or a mismatch.
+            // For safety, we use a default, but it might indicate an issue in _createProject or state management.
+            debugPrint('[SequencerManager._syncTrack] Warning: Note (MIDI: $noteNumber) at step $step for track ${track.id} does not align with a chord start. Using default duration 1.0 beat.');
+          }
+
+          track.addNote(
             noteNumber: noteNumber,
             velocity: velocity,
             startBeat: step.toDouble(),
-            durationBeats: 1.0);
-      }
-    });
+            durationBeats: durationBeats,
+          );
+        }
+      });
+    } else if (isDrumTrack) {
+      stepState.iterateEvents((step, noteNumber, velocity) {
+        if (velocity > 0 && step < this.stepCount) {
+          track.addNote(
+            noteNumber: noteNumber,
+            velocity: velocity,
+            startBeat: step.toDouble(),
+            durationBeats: 0.5, // Drum hits are short
+          );
+        }
+      });
+    } else {
+      // Fallback for any other unclassified tracks
+      stepState.iterateEvents((step, noteNumber, velocity) {
+        if (velocity > 0 && step < this.stepCount) {
+          track.addNote(
+            noteNumber: noteNumber,
+            velocity: velocity,
+            startBeat: step.toDouble(),
+            durationBeats: 1.0, // Default duration
+          );
+        }
+      });
+    }
     track.syncBuffer();
+    debugPrint('[SequencerManager._syncTrack] Synced track ID ${track.id}. Events in plugin track: ${track.events.length}');
   }
 
   loadProjectState(
@@ -346,7 +416,7 @@ class SequencerManager {
     trackStepSequencerStates[tracks[2].id] = projectState.bassState;
 
     _handleStepCountChange(projectState.stepCount, tracks, sequence);
-    _handleTempoChange(tempo, sequence);
+    handleTempoChange(tempo, sequence);
     _handleSetLoop(projectState.isLooping, sequence);
 
     _syncTrack(tracks[0]);
@@ -354,26 +424,27 @@ class SequencerManager {
     _syncTrack(tracks[2]);
   }
 
-  clearTracks(ref, List<Track> tracks, Sequence sequence) {
+  clearTracks(List<Track> tracks, Sequence sequence) {
     sequence.stop();
-    ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     if (tracks.isNotEmpty) {
-      trackStepSequencerStates[tracks[0].id] = StepSequencerState();
-      _syncTrack(tracks[0]);
-      if (ref != null) {
-        ref.read(selectedChordsProvider.notifier).removeAll();
+      if (trackStepSequencerStates.containsKey(tracks[0].id)) {
+        trackStepSequencerStates[tracks[0].id] = StepSequencerState();
+        _syncTrack(tracks[0]);
       }
+    } else {
+      debugPrint("[SequencerManager.clearTracks] Tracks list is empty, nothing to clear from state map.");
     }
   }
 
-  void clearEverything(List<Track> tracks, Sequence sequence) {
+  void clearEverything(List<Track> tracksToClear, Sequence sequence) {
     sequence.stop();
-    for (var track in tracks) {
+    for (var track in tracksToClear) {
       trackStepSequencerStates[track.id] = StepSequencerState();
       _syncTrack(track);
     }
-    tracks.clear(); // Clear all tracks
-    _handleStepCountChange(0, tracks, sequence); // Reset the step count to 0
+    tracksToClear.clear(); // Clear all tracks
+    _handleStepCountChange(0, tracksToClear, sequence); // Reset the step count to 0
   }
 
   bool needToUpdateSequencer(

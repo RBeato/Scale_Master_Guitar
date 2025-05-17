@@ -33,7 +33,7 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
   Map<int, double> trackVolumes = {};
   Track? selectedTrack;
   late Ticker ticker;
-  SequencerManager sequencerManager = SequencerManager();
+  late SequencerManager sequencerManager;
   double tempo = Constants.INITIAL_TEMPO;
   double position = 0.0;
   late bool isPlaying;
@@ -45,6 +45,7 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
   @override
   void initState() {
     super.initState();
+    sequencerManager = ref.read(sequencerManagerProvider);
     initializeSequencer();
   }
 
@@ -54,7 +55,6 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
       isLoading = true;
     });
     isPlaying = ref.read(isSequencerPlayingProvider);
-    sequencerManager = ref.read(sequencerManagerProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
     sequence = Sequence(tempo: tempo, endBeat: stepCount);
     await sequencerManager.initialize(
