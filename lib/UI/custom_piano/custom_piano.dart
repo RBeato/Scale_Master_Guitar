@@ -6,10 +6,16 @@ import '../../utils/music_utils.dart';
 import 'custom_piano_key.dart';
 
 class CustomPiano extends StatefulWidget {
-  const CustomPiano(this.scaleInfo, {required this.onKeyPressed, super.key});
+  const CustomPiano(
+    this.scaleInfo, {
+    required this.onKeyDown,
+    required this.onKeyUp,
+    super.key
+  });
 
   final ScaleModel? scaleInfo;
-  final Function(String) onKeyPressed;
+  final Function(String) onKeyDown;
+  final Function(String) onKeyUp;
 
   @override
   State<CustomPiano> createState() => _CustomPianoState();
@@ -71,7 +77,8 @@ class _CustomPianoState extends State<CustomPiano> {
           isBlack: false,
           note: noteName,
           containerColor: color,
-          onKeyPressed: (noteName) => widget.onKeyPressed(noteName),
+          onKeyDown: (noteName) => widget.onKeyDown(noteName),
+          onKeyUp: (noteName) => widget.onKeyUp(noteName),
           isInScale: _isInScale(
             cleanedNoteName,
             notesList,
@@ -112,7 +119,8 @@ class _CustomPianoState extends State<CustomPiano> {
             isBlack: true,
             note: noteName,
             containerColor: color,
-            onKeyPressed: (noteName) => widget.onKeyPressed(noteName),
+            onKeyDown: (noteName) => widget.onKeyDown(noteName),
+            onKeyUp: (noteName) => widget.onKeyUp(noteName),
             isInScale: _isInScale(
                 cleanedNoteName, notesList), // Check if note is in scale
           ),

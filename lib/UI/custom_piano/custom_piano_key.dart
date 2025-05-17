@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class CustomPianoKey extends StatefulWidget {
   final bool isBlack;
   final String note;
-  final Function(String) onKeyPressed;
+  final Function(String) onKeyDown;
+  final Function(String) onKeyUp;
   final bool isInScale;
   final Color? containerColor;
 
@@ -11,7 +12,8 @@ class CustomPianoKey extends StatefulWidget {
     super.key,
     required this.isBlack,
     required this.note,
-    required this.onKeyPressed,
+    required this.onKeyDown,
+    required this.onKeyUp,
     required this.containerColor,
     this.isInScale = false,
   });
@@ -24,32 +26,48 @@ class _CustomPianoKeyState extends State<CustomPianoKey> {
   bool _isPressed = false;
 
   void _onKeyTapDown(TapDownDetails details) {
-    setState(() {
-      _isPressed = true;
-    });
-    widget.onKeyPressed(widget.note);
+    if (!_isPressed) {
+      setState(() {
+        _isPressed = true;
+      });
+      final String keyContext = 'CustomPianoKey[\${widget.note}]';
+      debugPrint('[$keyContext] KEY DOWN. Calling onKeyDown("${widget.note}")');
+      widget.onKeyDown(widget.note);
+    }
   }
 
   void _onKeyTapUp(TapUpDetails details) {
-    setState(() {
-      _isPressed = false;
-    });
+    if (_isPressed) { // Check if it was pressed to avoid redundant calls if drag-off already handled it
+      setState(() {
+        _isPressed = false;
+      });
+      final String keyContext = 'CustomPianoKey[\${widget.note}]';
+      debugPrint('[$keyContext] KEY UP. Calling onKeyUp("${widget.note}")');
+      widget.onKeyUp(widget.note);
+    }
+  }
+
+  void _onKeyTapCancel() {
+    if (_isPressed) {
+      setState(() {
+        _isPressed = false;
+      });
+      final String keyContext = 'CustomPianoKey[\${widget.note}]';
+      debugPrint('[$keyContext] KEY CANCEL (e.g., drag off). Calling onKeyUp("${widget.note}")');
+      widget.onKeyUp(widget.note); // Treat cancel as key up
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final color = widget.isBlack ? Colors.black : Colors.white;
-    final pressedColor = widget.isBlack ? Colors.black87 : Colors.white60;
+    final pressedColor = widget.isBlack ? Colors.black87 : Colors.white70;
     const textColor = Colors.grey;
 
     return GestureDetector(
       onTapDown: _onKeyTapDown,
       onTapUp: _onKeyTapUp,
-      onTapCancel: () {
-        setState(() {
-          _isPressed = false;
-        });
-      },
+      onTapCancel: _onKeyTapCancel,
       child: Stack(
         children: [
           AnimatedContainer(

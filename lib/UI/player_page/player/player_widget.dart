@@ -47,6 +47,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
+  // final Set<String> _uiActivePianoNotes = {}; // No longer needed for sustain logic
 
   @override
   void initState() {
@@ -103,10 +104,25 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     int tickCount = 0;
     ticker = createTicker((Duration elapsed) {
       if (!mounted) return;
-      tickCount++;
-      if (tickCount % 30 == 0) { // throttle logs
-        debugPrint('[PlayerWidget] ticker tick: elapsed = \${elapsed.inMilliseconds}ms');
+      final String tickerContext = 'SequencerInitializer.Ticker';
+      final Stopwatch fullTickStopwatch = Stopwatch()..start();
+
+      final Stopwatch beatStopwatch = Stopwatch()..start();
+      position = sequence!.getBeat(); // Potentially expensive call
+      beatStopwatch.stop();
+
+      isPlaying = sequence!.getIsPlaying(); // Potentially expensive call
+
+      ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
+
+      if (tracks.isNotEmpty) { // Ensure tracks list is not empty before iterating
+        final Stopwatch volumesStopwatch = Stopwatch()..start();
+        for (var track in tracks) {
+          trackVolumes[track.id] = track.getVolume(); // Potentially expensive call
+        }
+        volumesStopwatch.stop();
       }
+
       setState(() {
         tempo = ref.read(metronomeTempoProvider);
         position = sequence!.getBeat();
@@ -117,6 +133,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         }
         isLoading = false;
       });
+
+      fullTickStopwatch.stop();
     });
     ticker!.start();
     debugPrint('[PlayerWidget] initializeSequencer: ticker started');
@@ -238,8 +256,13 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     List selectedChords,
     bool isMetronomeSelected,
   ) {
+    // Ensure sequence is not null before calling needToUpdateSequencer
+    if (sequence == null) {
+      debugPrint('[PlayerWidget.updateSequencer] Sequence is null. Skipping update.');
+      return;
+    }
     if (sequencerManager.needToUpdateSequencer(
-      sequence!,
+      sequence!, // Now safe to use !
       selectedChords,
       tempo,
       widget.settings.isTonicUniversalBassNote,
@@ -255,6 +278,26 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
           isLoading = false;
         });
       });
+    }
+  }
+
+  void handlePianoKeyDown(String noteName) {
+    final String widgetContext = 'PlayerWidget.handlePianoKeyDown';
+    debugPrint('[$widgetContext] Received KEY DOWN for note: $noteName');
+    if (sequence != null && tracks.isNotEmpty) {
+      sequencerManager.playPianoNote(noteName, tracks, sequence!); 
+    } else {
+      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot play note.');
+    }
+  }
+
+  void handlePianoKeyUp(String noteName) {
+    final String widgetContext = 'PlayerWidget.handlePianoKeyUp';
+    debugPrint('[$widgetContext] Received KEY UP for note: $noteName');
+    if (sequence != null && tracks.isNotEmpty) {
+      sequencerManager.stopPianoNote(noteName, tracks, sequence!); 
+    } else {
+      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot stop note.');
     }
   }
 }

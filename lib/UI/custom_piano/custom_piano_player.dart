@@ -114,9 +114,31 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     super.dispose();
   }
 
+  void handlePianoKeyDown(String noteName) {
+    final String widgetContext = 'CustomPianoState.handlePianoKeyDown';
+    debugPrint('[$widgetContext] Received KEY DOWN for note: $noteName');
+    // Ensure sequence and tracks are initialized and not empty
+    if (sequence != null && tracks.isNotEmpty) {
+      sequencerManager.playPianoNote(noteName, tracks, sequence);
+    } else {
+      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot play note.');
+    }
+  }
+
+  void handlePianoKeyUp(String noteName) {
+    final String widgetContext = 'CustomPianoState.handlePianoKeyUp';
+    debugPrint('[$widgetContext] Received KEY UP for note: $noteName');
+    // Ensure sequence and tracks are initialized and not empty
+    if (sequence != null && tracks.isNotEmpty) {
+      sequencerManager.stopPianoNote(noteName, tracks, sequence);
+    } else {
+      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot stop note.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // debugPrint("tracks: ${tracks[0]}");
+    // debugPrint("tracks: \${tracks[0]}");
     // return CustomPianoTest(
     //   widget.scaleModel,
     //   onKeyPressed: (note) =>
@@ -124,9 +146,11 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     // );
     return CustomPiano(
       widget.scaleModel,
-      onKeyPressed: (note) => Debouncer.handleButtonPress(() {
-        sequencerManager.playPianoNote(note, tracks, sequence);
-      }),
+      // onKeyPressed: (note) => Debouncer.handleButtonPress(() { // Old
+      //   sequencerManager.playPianoNote(note, tracks, sequence);
+      // }),
+      onKeyDown: handlePianoKeyDown, // New
+      onKeyUp: handlePianoKeyUp,     // New
     );
   }
 }

@@ -93,7 +93,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                 items: Scales.data[selectedScale].keys
                     .map<DropdownMenuItem<String>>((dynamic value) {
                   String key = value.toString();
-                  debugPrint(key);
+                  // debugPrint(key);
                   return DropdownMenuItem<String>(
                     value: key,
                     child: Text(key,

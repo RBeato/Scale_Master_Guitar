@@ -173,48 +173,60 @@ class SequencerManager {
   }
 
   void playPianoNote(String note, List<Track> tracks, Sequence sequence) {
+    final String method = 'SequencerManager.playPianoNote';
     final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
-    final pianoTrack = tracks[1];
-
-    // Add note to active set
-    _activeMidiNotes.add(midiValue);
-
-    // Clear only the events, not the state, to avoid duplicate notes
-    pianoTrack.events.clear();
-    trackStepSequencerStates[pianoTrack.id]!.clear();
-
-    // Add all currently active notes
-    for (final midi in _activeMidiNotes) {
-      trackStepSequencerStates[pianoTrack.id]!.setVelocity(0, midi, 0.60);
+    // Ensure tracks list is not empty and has the piano track at the expected index
+    if (tracks.length <= 1) {
+      debugPrint('[$method] Tracks list too short or piano track not available (length: \${tracks.length}). Cannot play note $note.');
+      return;
     }
+    final pianoTrack = tracks[1]; // Assuming piano is always track 1
 
-    _syncTrack(pianoTrack);
+    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current _activeMidiNotes: $_activeMidiNotes');
 
-    // Only start playing if not already playing
-    if (!sequence.getIsPlaying()) {
-      sequence.play();
+    if (_activeMidiNotes.contains(midiValue)) {
+      debugPrint('[$method] Note $midiValue already in _activeMidiNotes. SKIPPING startNoteNow.');
+      return;
+    }
+    _activeMidiNotes.add(midiValue);
+    debugPrint('[$method] Added $midiValue to _activeMidiNotes. Current: $_activeMidiNotes');
+
+    try {
+      final Stopwatch stopwatch = Stopwatch()..start();
+      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.60);
+      stopwatch.stop();
+      debugPrint('[$method] COMPLETED - pianoTrack.startNoteNow for $midiValue. Duration: \${stopwatch.elapsedMicroseconds} us.');
+    } catch (e, stackTrace) {
+      debugPrint('[$method] ERROR calling pianoTrack.startNoteNow for $midiValue: $e\\n$stackTrace');
     }
   }
 
-  // Call this on key release (you'll need to wire this up in the UI)
   void stopPianoNote(String note, List<Track> tracks, Sequence sequence) {
+    final String method = 'SequencerManager.stopPianoNote';
     final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
-    final pianoTrack = tracks[1];
-
-    _activeMidiNotes.remove(midiValue);
-
-    pianoTrack.events.clear();
-    trackStepSequencerStates[pianoTrack.id]!.clear();
-
-    for (final midi in _activeMidiNotes) {
-      trackStepSequencerStates[pianoTrack.id]!.setVelocity(0, midi, 0.60);
+    // Ensure tracks list is not empty and has the piano track at the expected index
+    if (tracks.length <= 1) {
+      debugPrint('[$method] Tracks list too short or piano track not available (length: \${tracks.length}). Cannot stop note $note.');
+      return;
     }
+    final pianoTrack = tracks[1]; // Assuming piano is always track 1
 
-    _syncTrack(pianoTrack);
+    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current _activeMidiNotes: $_activeMidiNotes');
 
-    // If no notes are left, stop the sequence
-    if (_activeMidiNotes.isEmpty) {
-      sequence.stop();
+    if (!_activeMidiNotes.contains(midiValue)) {
+      debugPrint('[$method] Note $midiValue was NOT in _activeMidiNotes. SKIPPING stopNoteNow (might have been stopped already or never started).');
+      return;
+    }
+    _activeMidiNotes.remove(midiValue);
+    debugPrint('[$method] Removed $midiValue from _activeMidiNotes. Current: $_activeMidiNotes');
+
+    try {
+      final Stopwatch stopwatch = Stopwatch()..start();
+      pianoTrack.stopNoteNow(noteNumber: midiValue);
+      stopwatch.stop();
+      debugPrint('[$method] COMPLETED - pianoTrack.stopNoteNow for $midiValue. Duration: \${stopwatch.elapsedMicroseconds} us.');
+    } catch (e, stackTrace) {
+      debugPrint('[$method] ERROR calling pianoTrack.stopNoteNow for $midiValue: $e\\n$stackTrace');
     }
   }
 
