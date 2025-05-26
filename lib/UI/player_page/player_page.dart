@@ -17,7 +17,8 @@ import '../fretboard_page/provider/fretboard_page_fingerings_provider.dart';
 class PlayerPage extends ConsumerWidget {
   PlayerPage({super.key});
 
-  ChordScaleFingeringsModel? f;
+  // Removed field 'f'; do not store transient provider data in StatelessWidget.
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,15 +64,14 @@ class PlayerPage extends ConsumerWidget {
             IconButton(
               onPressed: () {
                 debugPrint('[PlayerPage] Forward button pressed');
-                if (fingerings.value!.scaleModel!.scaleNotesNames
-                    .take(5)
-                    .any((s) => s.contains('♭'))) {
-                  ref
-                      .read(sharpFlatSelectionProvider.notifier)
-                      .update((state) => FretboardSharpFlat.flats);
-                }
-                if (f != null) {
-                  ref.read(fretboardPageFingeringsProvider.notifier).update(f!);
+                // Defensive: Only check for flats if fingerings and scaleModel are non-null
+                final fingeringsValue = fingerings.value;
+                if (fingeringsValue != null && fingeringsValue.scaleModel != null) {
+                  if (fingeringsValue.scaleModel!.scaleNotesNames.take(5).any((s) => s.contains('♭'))) {
+                    ref.read(sharpFlatSelectionProvider.notifier).update((state) => FretboardSharpFlat.flats);
+                  }
+                  // Update fretboardPageFingeringsProvider safely
+                  ref.read(fretboardPageFingeringsProvider.notifier).update(fingeringsValue);
                 }
 
                 bool isPlaying = ref.read(isSequencerPlayingProvider);
@@ -96,7 +96,13 @@ class PlayerPage extends ConsumerWidget {
             child: fingerings.when(
                 data: (data) {
                   debugPrint('[PlayerPage] fingerings.when: data received');
-                  f = data;
+                  // Defensive: Check for nulls in data, scaleModel, and settings
+                  if (data == null || data.scaleModel == null || data.scaleModel!.settings == null) {
+                    debugPrint('[PlayerPage] Error: Missing data, scaleModel, or settings.');
+                    return const Center(child: Text('Missing player data. Please check your selection.'));
+                  }
+                  // Defensive: Only update provider if data is present in navigation
+                  final ChordScaleFingeringsModel safeFingerings = data;
                   return Stack(
                     children: [
                       Column(
@@ -111,7 +117,12 @@ class PlayerPage extends ConsumerWidget {
                               child: Builder(
                                 builder: (context) {
                                   debugPrint('[PlayerPage] Building PlayerWidget');
-                                  return PlayerWidget(data!.scaleModel!.settings!);
+                                  // Defensive: Only pass non-null settings to PlayerWidget
+                                  if (data.scaleModel != null && data.scaleModel!.settings != null) {
+                                    return PlayerWidget(data.scaleModel!.settings!);
+                                  } else {
+                                    return const Center(child: Text('Error: Missing settings.'));
+                                  }
                                 },
                               )),
                           const SizedBox(height: 40),

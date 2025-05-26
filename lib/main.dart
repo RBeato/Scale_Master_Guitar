@@ -15,6 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
+//TODO: add the google store key from old project to this one
 
 //Create paywall manually ... Have restore logic and button for that.
 //TODO: 7-day trial setup on Google Play console and RevenueCat, check chatGPT
