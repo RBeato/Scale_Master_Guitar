@@ -17,14 +17,14 @@ class WheelAndPianoColumn extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const SizedBox(height: 20),
+          
               Expanded(
-                flex: 2,
+                flex: 5,
                 child: Center(child: ChromaticWheel(data!.scaleModel!)),
               ),
               const SizedBox(height: 30),
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: CustomPianoSoundController(data.scaleModel),

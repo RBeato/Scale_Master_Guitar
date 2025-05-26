@@ -116,7 +116,15 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
       child: CustomPaint(
         painter: WheelPainter(
             _currentRotation, chromaticNotes, scaleIntervals, topNote),
-        child: const SizedBox(width: 300, height: 300),
+        child: LayoutBuilder(
+  builder: (context, constraints) {
+    final double size = MediaQuery.of(context).size.width * 0.9;
+    return SizedBox(
+      width: size,
+      height: size,
+    );
+  },
+),
       ),
     );
   }
