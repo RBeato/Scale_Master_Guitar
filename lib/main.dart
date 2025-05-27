@@ -13,6 +13,8 @@ import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:test/services/ad_service.dart';
 
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
 //TODO: add the google store key from old project to this one
@@ -44,27 +46,35 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    //TODO: Revert this
-    // if (Platform.isIOS || Platform.isMacOS) {
-    //   StoreConfig(
-    //     store: StoreChoice.appleStore,
-    //     apiKey: dotenv.env['APPLE_API_KEY']!,
-    //   );
-    // } else if (Platform.isAndroid) {
-    //   StoreConfig(
-    //       store: StoreChoice.googlePlay, apiKey: dotenv.env['GOOGLE_API_KEY']!);
-    // }
+    // Initialize RevenueCat first
+    if (Platform.isIOS || Platform.isMacOS) {
+      await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '');
+    } else if (Platform.isAndroid) {
+      await PurchaseApi.init(dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? '');
+    }
 
     final container = ProviderContainer();
     await container.read(settingsStateNotifierProvider.notifier).settings;
     await container.read(chordModelFretboardFingeringProvider.future);
 
+    // Initialize AdMob with test devices
+    WidgetsFlutterBinding.ensureInitialized();
+    final List<String> deviceIds = []; // Add your test device IDs here
+    final configuration = RequestConfiguration(
+      testDeviceIds: deviceIds,
+      tagForChildDirectedTreatment: TagForChildDirectedTreatment.unspecified,
+      tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.unspecified,
+    );
+    MobileAds.instance.updateRequestConfiguration(configuration);
+    await MobileAds.instance.initialize();
+    
+    // Check connectivity and initialize AdService
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
       debugPrint('No internet connection');
       // Handle no internet scenario
     } else {
-      // await PurchaseApi.init();
+      await AdService().initialize();
     }
 
     FlutterNativeSplash.remove();

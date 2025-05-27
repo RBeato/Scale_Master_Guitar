@@ -1,5 +1,5 @@
-key.properties
-app/upload-keystore.jks
+android/key.properties
+android/app/upload-keystore.jks
 .env
 
 sounds/

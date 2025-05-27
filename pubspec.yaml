@@ -1,4 +1,4 @@
-name: test
+name: scalemasterguitar
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -30,6 +30,7 @@ dependencies:
       ref: target_13
   flutter_windowmanager: ^0.2.0
   google_fonts: ^6.2.1
+  google_mobile_ads: ^6.0.0
   logger: ^2.5.0
   # modal_progress_hud_nsn: ^0.5.1
   path_provider: ^2.1.0

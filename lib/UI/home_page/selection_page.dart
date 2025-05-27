@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/drawer/UI/drawer/custom_drawer.dart';
+import 'package:test/widgets/screen_with_banner_ad.dart';
 
 import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../player_page/player_page.dart';
@@ -19,7 +20,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
   Widget build(BuildContext context) {
     ref.watch(topNoteProvider);
 
-    return Scaffold(
+    return ScreenWithBannerAd(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[800],
@@ -36,22 +37,22 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
           ),
         ],
       ),
-      body: const Center(
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(flex: 1, child: ScaleSelector()),
-            Expanded(
+            const Expanded(flex: 1, child: ScaleSelector()),
+            const Expanded(
               flex: 8,
               child: WheelAndPianoColumn(),
             ),
             SizedBox(
-              height: 20,
+              height: MediaQuery.of(context).padding.bottom,
             )
           ],
         ),
       ),
-      drawer: CustomDrawer(),
+      drawer: const CustomDrawer(),
     );
   }
 }
