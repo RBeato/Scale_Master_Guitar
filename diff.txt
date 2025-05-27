@@ -1,0 +1,728 @@
+diff --git a/lib/UI/chromatic_wheel/chromatic_wheel.dart b/lib/UI/chromatic_wheel/chromatic_wheel.dart
+index 5c0b2e5..7820386 100644
+--- a/lib/UI/chromatic_wheel/chromatic_wheel.dart
++++ b/lib/UI/chromatic_wheel/chromatic_wheel.dart
+@@ -18,8 +18,7 @@ class ChromaticWheel extends ConsumerStatefulWidget {
+   _ChromaticWheelState createState() => _ChromaticWheelState();
+ }
+ 
+-class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTickerProviderStateMixin {
+-
++class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
+   double _currentRotation = 0.0;
+   static const int numStops = 12;
+   final double _rotationPerStop = 2 * math.pi / numStops;
+@@ -27,38 +26,6 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
+   late List scaleIntervals;
+   late List chromaticNotes;
+ 
+-  late AnimationController _snapController;
+-  Animation<double>? _snapAnimation;
+-
+-  // Add these class fields
+-  int _tickCount = 0;
+-  DateTime? _lastTickTime;
+-
+-  void _onSnapControllerTick() {
+-    if (!mounted) return;
+-    
+-    // Track timing between ticks
+-    final now = DateTime.now();
+-    final frameTime = _lastTickTime != null 
+-        ? now.difference(_lastTickTime!).inMilliseconds 
+-        : 0;
+-    _lastTickTime = now;
+-    
+-    _tickCount++;
+-    
+-    debugPrint('[WheelSnapDebug] Tick #$_tickCount (${frameTime}ms) - '
+-      'isAnimating: ${_snapController.isAnimating}, '
+-      'value: ${_snapController.value.toStringAsFixed(4)}, '
+-      'status: ${_snapController.status}, '
+-      'animation value: ${_snapAnimation?.value?.toStringAsFixed(4) ?? 'null'}'
+-    );
+-    
+-    setState(() {
+-      _currentRotation = _snapAnimation?.value ?? _currentRotation;
+-      ref.read(wheelRotationProvider.notifier).update((state) => _currentRotation);
+-    });
+-  }
+-
+   @override
+   void initState() {
+     super.initState();
+@@ -67,21 +34,6 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
+     scaleIntervals = Scales.data[widget.scaleModel.scale]
+         [widget.scaleModel.mode]['scaleDegrees']!;
+     chromaticNotes = getChromaticNotes();
+-
+-    _snapController = AnimationController(
+-      vsync: this,
+-      duration: const Duration(milliseconds: 250), // Slightly longer for smoother animation
+-    );
+-    // Use vsync to ensure smooth animations
+-    _snapController.addStatusListener((status) {
+-      if (status == AnimationStatus.completed) {
+-        // Ensure final position is exact to avoid drift
+-        _currentRotation = _snapAnimation?.value ?? _currentRotation;
+-        _currentRotation = (_currentRotation % (2 * math.pi));
+-        if (_currentRotation < 0) _currentRotation += 2 * math.pi;
+-      }
+-    });
+-    _snapController.addListener(_onSnapControllerTick);
+   }
+ 
+   List getChromaticNotes() {
+@@ -118,94 +70,9 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
+     });
+   }
+ 
+-  void _animateSnap(double targetRotation) {
+-    if (!mounted) return;
+-    debugPrint('[WheelSnapDebug] _animateSnap: currentRotation (begin) = $_currentRotation, targetRotation (end) = $targetRotation');
+-    
+-    // Calculate the minimal difference considering circular nature
+-    double diff = (targetRotation - _currentRotation) % (2 * math.pi);
+-    if (diff > math.pi) diff -= 2 * math.pi;
+-    if (diff < -math.pi) diff += 2 * math.pi;
+-    
+-    // For very small adjustments, just snap immediately without animation
+-    if (diff.abs() < 0.01) { // ~0.57 degrees
+-      if (mounted) {
+-        setState(() {
+-          _currentRotation = targetRotation;
+-          ref.read(wheelRotationProvider.notifier).update((state) => _currentRotation);
+-          final String finalTopNote = _calculateTopNoteForRotation(targetRotation);
+-          ref.read(topNoteProvider.notifier).update((state) => finalTopNote);
+-        });
+-      }
+-      return;
+-    }
+-    
+-    // Calculate dynamic duration based on distance (max 150ms, min 50ms)
+-    final double distance = diff.abs();
+-    final double normalizedDistance = distance / (math.pi / 6); // Normalize to 30 degrees
+-    final int durationMs = (50 + (100 * normalizedDistance.clamp(0.0, 1.0))).round();
+-    
+-    // Reset the controller and remove any existing listeners
+-    _snapController.duration = Duration(milliseconds: durationMs);
+-    _snapController
+-      ..reset()
+-      ..removeListener(_onSnapControllerTick);
+-      
+-    // Create a new animation with a very precise curve
+-    _snapAnimation = Tween<double>(
+-      begin: _currentRotation,
+-      end: _currentRotation + diff, // Direct path, no wrapping
+-    ).animate(CurvedAnimation(
+-      parent: _snapController,
+-      curve: Curves.easeOutQuad, // More subtle than cubic
+-    ));
+-    
+-    // Add the listener back
+-    _snapController.addListener(_onSnapControllerTick);
+-    
+-    // Start the animation
+-    _snapController.forward().then((_) {
+-      if (mounted) {
+-        // Ensure we land exactly on the target rotation
+-        setState(() {
+-          _currentRotation = targetRotation;
+-          ref.read(wheelRotationProvider.notifier).update((state) => _currentRotation);
+-          final String finalTopNote = _calculateTopNoteForRotation(targetRotation);
+-          ref.read(topNoteProvider.notifier).update((state) => finalTopNote);
+-        });
+-        debugPrint('[WheelSnapDebug] Animation completed! Final rotation: ${_currentRotation.toStringAsFixed(6)}');
+-      }
+-    });
+-    
+-    debugPrint('[WheelSnapDebug] _animateSnap: after forward(), controller.isAnimating = ${_snapController.isAnimating}');
+-  }
+-
+   String getTopNote() {
+-    // Get the current rotation from the provider to ensure consistency
+-    final currentRotation = _snapController.isAnimating 
+-        ? _snapAnimation?.value ?? _currentRotation 
+-        : _currentRotation;
+-        
+-    // Adjust the angle calculation to accurately reflect the top of the wheel
+-    double topPositionAngle = (currentRotation + math.pi / 2) % (2 * math.pi);
+-    if (topPositionAngle < 0) topPositionAngle += 2 * math.pi;
+-
+-    // Determine the index of the note at this angle with better rounding
+-    final double notePosition = (topPositionAngle / _rotationPerStop) % numStops;
+-    int noteIndex = (numStops - notePosition.floor() - 1) % numStops;
+-    
+-    // Apply a small bias to handle floating point precision issues
+-    const double epsilon = 1e-10;
+-    if ((notePosition % 1.0).abs() < epsilon) {
+-      noteIndex = (noteIndex + 1) % numStops;
+-    }
+-
+-    return MusicConstants.notesWithFlatsAndSharps[noteIndex];
+-  }
+-
+-  String _calculateTopNoteForRotation(double rotation) {
+     // Adjust the angle calculation to accurately reflect the top of the wheel
+-    double topPositionAngle = (rotation + math.pi / 2) % (2 * math.pi);
++    double topPositionAngle = (_currentRotation + math.pi / 2) % (2 * math.pi);
+     if (topPositionAngle < 0) topPositionAngle += 2 * math.pi;
+ 
+     // Determine the index of the note at this angle
+@@ -237,46 +104,19 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
+             currentAngle; // Update the initial angle for continuous tracking
+       },
+       onPanEnd: (details) {
+-        if (!mounted) return;
+-        debugPrint('[WheelSnapDebug] onPanEnd: _currentRotation before snap = $_currentRotation');
+-        
+-        // Calculate the closest stop with high precision
+-        final double normalizedRotation = (_currentRotation % (2 * math.pi) + 2 * math.pi) % (2 * math.pi);
+-        final double stopPosition = (normalizedRotation / _rotationPerStop).roundToDouble();
+-        double snappedRotation = (stopPosition * _rotationPerStop) % (2 * math.pi);
+-        
+-        // Ensure snappedRotation is in [0, 2π)
+-        snappedRotation = (snappedRotation + 2 * math.pi) % (2 * math.pi);
+-        
+-        // For very small movements, ensure we don't snap to the next position
+-        final double snapThreshold = _rotationPerStop * 0.1; // 10% of the way to next stop
+-        final double diffToCurrent = (normalizedRotation / _rotationPerStop) - stopPosition;
+-        if (diffToCurrent.abs() < snapThreshold) {
+-          snappedRotation = normalizedRotation;
+-        }
+-        
+-        debugPrint('[WheelSnapDebug] onPanEnd: stopPosition = $stopPosition, snappedRotation = $snappedRotation');
+-        
+-        // Don't update the top note provider here - let the animation completion handle it
+-        // to avoid race conditions between the animation and the provider update
+-        
+-        // Only animate if still mounted after potential async gaps from provider update
+-        if (mounted) {
+-          _animateSnap(snappedRotation);
+-        }
++        var closestStop =
++            ((_currentRotation + _rotationPerStop / 2) / _rotationPerStop)
++                .floor();
++        setState(() {
++          _currentRotation = closestStop * _rotationPerStop;
++        });
++
++        ref.read(topNoteProvider.notifier).update((state) => topNote);
+       },
+       child: CustomPaint(
+         painter: WheelPainter(
+             _currentRotation, chromaticNotes, scaleIntervals, topNote),
+-        child: LayoutBuilder(
+-  builder: (context, constraints) {
+-    final double size = MediaQuery.of(context).size.width * 0.9;
+-    return SizedBox(
+-      width: size,
+-      height: size,
+-    );
+-  },
+-),
++        child: const SizedBox(width: 300, height: 300),
+       ),
+     );
+   }
+@@ -285,14 +125,4 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
+     return math.atan2(
+         touchPosition.dy - wheelCenter.dy, touchPosition.dx - wheelCenter.dx);
+   }
+-
+-  @override
+-  void dispose() {
+-    // It's crucial to stop the animation controller if it's active.
+-    // This helps release the Ticker. Using canceled: true ensures it stops immediately.
+-    _snapController.stop(canceled: true);
+-    _snapController.removeListener(_onSnapControllerTick);
+-    _snapController.dispose();
+-    super.dispose();
+-  }
+ }
+diff --git a/lib/UI/chromatic_wheel/wheel_painter.dart b/lib/UI/chromatic_wheel/wheel_painter.dart
+index 7cae487..502227f 100644
+--- a/lib/UI/chromatic_wheel/wheel_painter.dart
++++ b/lib/UI/chromatic_wheel/wheel_painter.dart
+@@ -15,8 +15,8 @@ class WheelPainter extends CustomPainter {
+   @override
+   void paint(Canvas canvas, Size size) {
+     Offset center = Offset(size.width / 2, size.height / 2);
+-    double outerRadius = size.width * 0.46; // 90% diameter, so radius is 45%
+-    double innerRadius = size.width * 0.37; // knob radius as a proportion
++    double innerRadius = size.width / 2.8; // Radius for the knob
++    double outerRadius = size.width / 2.2; // Adjusted for visibility
+ 
+     Paint outerWheelPaint = Paint()..color = Colors.transparent;
+     canvas.drawCircle(center, outerRadius, outerWheelPaint);
+@@ -43,7 +43,7 @@ class WheelPainter extends CustomPainter {
+           fontWeight:
+               scaleIntervals[i] != null ? FontWeight.bold : FontWeight.normal,
+           color: getDegreeColor(chromaticNotes[i], i), // Colors.grey,
+-          fontSize: size.width * 0.06,
++          fontSize: 20,
+         ),
+       );
+       textPainter.layout();
+@@ -64,10 +64,6 @@ class WheelPainter extends CustomPainter {
+       ).createShader(Rect.fromCircle(center: center, radius: innerRadius));
+     canvas.drawCircle(center, innerRadius, knobPaint);
+ 
+-    // Draw the inner note containers and notes
+-    double containerRadius = size.width * 0.07;
+-    double containerDistance = innerRadius * 0.8;
+-    double containerFontSize = size.width * 0.045;
+     for (int i = 0; i < MusicConstants.notesWithFlatsAndSharps.length; i++) {
+       // debugPrint(
+       //     "i=$i, MusicConstants.notesWithFlatsAndSharps[i]: ${MusicConstants.notesWithFlatsAndSharps[i]}, ");
+@@ -77,8 +73,8 @@ class WheelPainter extends CustomPainter {
+ 
+       // Position for the note container
+       Offset containerPosition = Offset(
+-        center.dx + containerDistance * math.cos(angle),
+-        center.dy + containerDistance * math.sin(angle),
++        center.dx + innerRadius * 0.8 * math.cos(angle),
++        center.dy + innerRadius * 0.8 * math.sin(angle),
+       );
+ 
+       //   // Draw 3D-looking circular container
+@@ -88,15 +84,15 @@ class WheelPainter extends CustomPainter {
+         ..shader = RadialGradient(
+           colors: [Colors.grey[400]!, Colors.grey[600]!],
+           stops: const [0.5, 1.0],
+-        ).createShader(Rect.fromCircle(center: containerPosition, radius: containerRadius));
++        ).createShader(Rect.fromCircle(center: containerPosition, radius: 10));
+       canvas.drawCircle(
+-          containerPosition, containerRadius, containerPaint); // Adjust radius as needed
++          containerPosition, 20, containerPaint); // Adjust radius as needed
+ 
+       // Draw shadow for 3D effect
+       Paint shadowPaint = Paint()
+         ..color = Colors.black.withOpacity(0.5)
+         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+-      canvas.drawCircle(containerPosition, containerRadius * 1.1, shadowPaint);
++      canvas.drawCircle(containerPosition, 20, shadowPaint);
+ 
+       //   // Text
+       //   // Offset notePosition = Offset(
+@@ -105,11 +101,12 @@ class WheelPainter extends CustomPainter {
+       //   // );
+       textPainter.text = TextSpan(
+         text: MusicConstants.notesWithFlatsAndSharps[i],
++
+         style: TextStyle(
+             color: MusicConstants.notesWithFlatsAndSharps[i] == topNote
+                 ? Colors.orangeAccent
+                 : Colors.white,
+-            fontSize: containerFontSize),
++            fontSize: 18), //Color of inside notes
+       );
+       textPainter.layout();
+       Size textSize = textPainter.size;
+diff --git a/lib/UI/custom_piano/custom_piano_player.dart b/lib/UI/custom_piano/custom_piano_player.dart
+index 07aae23..fbc6a5a 100644
+--- a/lib/UI/custom_piano/custom_piano_player.dart
++++ b/lib/UI/custom_piano/custom_piano_player.dart
+@@ -32,7 +32,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
+   List<Track> tracks = [];
+   Map<int, double> trackVolumes = {};
+   Track? selectedTrack;
+-  Ticker? ticker;
++  late Ticker ticker;
+   late SequencerManager sequencerManager;
+   double tempo = Constants.INITIAL_TEMPO;
+   double position = 0.0;
+@@ -88,7 +88,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
+         isLoading = false;
+       });
+     });
+-    ticker?.start();
++    ticker.start();
+     if (!mounted) return;
+     setState(() {
+       isLoading = false;
+@@ -99,8 +99,9 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
+   void dispose() {
+     debugPrint('[CustomPianoPlayer] Disposing: stopping sequencer and cleaning up tracks');
+     try {
+-      ticker?.stop();
+-      ticker?.dispose();
++      if (ticker.isActive) {
++        ticker.dispose();
++      }
+       if (sequence != null) {
+         sequencerManager.handleStop(sequence);
+       }
+diff --git a/lib/UI/drawer/UI/drawer/drawer_page.dart b/lib/UI/drawer/UI/drawer/drawer_page.dart
+index d685135..d1b082c 100644
+--- a/lib/UI/drawer/UI/drawer/drawer_page.dart
++++ b/lib/UI/drawer/UI/drawer/drawer_page.dart
+@@ -7,6 +7,7 @@ import 'package:test/constants/styles.dart';
+ import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
+ import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+ import 'package:test/revenue_cat_purchase_flutter/paywall_page.dart';
++import 'package:test/ads/banner_ad_widget.dart';
+ import 'chord_options_cards.dart';
+ 
+ class DrawerPage extends ConsumerStatefulWidget {
+@@ -51,6 +52,8 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
+                   },
+                 ),
+               const SizedBox(height: 20),
++              const BannerAdWidget(),
++              const SizedBox(height: 20),
+               InkWell(
+                 highlightColor: cardColor,
+                 child: GestureDetector(
+diff --git a/lib/UI/home_page/home_page.dart b/lib/UI/home_page/home_page.dart
+index 2530311..362314f 100644
+--- a/lib/UI/home_page/home_page.dart
++++ b/lib/UI/home_page/home_page.dart
+@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:test/UI/home_page/selection_page.dart';
+ import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
+ import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
++import 'package:test/ads/banner_ad_widget.dart';
+ 
+ class HomePage extends ConsumerWidget {
+   const HomePage({super.key, required this.title});
+@@ -10,13 +11,21 @@ class HomePage extends ConsumerWidget {
+ 
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+-     WidgetsBinding.instance.addPostFrameCallback((_) {
+-            Navigator.pushReplacement(
+-              context,
+-              MaterialPageRoute(builder: (context) => const SelectionPage()),
+-            );
+-          });
+-          return const SizedBox.shrink();
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      Navigator.pushReplacement(
++        context,
++        MaterialPageRoute(builder: (context) => const SelectionPage()),
++      );
++    });
++
++    return const Scaffold(
++      body: Column(
++        children: [
++          Expanded(child: SizedBox.shrink()),
++          BannerAdWidget(),
++        ],
++      ),
++    );
+ 
+ 
+ //TODO: Use this
+diff --git a/lib/UI/home_page/selection_page.dart b/lib/UI/home_page/selection_page.dart
+index 7af8ac7..468afbe 100644
+--- a/lib/UI/home_page/selection_page.dart
++++ b/lib/UI/home_page/selection_page.dart
+@@ -42,11 +42,11 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
+           children: [
+             Expanded(flex: 1, child: ScaleSelector()),
+             Expanded(
+-              flex: 7,
++              flex: 8,
+               child: WheelAndPianoColumn(),
+             ),
+             SizedBox(
+-              height: 60,
++              height: 20,
+             )
+           ],
+         ),
+diff --git a/lib/UI/home_page/wheel_piano_widget.dart b/lib/UI/home_page/wheel_piano_widget.dart
+index c1be341..9ca4c42 100644
+--- a/lib/UI/home_page/wheel_piano_widget.dart
++++ b/lib/UI/home_page/wheel_piano_widget.dart
+@@ -11,55 +11,33 @@ class WheelAndPianoColumn extends ConsumerWidget {
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
+-    
+     return fingerings.when(
+       data: (data) {
+-        return _buildContent(data!);
+-      },
+-      loading: () {
+-        // Try to get the previous data first
+-        final previousData = ref.read(chordModelFretboardFingeringProvider).valueOrNull;
+-        if (previousData != null) {
+-          // Show previous data while loading
+-          return _buildContent(previousData);
+-        }
+-        return const Center(
+-          child: CircularProgressIndicator(color: Colors.orange),
+-        );
+-      },
+-      error: (error, stackTrace) {
+-        // Try to show previous data on error too
+-        final previousData = ref.read(chordModelFretboardFingeringProvider).valueOrNull;
+-        if (previousData != null) {
+-          return _buildContent(previousData);
+-        }
+-        return Text('Error: $error');
+-      },
+-    );
+-  }
+-
+-  Widget _buildContent(dynamic data) {
+-    return Center(
+-      child: Column(
+-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+-        children: [
+-          Expanded(
+-            flex: 14, // Adjusted to maintain proportions with 40% piano size increase
+-            child: Center(child: ChromaticWheel(data.scaleModel!)),
+-          ),
+-          const SizedBox(height: 30),
+-          Expanded(
+-            flex: 6, // Adjusted for 40% larger piano
+-            child: Align(
+-              alignment: Alignment.bottomCenter,
+-              child: Transform.scale(
+-                scale: 1.4, // Scale the piano by 40%
+-                child: CustomPianoSoundController(data.scaleModel),
++        return Center(
++          child: Column(
++            mainAxisAlignment: MainAxisAlignment.spaceBetween,
++            children: [
++              const SizedBox(height: 20),
++              Expanded(
++                flex: 2,
++                child: Center(child: ChromaticWheel(data!.scaleModel!)),
++              ),
++              const SizedBox(height: 30),
++              Expanded(
++                flex: 1,
++                child: Align(
++                  alignment: Alignment.bottomCenter,
++                  child: CustomPianoSoundController(data.scaleModel),
++                ),
+               ),
+-            ),
++            ],
+           ),
+-        ],
++        );
++      },
++      loading: () => const Center(
++        child: CircularProgressIndicator(color: Colors.orange),
+       ),
++      error: (error, stackTrace) => Text('Error: $error'),
+     );
+   }
+ }
+diff --git a/lib/UI/player_page/player/player_widget.dart b/lib/UI/player_page/player/player_widget.dart
+index 7bf3fef..ffcc2bd 100644
+--- a/lib/UI/player_page/player/player_widget.dart
++++ b/lib/UI/player_page/player/player_widget.dart
+@@ -145,15 +145,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+   Future<void> _performFullSequencerReinitialization({required List<ChordModel> newChords}) async {
+     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: start with ${newChords.length} chords');
+     if (!mounted) return;
+-    
+-    // Only show loading state if we're not just adding chords (i.e., initial load)
+-    final bool isInitializing = sequence == null || tracks.isEmpty;
+-    
+-    if (isInitializing) {
+-      setState(() {
+-        isLoading = true;
+-      });
+-    }
++    setState(() {
++      isLoading = true;
++    });
+ 
+     if (sequence != null) {
+       sequencerManager.handleStop(sequence!); 
+@@ -167,11 +161,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+     await _initializeAndSetupTicker(chordsToProcess: newChords); // Pass newChords
+ 
+     if (!mounted) return;
+-    if (isInitializing) {
+-      setState(() {
+-        isLoading = false;
+-      });
+-    }
++    setState(() {
++      isLoading = false;
++    });
+     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: end');
+   }
+ 
+@@ -207,22 +199,10 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+     // Listener for selectedChords changes
+     ref.listen<List<ChordModel>>(selectedChordsProvider, (previousChords, nextChords) {
+       debugPrint('[PlayerWidget] selectedChordsProvider listener: prev=${previousChords?.length}, next=${nextChords.length}');
+-      
+-      // Skip reinitialization if we're just adding a chord (nextChords is one longer than previous)
+-      final isJustAddingChord = previousChords != null && 
+-                              nextChords.length == previousChords.length + 1 &&
+-                              nextChords.sublist(0, previousChords.length).every(
+-                                (chord) => previousChords.contains(chord)
+-                              );
+-      
+-      if (isJustAddingChord) {
+-        debugPrint('[PlayerWidget] Just adding a chord, skipping full reinitialization');
+-        // Just update the sequence with the new chord without showing loading state
+-        _updateSequenceWithNewChord(nextChords);
+-      } else if (!isLoading) {
+-        _performFullSequencerReinitialization(newChords: nextChords);
++      if (!isLoading) { 
++          _performFullSequencerReinitialization(newChords: nextChords); // Pass nextChords
+       } else {
+-        debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
++          debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
+       }
+     });
+ 
+@@ -299,46 +279,4 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+       debugPrint('[$widgetContext] Sequence/tracks issue or isLoading, cannot stop note.');
+     }
+   }
+-
+-  // Update sequence with a new chord without showing loading state
+-  Future<void> _updateSequenceWithNewChord(List<ChordModel> chords) async {
+-    debugPrint('[PlayerWidget] _updateSequenceWithNewChord: updating with ${chords.length} chords');
+-    if (sequence == null || tracks.isEmpty) {
+-      // If we don't have a valid sequence yet, do a full initialization
+-      await _performFullSequencerReinitialization(newChords: chords);
+-      return;
+-    }
+-
+-    try {
+-      // Stop any current playback
+-      final wasPlaying = ref.read(isSequencerPlayingProvider);
+-      sequencerManager.handleStop(sequence!);
+-      
+-      // Clear existing tracks
+-      sequencerManager.clearEverything(tracks, sequence!);
+-      
+-      // Calculate the required step count based on the chords
+-      final calculatedStepCount = chords.fold(0, (prev, chord) {
+-        final endPosition = chord.position + chord.duration;
+-        return endPosition > prev ? endPosition : prev;
+-      });
+-
+-      // Create a new sequence with the updated step count
+-      sequence!.setEndBeat(calculatedStepCount.toDouble());
+-      
+-      // Re-initialize tracks with the new chords
+-      await _initializeAndSetupTicker(chordsToProcess: chords);
+-      
+-      // Restart playback if it was playing
+-      if (wasPlaying) {
+-        sequence!.play();
+-        ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+-      }
+-    } catch (e, stackTrace) {
+-      debugPrint('Error updating sequence with new chord: $e');
+-      debugPrint(stackTrace.toString());
+-      // Fall back to full reinitialization if update fails
+-      await _performFullSequencerReinitialization(newChords: chords);
+-    }
+-  }
+ }
+diff --git a/lib/ads/banner_ad_widget.dart b/lib/ads/banner_ad_widget.dart
+new file mode 100644
+index 0000000..e847f7e
+--- /dev/null
++++ b/lib/ads/banner_ad_widget.dart
+@@ -0,0 +1,62 @@
++import 'package:flutter/material.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
++
++import '../revenue_cat_purchase_flutter/purchase_api.dart';
++
++class BannerAdWidget extends StatefulWidget {
++  const BannerAdWidget({super.key});
++
++  @override
++  State<BannerAdWidget> createState() => _BannerAdWidgetState();
++}
++
++class _BannerAdWidgetState extends State<BannerAdWidget> {
++  BannerAd? _bannerAd;
++  bool _isPro = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _checkProStatus();
++  }
++
++  Future<void> _checkProStatus() async {
++    final isPro = await PurchaseApi.isPremiumUser();
++    if (!isPro) {
++      _loadAd();
++    }
++    if (mounted) {
++      setState(() => _isPro = isPro);
++    }
++  }
++
++  void _loadAd() {
++    _bannerAd = BannerAd(
++      adUnitId: 'your-ad-unit-id',
++      size: AdSize.banner,
++      request: const AdRequest(),
++      listener: BannerAdListener(
++        onAdLoaded: (_) => setState(() {}),
++        onAdFailedToLoad: (ad, error) => ad.dispose(),
++      ),
++    )..load();
++  }
++
++  @override
++  void dispose() {
++    _bannerAd?.dispose();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    if (_isPro || _bannerAd == null) {
++      return const SizedBox.shrink();
++    }
++    return SizedBox(
++      height: _bannerAd!.size.height.toDouble(),
++      width: _bannerAd!.size.width.toDouble(),
++      child: AdWidget(ad: _bannerAd!),
++    );
++  }
++}
+diff --git a/lib/main.dart b/lib/main.dart
+index 6ab9281..f2ee2ec 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
+ import 'package:test/UI/home_page/home_page.dart';
+ import 'package:logger/logger.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
+ import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+ import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
+ import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
+@@ -43,6 +44,7 @@ void main() async {
+     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+     await dotenv.load(fileName: ".env");
++    MobileAds.instance.initialize();
+ 
+     //TODO: Revert this
+     // if (Platform.isIOS || Platform.isMacOS) {
+diff --git a/pubspec.yaml b/pubspec.yaml
+index f2c6ed9..73ec46a 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -36,6 +36,7 @@ dependencies:
+   permission_handler: ^10.4.5
+   purchases_flutter: ^8.6.0
+   # purchases_ui_flutter: ^7.0.0
++  google_mobile_ads: ^3.0.0
+   shared_preferences: ^2.5.0
+   tonic: ^0.2.3
+ 

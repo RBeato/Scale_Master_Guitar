@@ -32,7 +32,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   List<Track> tracks = [];
   Map<int, double> trackVolumes = {};
   Track? selectedTrack;
-  late Ticker ticker;
+  Ticker? ticker;
   late SequencerManager sequencerManager;
   double tempo = Constants.INITIAL_TEMPO;
   double position = 0.0;
@@ -88,7 +88,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
         isLoading = false;
       });
     });
-    ticker.start();
+    ticker?.start();
     if (!mounted) return;
     setState(() {
       isLoading = false;
@@ -99,9 +99,8 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   void dispose() {
     debugPrint('[CustomPianoPlayer] Disposing: stopping sequencer and cleaning up tracks');
     try {
-      if (ticker.isActive) {
-        ticker.dispose();
-      }
+      ticker?.stop();
+      ticker?.dispose();
       if (sequence != null) {
         sequencerManager.handleStop(sequence);
       }

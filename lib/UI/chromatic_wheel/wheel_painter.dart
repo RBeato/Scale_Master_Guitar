@@ -15,8 +15,8 @@ class WheelPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     Offset center = Offset(size.width / 2, size.height / 2);
-    double innerRadius = size.width / 2.8; // Radius for the knob
-    double outerRadius = size.width / 2.2; // Adjusted for visibility
+    double outerRadius = size.width * 0.46; // 90% diameter, so radius is 45%
+    double innerRadius = size.width * 0.37; // knob radius as a proportion
 
     Paint outerWheelPaint = Paint()..color = Colors.transparent;
     canvas.drawCircle(center, outerRadius, outerWheelPaint);
@@ -43,7 +43,7 @@ class WheelPainter extends CustomPainter {
           fontWeight:
               scaleIntervals[i] != null ? FontWeight.bold : FontWeight.normal,
           color: getDegreeColor(chromaticNotes[i], i), // Colors.grey,
-          fontSize: 20,
+          fontSize: size.width * 0.06,
         ),
       );
       textPainter.layout();
@@ -64,6 +64,10 @@ class WheelPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: center, radius: innerRadius));
     canvas.drawCircle(center, innerRadius, knobPaint);
 
+    // Draw the inner note containers and notes
+    double containerRadius = size.width * 0.07;
+    double containerDistance = innerRadius * 0.8;
+    double containerFontSize = size.width * 0.045;
     for (int i = 0; i < MusicConstants.notesWithFlatsAndSharps.length; i++) {
       // debugPrint(
       //     "i=$i, MusicConstants.notesWithFlatsAndSharps[i]: ${MusicConstants.notesWithFlatsAndSharps[i]}, ");
@@ -73,8 +77,8 @@ class WheelPainter extends CustomPainter {
 
       // Position for the note container
       Offset containerPosition = Offset(
-        center.dx + innerRadius * 0.8 * math.cos(angle),
-        center.dy + innerRadius * 0.8 * math.sin(angle),
+        center.dx + containerDistance * math.cos(angle),
+        center.dy + containerDistance * math.sin(angle),
       );
 
       //   // Draw 3D-looking circular container
@@ -84,15 +88,15 @@ class WheelPainter extends CustomPainter {
         ..shader = RadialGradient(
           colors: [Colors.grey[400]!, Colors.grey[600]!],
           stops: const [0.5, 1.0],
-        ).createShader(Rect.fromCircle(center: containerPosition, radius: 10));
+        ).createShader(Rect.fromCircle(center: containerPosition, radius: containerRadius));
       canvas.drawCircle(
-          containerPosition, 20, containerPaint); // Adjust radius as needed
+          containerPosition, containerRadius, containerPaint); // Adjust radius as needed
 
       // Draw shadow for 3D effect
       Paint shadowPaint = Paint()
         ..color = Colors.black.withOpacity(0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawCircle(containerPosition, 20, shadowPaint);
+      canvas.drawCircle(containerPosition, containerRadius * 1.1, shadowPaint);
 
       //   // Text
       //   // Offset notePosition = Offset(
@@ -101,12 +105,11 @@ class WheelPainter extends CustomPainter {
       //   // );
       textPainter.text = TextSpan(
         text: MusicConstants.notesWithFlatsAndSharps[i],
-
         style: TextStyle(
             color: MusicConstants.notesWithFlatsAndSharps[i] == topNote
                 ? Colors.orangeAccent
                 : Colors.white,
-            fontSize: 18), //Color of inside notes
+            fontSize: containerFontSize),
       );
       textPainter.layout();
       Size textSize = textPainter.size;
