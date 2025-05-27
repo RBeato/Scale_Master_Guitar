@@ -18,15 +18,27 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
 
   // Initialize RevenueCat and set up a listener for customer info updates
   Future<void> init() async {
-    // await PurchaseApi.init();
-    // await updatePurchaseStatus();
-    // Purchases.addCustomerInfoUpdateListener((_) => updatePurchaseStatus());
+    try {
+      await updatePurchaseStatus();
+      // Set up listener for purchase updates
+      Purchases.addCustomerInfoUpdateListener((_) => updatePurchaseStatus());
+    } catch (e) {
+      debugPrint('Error initializing RevenueCat: $e');
+    }
   }
 
   Future<void> updatePurchaseStatus() async {
-    final isPremium = await PurchaseApi.isPremiumUser();
-    state = isPremium ? Entitlement.premium : Entitlement.free;
-    // state = Entitlement.premium;
+    try {
+      final isPremium = await PurchaseApi.isPremiumUser();
+      if (mounted) {
+        state = isPremium ? Entitlement.premium : Entitlement.free;
+      }
+    } catch (e) {
+      debugPrint('Error updating purchase status: $e');
+      if (mounted) {
+        state = Entitlement.free;
+      }
+    }
   }
 
   Future<void> restorePurchases() async {

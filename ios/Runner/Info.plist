@@ -56,6 +56,15 @@
 			<string>audio</string>
 		</array>
 
+		<!-- Local Network Permissions for Flutter Debugging -->
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>This app uses the local network for Flutter debugging tools</string>
+		<key>NSBonjourServices</key>
+		<array>
+			<string>_dartobservatory._tcp</string>
+			<string>_dartdevtools._tcp</string>
+		</array>
+
 		<!-- AdMob Configuration -->
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-3940256099942544~1458002511</string>

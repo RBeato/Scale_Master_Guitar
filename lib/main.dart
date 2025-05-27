@@ -45,7 +45,7 @@ void main() async {
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
 
-    // Initialize RevenueCat first
+    // Initialize RevenueCat
     if (Platform.isIOS || Platform.isMacOS) {
       await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '');
     } else if (Platform.isAndroid) {
@@ -105,8 +105,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    //TODO: Revert this
-    // _checkExistingPurchases();
+    _checkExistingPurchases();
   }
 
   Future<void> _checkExistingPurchases() async {

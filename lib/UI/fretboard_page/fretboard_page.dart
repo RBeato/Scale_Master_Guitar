@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_page_fingerings_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
@@ -11,18 +10,14 @@ import 'fretboard_full.dart';
 class FretboardPage extends ConsumerWidget {
   const FretboardPage({super.key});
 
-  prohibitScreenShots(Entitlement entitlement) {
-    if (entitlement == Entitlement.free) {
-      FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-    }
+  void prohibitScreenShots(Entitlement entitlement) {
+    // Screen capture prevention has been removed as it required flutter_windowmanager
+    // Consider alternative approaches for premium features
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final entitlement = ref.watch(revenueCatProvider);
-
-    //TODO: Revert this
-    final entitlement = Entitlement.premium;
+    final entitlement = ref.watch(revenueCatProvider);
 
     prohibitScreenShots(entitlement);
     // Obtain a copy of ChordScaleFingeringsModel specific to this page

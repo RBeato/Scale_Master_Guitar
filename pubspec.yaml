@@ -28,13 +28,12 @@ dependencies:
     git:
       url: https://github.com/RBeato/flutter_sequencer_plus.git
       ref: target_13
-  flutter_windowmanager: ^0.2.0
   google_fonts: ^6.2.1
   google_mobile_ads: ^6.0.0
   logger: ^2.5.0
   # modal_progress_hud_nsn: ^0.5.1
   path_provider: ^2.1.0
-  permission_handler: ^10.4.5
+  permission_handler: ^12.0.0+1
   purchases_flutter: ^8.6.0
   # purchases_ui_flutter: ^7.0.0
   shared_preferences: ^2.5.0
@@ -47,8 +46,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.0
-  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_lints: ^6.0.0
 flutter_icons:
   image_path: "assets/images/icon.png"
   android: true

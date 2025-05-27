@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
+import 'package:scalemasterguitar/UI/paywall/paywall_screen.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
@@ -10,13 +11,24 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-     WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const SelectionPage()),
-            );
-          });
-          return const SizedBox.shrink();
+    final entitlement = ref.watch(revenueCatProvider);
+    final isPremium = true; //entitlement == Entitlement.premium;
+
+    if (isPremium) {
+      // If premium, go to selection page
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const SelectionPage()),
+        );
+      });
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    } else {
+      // If not premium, show paywall
+      return const PaywallScreen();
+    }
 
 
 //TODO: Use this
