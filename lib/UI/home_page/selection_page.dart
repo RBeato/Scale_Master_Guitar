@@ -42,11 +42,11 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
           children: [
             Expanded(flex: 1, child: ScaleSelector()),
             Expanded(
-              flex: 8,
+              flex: 7,
               child: WheelAndPianoColumn(),
             ),
             SizedBox(
-              height: 20,
+              height: 60,
             )
           ],
         ),

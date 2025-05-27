@@ -11,33 +11,55 @@ class WheelAndPianoColumn extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
+    
     return fingerings.when(
       data: (data) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-          
-              Expanded(
-                flex: 5,
-                child: Center(child: ChromaticWheel(data!.scaleModel!)),
-              ),
-              const SizedBox(height: 30),
-              Expanded(
-                flex: 2,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: CustomPianoSoundController(data.scaleModel),
-                ),
-              ),
-            ],
-          ),
+        return _buildContent(data!);
+      },
+      loading: () {
+        // Try to get the previous data first
+        final previousData = ref.read(chordModelFretboardFingeringProvider).valueOrNull;
+        if (previousData != null) {
+          // Show previous data while loading
+          return _buildContent(previousData);
+        }
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.orange),
         );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: Colors.orange),
+      error: (error, stackTrace) {
+        // Try to show previous data on error too
+        final previousData = ref.read(chordModelFretboardFingeringProvider).valueOrNull;
+        if (previousData != null) {
+          return _buildContent(previousData);
+        }
+        return Text('Error: $error');
+      },
+    );
+  }
+
+  Widget _buildContent(dynamic data) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            flex: 14, // Adjusted to maintain proportions with 40% piano size increase
+            child: Center(child: ChromaticWheel(data.scaleModel!)),
+          ),
+          const SizedBox(height: 30),
+          Expanded(
+            flex: 6, // Adjusted for 40% larger piano
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Transform.scale(
+                scale: 1.4, // Scale the piano by 40%
+                child: CustomPianoSoundController(data.scaleModel),
+              ),
+            ),
+          ),
+        ],
       ),
-      error: (error, stackTrace) => Text('Error: $error'),
     );
   }
 }
