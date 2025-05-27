@@ -36,6 +36,7 @@ dependencies:
   permission_handler: ^10.4.5
   purchases_flutter: ^8.6.0
   # purchases_ui_flutter: ^7.0.0
+  google_mobile_ads: ^3.0.0
   shared_preferences: ^2.5.0
   tonic: ^0.2.3
 

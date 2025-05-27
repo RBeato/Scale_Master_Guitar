@@ -7,6 +7,7 @@ import 'package:test/constants/styles.dart';
 import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:test/revenue_cat_purchase_flutter/paywall_page.dart';
+import 'package:test/ads/banner_ad_widget.dart';
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
@@ -50,6 +51,8 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                         MaterialPageRoute(builder: (_) => const PaywallPage()));
                   },
                 ),
+              const SizedBox(height: 20),
+              const BannerAdWidget(),
               const SizedBox(height: 20),
               InkWell(
                 highlightColor: cardColor,

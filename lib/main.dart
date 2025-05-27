@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:test/UI/home_page/home_page.dart';
 import 'package:logger/logger.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
@@ -43,6 +44,7 @@ void main() async {
     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
+    MobileAds.instance.initialize();
 
     //TODO: Revert this
     // if (Platform.isIOS || Platform.isMacOS) {
