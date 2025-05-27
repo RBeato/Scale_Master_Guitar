@@ -41,7 +41,6 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-<<<<<<< HEAD
             const Expanded(flex: 1, child: ScaleSelector()),
             const Expanded(
               flex: 8,
@@ -49,15 +48,6 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
             ),
             SizedBox(
               height: MediaQuery.of(context).padding.bottom,
-=======
-            Expanded(flex: 1, child: ScaleSelector()),
-            Expanded(
-              flex: 7,
-              child: WheelAndPianoColumn(),
-            ),
-            SizedBox(
-              height: 60,
->>>>>>> main
             )
           ],
         ),

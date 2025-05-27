@@ -1,22 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-<<<<<<< HEAD
+
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/ads/banner_ad_widget.dart';
 import 'package:scalemasterguitar/constants/styles.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/paywall_page.dart';
-=======
-import 'package:test/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
-import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
-import 'package:test/constants/styles.dart';
-import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:test/revenue_cat_purchase_flutter/paywall_page.dart';
-import 'package:test/ads/banner_ad_widget.dart';
->>>>>>> dev
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
