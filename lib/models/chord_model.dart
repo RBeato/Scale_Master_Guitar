@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 import '../constants/color_constants.dart';
 import '../constants/flats_to_sharps_nomenclature.dart';
 import '../utils/music_utils.dart';

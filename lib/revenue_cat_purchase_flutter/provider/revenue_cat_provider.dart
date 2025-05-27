@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:test/revenue_cat_purchase_flutter/entitlement.dart';
-import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 
 // Define a provider for RevenueCatNotifier
 final revenueCatProvider =

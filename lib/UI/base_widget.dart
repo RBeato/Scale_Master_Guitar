@@ -1,6 +1,6 @@
-import 'package:test/UI/sizing_info.dart';
+import 'package:scalemasterguitar/UI/sizing_info.dart';
 import 'package:flutter/material.dart';
-import 'package:test/UI/utils/ui_utils.dart';
+import 'package:scalemasterguitar/UI/utils/ui_utils.dart';
 
 class BaseWidget extends StatelessWidget {
   final Widget Function(

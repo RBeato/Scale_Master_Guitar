@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/models/chord_scale_model.dart';
+import 'package:scalemasterguitar/models/chord_scale_model.dart';
 
 import '../../fretboard/provider/fingerings_provider.dart';
 

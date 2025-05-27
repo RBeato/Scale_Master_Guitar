@@ -1,4 +1,4 @@
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 import 'package:tonic/tonic.dart';
 
 class ScaleModel {

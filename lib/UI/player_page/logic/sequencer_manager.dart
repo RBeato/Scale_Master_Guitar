@@ -4,8 +4,8 @@ import 'package:flutter_sequencer/global_state.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:flutter_sequencer/sequence.dart';
 import 'package:flutter_sequencer/track.dart';
-import 'package:test/constants/general_audio_constants.dart';
-import 'package:test/models/project_state.dart';
+import 'package:scalemasterguitar/constants/general_audio_constants.dart';
+import 'package:scalemasterguitar/models/project_state.dart';
 
 import '../../../constants/music_constants.dart';
 import '../../../models/chord_model.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
-import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
 import '../../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../chords_list.dart';

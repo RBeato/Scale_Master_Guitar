@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard_page/provider/palette_color_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart'; 
 
 class ColorPalette extends ConsumerWidget {
   final List<Color> colors;

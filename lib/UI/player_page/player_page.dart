@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard/provider/fingerings_provider.dart';
-import 'package:test/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
-import 'package:test/UI/player_page/logic/sequencer_manager.dart';
-import 'package:test/UI/player_page/player/player_widget.dart';
-import 'package:test/UI/player_page/provider/is_playing_provider.dart';
-import 'package:test/UI/player_page/provider/player_page_title.dart';
-import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard/provider/fingerings_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
+import 'package:scalemasterguitar/UI/player_page/logic/sequencer_manager.dart';
+import 'package:scalemasterguitar/UI/player_page/player/player_widget.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/is_playing_provider.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/player_page_title.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';  
 
 import '../../models/chord_scale_model.dart';
 import '../chords/chords.dart';

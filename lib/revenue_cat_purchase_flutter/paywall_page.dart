@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart'; 
 
 class PaywallPage extends StatefulWidget {
   const PaywallPage({super.key});

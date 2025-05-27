@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard/UI/fretboard_painter.dart';
+import 'package:scalemasterguitar/UI/fretboard/UI/fretboard_painter.dart';
 import '../provider/fingerings_provider.dart';
 
 class Fretboard extends ConsumerWidget {

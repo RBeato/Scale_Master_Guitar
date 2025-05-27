@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/services/ad_service.dart';
+import 'package:scalemasterguitar/services/ad_service.dart';
 
 class ScreenWithBannerAd extends StatelessWidget {
   final Widget child;

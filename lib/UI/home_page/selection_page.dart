@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/drawer/UI/drawer/custom_drawer.dart';
-import 'package:test/widgets/screen_with_banner_ad.dart';
+import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
+import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
 
 import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../player_page/player_page.dart';

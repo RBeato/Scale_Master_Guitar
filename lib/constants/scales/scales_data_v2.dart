@@ -1,5 +1,5 @@
-import 'package:test/constants/scales/scales_modes/diatonic_major_modes.dart';
-import 'package:test/constants/scales/scales_modes/melodic_minor_modes.dart';
+import 'package:scalemasterguitar/constants/scales/scales_modes/diatonic_major_modes.dart';
+import 'package:scalemasterguitar/constants/scales/scales_modes/melodic_minor_modes.dart';
 import 'scales_modes/harmonic_major_modes.dart';
 import 'scales_modes/harmonic_minor_modes.dart';
 import 'scales_modes/pentatonics.dart';

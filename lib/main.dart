@@ -4,17 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
-import 'package:test/UI/home_page/home_page.dart';
+import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/UI/home_page/home_page.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:logger/logger.dart';
-import 'package:test/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:test/revenue_cat_purchase_flutter/purchase_api.dart';
-import 'package:test/revenue_cat_purchase_flutter/store_config.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:scalemasterguitar/services/ad_service.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:test/services/ad_service.dart';
 
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
 //TODO: add the google store key from old project to this one

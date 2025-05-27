@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:test/constants.dart';
+import 'package:scalemasterguitar/constants/general_audio_constants.dart';
 
 _getFontFamily({size, weight, color}) {
   return //GoogleFonts.merriweather(

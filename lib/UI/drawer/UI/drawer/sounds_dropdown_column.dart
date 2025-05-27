@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:test/UI/drawer/UI/build_loading.dart';
-import 'package:test/UI/drawer/UI/drawer/settings_enum.dart';
-import 'package:test/UI/drawer/models/settings_state.dart';
-import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/UI/drawer/UI/build_loading.dart';
+import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
+import 'package:scalemasterguitar/UI/drawer/models/settings_state.dart';
+import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 import 'drawer_card.dart';
 
 class SoundsDropdownColumn extends ConsumerWidget {

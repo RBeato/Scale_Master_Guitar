@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/constants/music_constants.dart';
+import 'package:scalemasterguitar/constants/music_constants.dart';
 import '../../constants/accidents_simplifier.dart';
 import '../../models/scale_model.dart';
 import '../../utils/music_utils.dart';

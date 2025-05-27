@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard_page/provider/fretboard_color_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_color_provider.dart';
 import 'color_picker_dialog.dart'; // Ensure this import is correct
 
 class FretboardColorChangeButton extends ConsumerWidget {

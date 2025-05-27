@@ -1,5 +1,5 @@
 import 'package:flutter_sequencer/models/instrument.dart';
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 import '../constants/gm_programs.dart';
 import '../UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:flutter/material.dart' as material;

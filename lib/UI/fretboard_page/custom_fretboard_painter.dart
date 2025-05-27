@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 import '../../../constants/fretboard_notes.dart';
 import '../../../models/chord_scale_model.dart';

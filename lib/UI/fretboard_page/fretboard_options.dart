@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard_page/save_button.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/save_button.dart';
 
 import 'color_palette.dart';
 import 'fretboard_color_change_button.dart';

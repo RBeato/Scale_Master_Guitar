@@ -1,4 +1,4 @@
-import 'package:test/UI/utils/device_values/device_values.dart';
+import 'package:scalemasterguitar/UI/utils/device_values/device_values.dart';
 
 tabletLandScapeValues() {
   DeviceValues deviceValues = DeviceValues();

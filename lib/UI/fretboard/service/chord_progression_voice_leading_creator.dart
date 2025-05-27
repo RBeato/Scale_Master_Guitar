@@ -1,5 +1,5 @@
-import 'package:test/models/chord_model.dart';
-import 'package:test/utils/music_utils.dart';
+import 'package:scalemasterguitar/models/chord_model.dart';
+import 'package:scalemasterguitar/utils/music_utils.dart';
 
 class VoiceLeadingCreator {
   static List<ChordModel> buildProgression(List<ChordModel> selectedChords) {

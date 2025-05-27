@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:test/UI/drawer/UI/drawer/settings_enum.dart';
-import 'package:test/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
+import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 
 class DrawerCard extends ConsumerWidget {
   String title;

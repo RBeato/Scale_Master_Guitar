@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 import 'package:tonic/tonic.dart';
 import '../../../constants/scales/scales_data_v2.dart';
 import '../../../models/scale_model.dart';

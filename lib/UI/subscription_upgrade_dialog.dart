@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/revenue_cat_purchase_flutter/paywall_page.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/paywall_page.dart';
 
 void _showUpgradeDialog(BuildContext context, String featureName) {
   showDialog(

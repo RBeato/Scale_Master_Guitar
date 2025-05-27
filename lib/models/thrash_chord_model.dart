@@ -1,4 +1,4 @@
-import 'package:test/models/scale_model.dart';
+import 'package:scalemasterguitar/models/scale_model.dart';
 
 class TrashChordModel {
   bool isBassNote;

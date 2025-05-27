@@ -3,9 +3,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/sequence.dart';
 import 'package:flutter_sequencer/track.dart';
-import 'package:test/UI/player_page/provider/is_playing_provider.dart';
-import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
-import 'package:test/constants.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/is_playing_provider.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/constants.dart';
 
 import '../../../models/scale_model.dart';
 import '../../../models/settings_model.dart';

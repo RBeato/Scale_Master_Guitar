@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class FretboardSharpFlatToggleButton extends ConsumerWidget {
   const FretboardSharpFlatToggleButton({super.key});

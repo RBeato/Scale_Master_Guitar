@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/constants/music_constants.dart';
+import 'package:scalemasterguitar/constants/music_constants.dart';
 import 'dart:math' as math;
 import '../../constants/color_constants.dart';
 

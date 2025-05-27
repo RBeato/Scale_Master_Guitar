@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/UI/drawer/UI/drawer/settings_enum.dart';
+import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/settings_model.dart';
 

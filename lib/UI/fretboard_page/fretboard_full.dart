@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/fretboard_page/provider/palette_color_provider.dart';
-import 'package:test/UI/fretboard_page/widget_to_png.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
 
 import '../../models/chord_scale_model.dart';
 import 'custom_fretboard_painter.dart';

@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/chromatic_wheel/provider/wheel_rotation_provider.dart';
-import 'package:test/UI/chromatic_wheel/wheel_painter.dart';
-import 'package:test/models/scale_model.dart';
-
-import '../../constants/music_constants.dart';
+import 'package:scalemasterguitar/UI/chromatic_wheel/wheel_painter.dart';
+import 'package:scalemasterguitar/UI/chromatic_wheel/provider/wheel_rotation_provider.dart';
+import 'package:scalemasterguitar/models/scale_model.dart';
+import 'package:scalemasterguitar/constants/music_constants.dart';
 import '../../constants/scales/scales_data_v2.dart';
 import 'provider/top_note_provider.dart';
 

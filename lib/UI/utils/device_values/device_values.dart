@@ -1,7 +1,7 @@
 //HomePage
-import 'package:test/UI/utils/device_values/medium_phone_portrait.dart';
-import 'package:test/UI/utils/device_values/small_phone.dart';
-import 'package:test/UI/utils/device_values/tablet_landscape_values.dart';
+import 'package:scalemasterguitar/UI/utils/device_values/medium_phone_portrait.dart';
+import 'package:scalemasterguitar/UI/utils/device_values/small_phone.dart';
+import 'package:scalemasterguitar/UI/utils/device_values/tablet_landscape_values.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../../../constants/device_screen_enum.dart';

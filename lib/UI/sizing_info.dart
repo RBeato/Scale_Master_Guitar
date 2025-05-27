@@ -1,4 +1,4 @@
-import 'package:test/UI/utils/device_values/device_values.dart';
+import 'package:scalemasterguitar/UI/utils/device_values/device_values.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/device_screen_enum.dart';

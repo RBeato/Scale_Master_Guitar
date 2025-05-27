@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/drawer/models/settings_state.dart';
-import 'package:test/models/settings_model.dart';
+import 'package:scalemasterguitar/UI/drawer/models/settings_state.dart';
+import 'package:scalemasterguitar/models/settings_model.dart';
 
 import '../UI/drawer/settings_enum.dart';
 import '../storage/localstorage_service.dart';

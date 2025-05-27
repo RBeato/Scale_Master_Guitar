@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sequencer/sequence.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:test/UI/player_page/logic/sequencer_manager.dart';
-import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
-import 'package:test/utils/player_utils.dart';
-import 'package:test/models/chord_model.dart';
+import 'package:scalemasterguitar/UI/player_page/logic/sequencer_manager.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/utils/player_utils.dart';
+import 'package:scalemasterguitar/models/chord_model.dart';
 
 import '../../../constants.dart';
 import '../../../models/settings_model.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart'; 
 
 import '../../constants/color_constants.dart';
 import '../../constants/scales/scales_data_v2.dart';
