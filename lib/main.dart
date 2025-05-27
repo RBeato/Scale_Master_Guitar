@@ -44,6 +44,7 @@ void main() async {
     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     await dotenv.load(fileName: ".env");
+    MobileAds.instance.initialize();
 
     // Initialize RevenueCat
     if (Platform.isIOS || Platform.isMacOS) {
