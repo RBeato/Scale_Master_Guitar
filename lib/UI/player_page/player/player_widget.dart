@@ -145,9 +145,15 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Future<void> _performFullSequencerReinitialization({required List<ChordModel> newChords}) async {
     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: start with ${newChords.length} chords');
     if (!mounted) return;
-    setState(() {
-      isLoading = true;
-    });
+    
+    // Only show loading state if we're not just adding chords (i.e., initial load)
+    final bool isInitializing = sequence == null || tracks.isEmpty;
+    
+    if (isInitializing) {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     if (sequence != null) {
       sequencerManager.handleStop(sequence!); 
@@ -161,9 +167,11 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     await _initializeAndSetupTicker(chordsToProcess: newChords); // Pass newChords
 
     if (!mounted) return;
-    setState(() {
-      isLoading = false;
-    });
+    if (isInitializing) {
+      setState(() {
+        isLoading = false;
+      });
+    }
     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: end');
   }
 
@@ -199,10 +207,22 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     // Listener for selectedChords changes
     ref.listen<List<ChordModel>>(selectedChordsProvider, (previousChords, nextChords) {
       debugPrint('[PlayerWidget] selectedChordsProvider listener: prev=${previousChords?.length}, next=${nextChords.length}');
-      if (!isLoading) { 
-          _performFullSequencerReinitialization(newChords: nextChords); // Pass nextChords
+      
+      // Skip reinitialization if we're just adding a chord (nextChords is one longer than previous)
+      final isJustAddingChord = previousChords != null && 
+                              nextChords.length == previousChords.length + 1 &&
+                              nextChords.sublist(0, previousChords.length).every(
+                                (chord) => previousChords.contains(chord)
+                              );
+      
+      if (isJustAddingChord) {
+        debugPrint('[PlayerWidget] Just adding a chord, skipping full reinitialization');
+        // Just update the sequence with the new chord without showing loading state
+        _updateSequenceWithNewChord(nextChords);
+      } else if (!isLoading) {
+        _performFullSequencerReinitialization(newChords: nextChords);
       } else {
-          debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
+        debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
       }
     });
 
@@ -277,6 +297,48 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       sequencerManager.stopPianoNote(noteName, tracks, sequence!); 
     } else {
       debugPrint('[$widgetContext] Sequence/tracks issue or isLoading, cannot stop note.');
+    }
+  }
+
+  // Update sequence with a new chord without showing loading state
+  Future<void> _updateSequenceWithNewChord(List<ChordModel> chords) async {
+    debugPrint('[PlayerWidget] _updateSequenceWithNewChord: updating with ${chords.length} chords');
+    if (sequence == null || tracks.isEmpty) {
+      // If we don't have a valid sequence yet, do a full initialization
+      await _performFullSequencerReinitialization(newChords: chords);
+      return;
+    }
+
+    try {
+      // Stop any current playback
+      final wasPlaying = ref.read(isSequencerPlayingProvider);
+      sequencerManager.handleStop(sequence!);
+      
+      // Clear existing tracks
+      sequencerManager.clearEverything(tracks, sequence!);
+      
+      // Calculate the required step count based on the chords
+      final calculatedStepCount = chords.fold(0, (prev, chord) {
+        final endPosition = chord.position + chord.duration;
+        return endPosition > prev ? endPosition : prev;
+      });
+
+      // Create a new sequence with the updated step count
+      sequence!.setEndBeat(calculatedStepCount.toDouble());
+      
+      // Re-initialize tracks with the new chords
+      await _initializeAndSetupTicker(chordsToProcess: chords);
+      
+      // Restart playback if it was playing
+      if (wasPlaying) {
+        sequence!.play();
+        ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error updating sequence with new chord: $e');
+      debugPrint(stackTrace.toString());
+      // Fall back to full reinitialization if update fails
+      await _performFullSequencerReinitialization(newChords: chords);
     }
   }
 }
