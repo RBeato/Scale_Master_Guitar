@@ -15,13 +15,57 @@ import '../fretboard_page/fretboard_page.dart';
 import '../fretboard_page/provider/fretboard_page_fingerings_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
-  PlayerPage({super.key});
-
-  // Removed field 'f'; do not store transient provider data in StatelessWidget.
-
+  const PlayerPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return _PlayerPageContent();
+  }
+}
+
+class _PlayerPageContent extends ConsumerStatefulWidget {
+  @override
+  _PlayerPageContentState createState() => _PlayerPageContentState();
+}
+
+class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+  bool _isDisposed = false;
+  
+  // Helper method to clean up resources
+  Future<void> _cleanupResources() async {
+    debugPrint('[PlayerPage] Cleaning up resources...');
+    final sequencerManager = ref.read(sequencerManagerProvider);
+    
+    try {
+      // Stop the sequencer if it's playing
+      final isPlaying = ref.read(isSequencerPlayingProvider);
+      if (isPlaying) {
+        debugPrint('[PlayerPage] Stopping sequencer during cleanup');
+        await sequencerManager.handleStop(sequencerManager.sequence);
+        ref.read(isSequencerPlayingProvider.notifier).state = false;
+      }
+      
+      // Clear any selected chords
+      ref.read(selectedChordsProvider.notifier).removeAll();
+      
+      debugPrint('[PlayerPage] Cleanup completed');
+    } catch (e, st) {
+      debugPrint('[PlayerPage] Error during cleanup: $e\n$st');
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!_isDisposed) {
+      debugPrint('[PlayerPage] dispose called');
+      _isDisposed = true;
+      _cleanupResources();
+    }
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
     debugPrint('[PlayerPage] build called');
     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
     final sequencerManager = ref.read(sequencerManagerProvider);
@@ -31,11 +75,7 @@ class PlayerPage extends ConsumerWidget {
     return WillPopScope(
       onWillPop: () async {
         debugPrint('[PlayerPage] WillPopScope triggered');
-        // Stop the sequencer
-        sequencerManager.handleStop(
-            sequencerManager.sequence); // Make sure sequence is accessible
-        ref.read(selectedChordsProvider.notifier).removeAll();
-        debugPrint('[PlayerPage] Sequencer stopped and chords removed');
+        await _cleanupResources();
         return true;
       },
       child: Scaffold(
@@ -45,26 +85,21 @@ class PlayerPage extends ConsumerWidget {
           title: const PlayerPageTitle(),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () {
+            onPressed: () async {
               debugPrint('[PlayerPage] Back button pressed');
-              // Stop the sequencer and navigate back
-              bool isPlaying = ref.read(isSequencerPlayingProvider);
-              if (isPlaying) {
-                debugPrint('[PlayerPage] Stopping sequencer before pop');
-                sequencerManager.handleStop(sequencerManager
-                    .sequence); // Make sure sequence is accessible
-                ref.read(isSequencerPlayingProvider.notifier).state =
-                    !isPlaying;
+              await _cleanupResources();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                debugPrint('[PlayerPage] Navigated back');
               }
-              Navigator.of(context).pop();
-              debugPrint('[PlayerPage] Navigated back');
             },
           ),
           actions: [
             IconButton(
-              onPressed: () {
+              onPressed: () async {
                 debugPrint('[PlayerPage] Forward button pressed');
-                // Defensive: Only check for flats if fingerings and scaleModel are non-null
+                
+                // Update fingerings if available
                 final fingeringsValue = fingerings.value;
                 if (fingeringsValue != null && fingeringsValue.scaleModel != null) {
                   if (fingeringsValue.scaleModel!.scaleNotesNames.take(5).any((s) => s.contains('♭'))) {
@@ -74,18 +109,15 @@ class PlayerPage extends ConsumerWidget {
                   ref.read(fretboardPageFingeringsProvider.notifier).update(fingeringsValue);
                 }
 
-                bool isPlaying = ref.read(isSequencerPlayingProvider);
-                if (isPlaying) {
-                  debugPrint('[PlayerPage] Stopping sequencer before forward navigation');
-                  // Stop the sequencer and navigate back
-                  sequencerManager.handleStop(sequencerManager
-                      .sequence); // Make sure sequence is accessible
-                  ref.read(isSequencerPlayingProvider.notifier).state =
-                      !isPlaying;
+                // Clean up resources before navigation
+                await _cleanupResources();
+                
+                // Navigate to FretboardPage
+                if (context.mounted) {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const FretboardPage()));
+                  debugPrint('[PlayerPage] Navigated forward to FretboardPage');
                 }
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => const FretboardPage()));
-                debugPrint('[PlayerPage] Navigated forward to FretboardPage');
               },
               icon: const Icon(Icons.arrow_forward_ios,
                   color: Colors.orangeAccent),

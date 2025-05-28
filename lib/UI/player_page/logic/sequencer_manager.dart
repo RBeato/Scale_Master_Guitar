@@ -252,9 +252,29 @@ class SequencerManager {
     }
   }
 
-  handleStop(Sequence sequence) {
-    sequence.stop();
-    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+  Future<void> handleStop(Sequence sequence) async {
+    try {
+      debugPrint('[SequencerManager] handleStop called');
+      // Stop all active notes first
+      for (final note in _activeMidiNotes.toList()) {
+        for (final track in sequence.getTracks()) {
+          try {
+            track.stopNoteNow(noteNumber: note);
+          } catch (e) {
+            debugPrint('[SequencerManager] Error stopping note $note: $e');
+          }
+        }
+      }
+      _activeMidiNotes.clear();
+      
+      // Stop the sequence
+      sequence.stop();
+      isPlaying = false;
+      _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+    } catch (e, st) {
+      debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
+      rethrow;
+    }
   }
 
   _handleSetLoop(bool nextIsLooping, Sequence sequence) {
@@ -473,28 +493,52 @@ class SequencerManager {
     return eq(list1, list2);
   }
 
-  void dispose() {
+  Future<void> dispose() async {
     debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
     try {
       if (sequence != null) {
         debugPrint('[SequencerManager] Stopping sequence');
-        handleStop(sequence);
+        await handleStop(sequence);
+        
+        // Clean up tracks
         if (sequence.getTracks().isNotEmpty) {
           for (final track in sequence.getTracks()) {
             try {
-              debugPrint('[SequencerManager] Would dispose track id: \\${track.id} (no dispose method available)');
+              debugPrint('[SequencerManager] Cleaning up track id: ${track.id}');
+              // Stop any remaining notes on this track
+              for (final note in _activeMidiNotes.toList()) {
+                try {
+                  track.stopNoteNow(noteNumber: note);
+                } catch (e) {
+                  debugPrint('[SequencerManager] Error stopping note $note on track ${track.id}: $e');
+                }
+              }
+              // Clear track events if possible
+              try {
+                track.clearEvents();
+              } catch (e) {
+                debugPrint('[SequencerManager] Error clearing events for track ${track.id}: $e');
+              }
             } catch (e) {
-              debugPrint('[SequencerManager] Error disposing track: $e');
+              debugPrint('[SequencerManager] Error disposing track ${track.id}: $e');
             }
           }
         }
-        debugPrint('[SequencerManager] Would dispose sequence (no dispose method available)');
+        
+        debugPrint('[SequencerManager] Sequence cleanup complete');
       }
+      
+      // Clear all state
       trackStepSequencerStates.clear();
       trackVolumes.clear();
-      // Optionally clear other state if needed
+      _activeMidiNotes.clear();
+      _lastChords.clear();
+      
+      debugPrint('[SequencerManager] State cleared');
     } catch (e, st) {
       debugPrint('[SequencerManager] Error during dispose: $e\n$st');
+    } finally {
+      debugPrint('[SequencerManager] Disposal complete');
     }
   }
 }

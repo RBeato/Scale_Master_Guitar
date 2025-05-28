@@ -179,19 +179,60 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   void dispose() {
     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
     try {
-      if (ticker != null && ticker!.isActive) {
+      // Stop the ticker first
+      if (ticker != null) {
+        if (ticker!.isActive) {
+          ticker!.stop();
+        }
         ticker!.dispose();
         ticker = null;
       }
+      
+      // Stop any playing audio and clean up the sequencer
       if (sequence != null) {
-        sequencerManager.handleStop(sequence!); 
+        try {
+          // Stop the sequence if it's playing
+          if (sequence!.getIsPlaying()) {
+            sequence!.stop();
+          }
+          
+          // Stop all active notes on all tracks
+          for (final track in sequence!.getTracks()) {
+            try {
+              // Clear any pending events
+              track.clearEvents();
+              
+              // Stop any playing notes
+              for (int note = 0; note < 128; note++) {
+                try {
+                  track.stopNoteNow(noteNumber: note);
+                } catch (e) {
+                  debugPrint('[PlayerWidget] Error stopping note $note: $e');
+                }
+              }
+            } catch (e) {
+              debugPrint('[PlayerWidget] Error cleaning up track: $e');
+            }
+          }
+          
+          // Sequence cleanup complete
+        } catch (e, st) {
+          debugPrint('[PlayerWidget] Error stopping sequence: $e\n$st');
+        }
       }
-      // SequencerManager itself is managed by Riverpod, no direct dispose here.
+      
+      // Clear track references
       tracks.clear();
+      trackStepSequencerStates.clear();
+      trackVolumes.clear();
+      
+      debugPrint('[PlayerWidget] Cleanup complete');
     } catch (e, st) {
       debugPrint('[PlayerWidget] Error during dispose: $e\n$st');
+    } finally {
+      // Always call super.dispose()
+      super.dispose();
     }
-    super.dispose();
   }
 
   @override
