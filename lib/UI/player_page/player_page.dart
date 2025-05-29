@@ -59,7 +59,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     if (!_isDisposed) {
       debugPrint('[PlayerPage] dispose called');
       _isDisposed = true;
-      _cleanupResources();
+      // _cleanupResources() REMOVED: Do not use ref after dispose
     }
     super.dispose();
   }
@@ -72,6 +72,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     debugPrint('[PlayerPage] sequencerManager.sequence: \\${sequencerManager.sequence}');
     // debugPrint('[PlayerPage] fingerings state: \\${fingerings}');
 
+    // WillPopScope ensures cleanup before navigation
     return WillPopScope(
       onWillPop: () async {
         debugPrint('[PlayerPage] WillPopScope triggered');

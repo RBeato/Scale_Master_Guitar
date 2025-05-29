@@ -33,7 +33,7 @@ class WheelAndPianoColumn extends ConsumerWidget {
         if (previousData != null) {
           return _buildContent(previousData);
         }
-        return Text('Error: $error');
+        return const Text('Something went wrong!');
       },
     );
   }
@@ -53,7 +53,7 @@ class WheelAndPianoColumn extends ConsumerWidget {
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Transform.scale(
-                scale: 1.4, // Scale the piano by 40%
+                scale: 1.12, // Scale the piano by 12% (20% smaller than before)
                 child: CustomPianoSoundController(data.scaleModel),
               ),
             ),

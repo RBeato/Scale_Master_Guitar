@@ -4,7 +4,7 @@ description: "A new Flutter project."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.5
+version: 1.0.8
 
 environment:
   sdk: ">=2.19.0-146.2.beta <3.0.0"
@@ -38,6 +38,13 @@ dependencies:
   # purchases_ui_flutter: ^7.0.0
   shared_preferences: ^2.5.0
   tonic: ^0.2.3
+  audio_session: ^0.1.23
+  just_audio: ^0.9.34  # Audio player
+  just_audio_background: ^0.0.1-beta.11  # Background audio support
+  audio_service: ^0.18.10  # Background audio service
+  synchronized: ^3.1.0  # For thread-safe audio operations
+  path: ^1.8.3  # For path manipulation
+  rxdart: ^0.27.7  # For reactive programming with audio streams
 
   # # The following adds the Cupertino Icons font to your application.
   # # Use with the CupertinoIcons class for iOS style icons.
@@ -63,6 +70,7 @@ flutter:
   assets:
     # Only FluidR3_GM.sf2 is used for all instruments. See README for details.
     - assets/sounds/sf2/FluidR3_GM.sf2
+    - assets/sounds/sf2/
     - assets/images/
     - .env
 
