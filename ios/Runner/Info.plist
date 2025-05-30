@@ -58,7 +58,6 @@
 			<string>audio</string>
 			<string>fetch</string>
 			<string>processing</string>
-			<string>external-accessory</string>
 			<string>bluetooth-central</string>
 			<string>bluetooth-peripheral</string>
 			<string>remote-notification</string>
