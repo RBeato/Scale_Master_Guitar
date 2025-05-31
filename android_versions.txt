@@ -1,0 +1,59 @@
+# Android Build Configuration Versions
+# Generated on: 2025-05-30
+
+## Flutter Environment
+- Flutter SDK: >=2.19.0-146.2.beta <3.0.0
+
+## Android Configuration
+### App Level (app/build.gradle)
+- compileSdk: 35
+- minSdk: 24
+- targetSdk: 34
+- ndkVersion: 25.2.9519653
+- buildToolsVersion: 34.0.0
+- Java Version: 1.8
+- Kotlin JVM Target: 1.8
+- MultiDex: Enabled
+
+### Gradle Configuration
+- Gradle Version: 8.4 (from gradle-wrapper.properties)
+- Android Gradle Plugin: (version not explicitly specified in build files)
+
+## Key Dependencies (from pubspec.yaml)
+- Flutter SDK: Included
+- auto_size_text: ^3.0.0
+- connectivity_plus: ^6.1.4
+- device_info_plus: ^11.2.0
+- file_picker: ^10.1.7
+- flutter_native_splash: ^2.2.1
+- google_mobile_ads: ^6.0.0
+- permission_handler: ^12.0.0+1
+- purchases_flutter: ^8.6.0
+- shared_preferences: ^2.5.0
+- audio_session: ^0.1.23
+- just_audio: ^0.9.34
+- just_audio_background: ^0.0.1-beta.11
+- audio_service: ^0.18.10
+
+## Build Configuration
+- Application ID: com.rbsoundz.scalemasterguitar
+- Version Code: 5
+- Version Name: 1.0.5
+
+## Notes
+- This project uses Kotlin for Android native code
+- Java 1.8 compatibility is required
+- The project uses the new AndroidX libraries
+- Multidex is enabled for handling large number of methods
+
+## Development Tools
+- Android Studio: (version not specified)
+- Flutter SDK: (version not specified in build files)
+- Kotlin: (version not explicitly specified, uses project default)
+
+# To replicate this environment in another project:
+1. Ensure you have the same Flutter SDK version
+2. Use the same compileSdk, minSdk, and targetSdk versions
+3. Use the same Gradle version (8.4)
+4. Apply the same dependency versions listed above
+5. Configure the same build tools and NDK versions if needed
