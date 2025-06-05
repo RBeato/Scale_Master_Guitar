@@ -20,7 +20,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audio_session/audio_session.dart';
 
-
+//TODO: fix performance. Avoid unnecessary rebuilds. Test overall performance
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
 //TODO: add the google store key from old project to this one
 
@@ -120,41 +120,7 @@ void main() async {
         await PurchaseApi.init(dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? '');
       }
     
-      // Configure audio session for the app
-      try {
-        final session = await AudioSession.instance;
-        await session.configure(const AudioSessionConfiguration.music());
-        
-        // Set active to ensure audio plays in silent mode on iOS
-        await session.setActive(true);
-        
-        // Handle audio interruptions
-        session.interruptionEventStream.listen((event) {
-          if (event.begin) {
-            debugPrint('Audio session interrupted');
-          } else {
-            debugPrint('Audio session interruption ended');
-            // Reactivate audio session after interruption
-            session.setActive(true);
-          }
-        });
-        
-        // Handle audio device changes
-        session.devicesChangedEventStream.listen((_) {
-          debugPrint('Audio devices changed');
-        });
-        
-        // Handle audio becoming noisy (e.g., headphones unplugged)
-        session.becomingNoisyEventStream.listen((_) {
-          debugPrint('Audio became noisy - pausing playback');
-          // Pause playback when headphones are unplugged
-        });
-        
-        debugPrint('Audio session configured successfully');
-      } catch (e, stackTrace) {
-        debugPrint('Error configuring audio session: $e');
-        logger.e('Error configuring audio session', error: e, stackTrace: stackTrace);
-      }
+      // Audio session is already configured above, no need to configure it again
 
       final container = ProviderContainer();
       await container.read(settingsStateNotifierProvider.notifier).settings;
