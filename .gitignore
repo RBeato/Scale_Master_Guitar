@@ -53,3 +53,7 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Heap dumps and profiling files
+*.hprof
+*.prof

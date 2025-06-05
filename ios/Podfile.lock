@@ -62,12 +62,12 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
-  - purchases_flutter (8.9.0):
+  - purchases_flutter (8.10.0):
     - Flutter
-    - PurchasesHybridCommon (= 13.32.0)
-  - PurchasesHybridCommon (13.32.0):
-    - RevenueCat (= 5.24.0)
-  - RevenueCat (5.24.0)
+    - PurchasesHybridCommon (= 13.33.0)
+  - PurchasesHybridCommon (13.33.0):
+    - RevenueCat (= 5.26.0)
+  - RevenueCat (5.26.0)
   - SDWebImage (5.21.0):
     - SDWebImage/Core (= 5.21.0)
   - SDWebImage/Core (5.21.0)
@@ -162,15 +162,15 @@ SPEC CHECKSUMS:
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
-  purchases_flutter: 5c7fbfbe656117ea8a72d132a82294a2025ef8ae
-  PurchasesHybridCommon: 662aa1f4769ff4ef594e35adf1a5d0ad7b3d08b7
-  RevenueCat: 2d3639d30b8a71cbfe3d99cef8243c602793e0ec
+  purchases_flutter: c3ed75d964796e47fbb9265162a584d8b17a3d75
+  PurchasesHybridCommon: cce67d208599efd1557e7a4746d964179c00f55e
+  RevenueCat: 30ef961962ccc42c9cd0f375fdac62baee22238b
   SDWebImage: f84b0feeb08d2d11e6a9b843cb06d75ebf5b8868
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 4d1fc1b3bdf8a0208905f07b7192250835e38043
+PODFILE CHECKSUM: aba1cc7f25992e930ac0d7b61acdfb4dc0338c5f
 
 COCOAPODS: 1.16.2
