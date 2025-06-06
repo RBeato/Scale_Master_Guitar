@@ -56,4 +56,4 @@ app.*.map.json
 
 # Heap dumps and profiling files
 *.hprof
-*.prof
+*.prof*.hprof
