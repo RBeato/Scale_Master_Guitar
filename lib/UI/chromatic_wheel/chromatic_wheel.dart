@@ -63,9 +63,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     super.initState();
     _currentRotation = ref.read(wheelRotationProvider);
 
-    scaleIntervals = Scales.data[widget.scaleModel.scale]
-        [widget.scaleModel.mode]['scaleDegrees']!;
-    chromaticNotes = getChromaticNotes();
+    _updateScaleData();
 
     _snapController = AnimationController(
       vsync: this,
@@ -81,6 +79,27 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
       }
     });
     _snapController.addListener(_onSnapControllerTick);
+  }
+
+  /// Updates scale data when the scale model changes
+  void _updateScaleData() {
+    scaleIntervals = Scales.data[widget.scaleModel.scale]
+        [widget.scaleModel.mode]['scaleDegrees']!;
+    chromaticNotes = getChromaticNotes();
+    debugPrint('[ChromaticWheel] Updated scale data for ${widget.scaleModel.scale} - ${widget.scaleModel.mode}');
+  }
+
+  @override
+  void didUpdateWidget(ChromaticWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Check if the scale model has changed
+    if (oldWidget.scaleModel.scale != widget.scaleModel.scale ||
+        oldWidget.scaleModel.mode != widget.scaleModel.mode) {
+      debugPrint('[ChromaticWheel] Scale model changed from ${oldWidget.scaleModel.scale}-${oldWidget.scaleModel.mode} to ${widget.scaleModel.scale}-${widget.scaleModel.mode}');
+      _updateScaleData();
+      // Trigger a rebuild to update the visual representation
+      setState(() {});
+    }
   }
 
   List getChromaticNotes() {

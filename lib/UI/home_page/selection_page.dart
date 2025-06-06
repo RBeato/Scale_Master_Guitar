@@ -46,6 +46,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
               flex: 8,
               child: WheelAndPianoColumn(),
             ),
+            const SizedBox(height: 20),
             SizedBox(
               height: MediaQuery.of(context).padding.bottom,
             )
