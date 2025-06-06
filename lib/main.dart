@@ -8,7 +8,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/utils/debug_overlay.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
-import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/UI/home_page/home_page.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:logger/logger.dart';
@@ -210,45 +209,24 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final isUserSubscribed = ref.watch(revenueCatProvider);
-    // Convert entitlement status to a Future<bool> for the FutureBuilder
-    Future<bool> isSubscribed = Future.value(isUserSubscribed == Entitlement.premium);
-    return FutureBuilder<bool>(
-      future: isSubscribed,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const MaterialApp(
-            home: Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          );
-        }
-        Widget app = MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Scale Master Guitar',
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green[800] ?? Colors.green,
-              brightness: Brightness.dark,
-            ),
-          ),
-          home: ScaffoldMessenger(
-            key: scaffoldMessengerKey,
-            child: showDebugOverlay
-                ? DebugOverlay(child: snapshot.data == true
-                    ? const HomePage(title: 'Scale Master Guitar')
-                    : const HomePage(title: 'Scale Master Guitar'))
-                : (snapshot.data == true
-                    ? const HomePage(title: 'Scale Master Guitar')
-                    : const HomePage(title: 'Scale Master Guitar')),
-          ),
-        );
-        
-        return app;
-      },
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Scale Master Guitar',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.green[800] ?? Colors.green,
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: ScaffoldMessenger(
+        key: scaffoldMessengerKey,
+        child: showDebugOverlay
+            ? DebugOverlay(
+                child: const HomePage(title: 'Scale Master Guitar')
+              )
+            : const HomePage(title: 'Scale Master Guitar'),
+      ),
     );
   }
 }

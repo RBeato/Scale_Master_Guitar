@@ -7,10 +7,10 @@ import 'dart:typed_data';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'package:path/path.dart'
     as path; // Import path package for file handling
 
-import '../../revenue_cat_purchase_flutter/entitlement.dart';
 
 class SaveImageButton extends ConsumerWidget {
   const SaveImageButton({super.key});
@@ -107,18 +107,16 @@ class SaveImageButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final entitlement = ref.watch(revenueCatProvider);
-    //TODO: Revert this
-    const entitlement = Entitlement.premium;
+    final entitlement = ref.watch(revenueCatProvider);
 
     return Center(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: entitlement == Entitlement.free
+        onTap: !FeatureRestrictionService.canDownloadFretboard(entitlement)
             ? () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Upgrade required to use this feature.')),
+                  SnackBar(
+                      content: Text(FeatureRestrictionService.getFretboardDownloadRestrictionMessage())),
                 );
               }
             : () => _requestStoragePermission(context),

@@ -15,7 +15,8 @@ import '../../../models/settings_model.dart';
 import '../../../models/step_sequencer_state.dart';
 import '../../fretboard/provider/beat_counter_provider.dart';
 
-import '../../utils/debouncing.dart';
+import '../../utils/debouncing.dart' as debouncing_utils;
+import '../../../utils/performance_utils.dart';
 import '../provider/is_metronome_selected.dart';
 import '../provider/metronome_tempo_provider.dart';
 import '../provider/is_playing_provider.dart';
@@ -48,12 +49,16 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
+  
+  // Add debouncer for performance optimization
+  late Debouncer _chordChangeDebouncer;
   // final Set<String> _uiActivePianoNotes = {}; // No longer needed for sustain logic
 
   @override
   void initState() {
     super.initState();
     sequencerManager = ref.read(sequencerManagerProvider);
+    _chordChangeDebouncer = Debouncer(milliseconds: 300);
     // initializeSequencer(); // Defer to first chord or explicit play action
     // Initial setup might not need full sequencer init if no chords are present initially
     // Consider if Ticker should only start when sequence is actually ready and playing.
@@ -179,6 +184,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   void dispose() {
     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
     try {
+      // Dispose debouncer first
+      _chordChangeDebouncer.dispose();
       // Stop the ticker first
       if (ticker != null) {
         if (ticker!.isActive) {
@@ -240,12 +247,10 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     debugPrint('[PlayerWidget] build called. isLoading: $isLoading');
     // Watch essential providers that trigger UI changes or logic
     final isPlayingState = ref.watch(isSequencerPlayingProvider);
-    final selectedChordsState = ref.watch(selectedChordsProvider);
     final metronomeTempoState = ref.watch(metronomeTempoProvider);
-    final isMetronomeSelectedState = ref.watch(isMetronomeSelectedProvider);
     // currentBeat is watched by specific UI parts if needed, or use this.position
 
-    // Listener for selectedChords changes
+    // Listener for selectedChords changes with debouncing
     ref.listen<List<ChordModel>>(selectedChordsProvider, (previousChords, nextChords) {
       debugPrint('[PlayerWidget] selectedChordsProvider listener: prev=${previousChords?.length}, next=${nextChords.length}');
       
@@ -261,7 +266,10 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         // Just update the sequence with the new chord without showing loading state
         _updateSequenceWithNewChord(nextChords);
       } else if (!isLoading) {
-        _performFullSequencerReinitialization(newChords: nextChords);
+        // Use debouncing for performance optimization
+        _chordChangeDebouncer.run(() {
+          _performFullSequencerReinitialization(newChords: nextChords);
+        });
       } else {
         debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
       }
@@ -298,7 +306,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       clearTracks: () {
         debugPrint('[PlayerWidget] clearTracks UI action');
         if (!isLoading) {
-            Debouncer.handleButtonPress(() {
+            debouncing_utils.Debouncer.handleButtonPress(() {
                 // setState(() { isLoading = true; }); // isLoading set by _performFullSequencerReinitialization
                 ref.read(selectedChordsProvider.notifier).removeAll(); 
                 // The listener for selectedChordsProvider will pick up the empty list 
@@ -310,7 +318,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       handleTogglePlayStop: () {
         debugPrint('[PlayerWidget] handleTogglePlayStop UI action');
         if (sequence != null && !isLoading) {
-            Debouncer.handleButtonPress(() {
+            debouncing_utils.Debouncer.handleButtonPress(() {
                 sequencerManager.handleTogglePlayStop(sequence!); 
             });
         }
@@ -382,4 +390,5 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       await _performFullSequencerReinitialization(newChords: chords);
     }
   }
+
 }

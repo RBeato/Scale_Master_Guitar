@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
-
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/ads/banner_ad_widget.dart';
 import 'package:scalemasterguitar/constants/styles.dart';
-import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:scalemasterguitar/revenue_cat_purchase_flutter/paywall_page.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
+import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
@@ -21,9 +20,7 @@ class DrawerPage extends ConsumerStatefulWidget {
 class _DrawerPageState extends ConsumerState<DrawerPage> {
   @override
   Widget build(BuildContext context) {
-    // final entitlement = ref.watch(revenueCatProvider);
-    //TODO: Revert this
-    final entitlement = Entitlement.premium;
+    final entitlement = ref.watch(revenueCatProvider);
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -38,22 +35,74 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
           ),
           Column(
             children: [
-              if (entitlement != Entitlement.premium)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.star, color: Colors.yellow),
-                  label: const Text('Upgrade to Premium'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.yellow,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
+              // Show upgrade button for free users
+              if (!entitlement.isPremium)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.star, color: Colors.white),
+                    label: Text(
+                      entitlement.name == 'free' 
+                        ? 'Unlock Premium Features' 
+                        : 'Upgrade to Premium'
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.orange,
+                      elevation: 2,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EnhancedPaywallPage(),
+                          fullscreenDialog: true,
+                        ),
+                      );
+                    },
                   ),
-                  onPressed: () async {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const PaywallPage()));
-                  },
                 ),
+              
+              // Show premium status for premium users
+              if (entitlement.isPremium)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.verified, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        entitlement.name == 'premiumSub' 
+                          ? 'Premium Subscriber' 
+                          : 'Premium Lifetime',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
               const SizedBox(height: 20),
-              const BannerAdWidget(),
+              
+              // Ads only show for free users
+              if (FeatureRestrictionService.shouldShowAds(entitlement))
+                const BannerAdWidget(),
+              
               const SizedBox(height: 20),
               InkWell(
                 highlightColor: cardColor,

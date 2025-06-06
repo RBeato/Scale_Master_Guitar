@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../revenue_cat_purchase_flutter/purchase_api.dart';
+import '../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import '../services/feature_restriction_service.dart';
 
-class BannerAdWidget extends StatefulWidget {
+class BannerAdWidget extends ConsumerStatefulWidget {
   const BannerAdWidget({super.key});
 
   @override
-  State<BannerAdWidget> createState() => _BannerAdWidgetState();
+  ConsumerState<BannerAdWidget> createState() => _BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
-  bool _isPro = false;
 
   @override
   void initState() {
     super.initState();
-    _checkProStatus();
+    // Load ad on next frame to ensure widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndLoadAd();
+    });
   }
 
-  Future<void> _checkProStatus() async {
-    final isPro = await PurchaseApi.isPremiumUser();
-    if (!isPro) {
+  void _checkAndLoadAd() {
+    final entitlement = ref.read(revenueCatProvider);
+    if (FeatureRestrictionService.shouldShowAds(entitlement)) {
       _loadAd();
-    }
-    if (mounted) {
-      setState(() => _isPro = isPro);
     }
   }
 
@@ -50,9 +51,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isPro || _bannerAd == null) {
+    final entitlement = ref.watch(revenueCatProvider);
+    
+    if (!FeatureRestrictionService.shouldShowAds(entitlement) || _bannerAd == null) {
       return const SizedBox.shrink();
     }
+    
     return SizedBox(
       height: _bannerAd!.size.height.toDouble(),
       width: _bannerAd!.size.width.toDouble(),

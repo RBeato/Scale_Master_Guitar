@@ -17,6 +17,8 @@ import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/player_utils.dart';
 import '../../../constants/gm_programs.dart';
+import '../../../utils/performance_utils.dart';
+import 'dart:async';
 
 final sequencerManagerProvider = Provider((ref) => SequencerManager(ref));
 
@@ -44,8 +46,9 @@ class SequencerManager {
   bool isLoading = false;
   bool playAllInstruments = true;
 
-  // Add a set to keep track of currently pressed notes
-  final Set<int> _activeMidiNotes = {};
+  // Improved note tracking with cleanup
+  final NoteTracker _noteTracker = NoteTracker();
+  Timer? _cleanupTimer;
 
   Future<List<Track>> initialize({
     required List<Track> tracks,
@@ -77,6 +80,9 @@ class SequencerManager {
     this.isMetronomeSelected = isMetronomeSelected;
 
     GlobalState().setKeepEngineRunning(true);
+
+    // Start periodic cleanup for stale notes
+    _startCleanupTimer();
 
     try {
       // Create tracks
@@ -182,14 +188,14 @@ class SequencerManager {
     }
     final pianoTrack = tracks[1]; // Assuming piano is always track 1
 
-    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current _activeMidiNotes: $_activeMidiNotes');
+    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current active notes: ${_noteTracker.activeNotes}');
 
-    if (_activeMidiNotes.contains(midiValue)) {
-      debugPrint('[$method] Note $midiValue already in _activeMidiNotes. SKIPPING startNoteNow.');
+    if (_noteTracker.activeNotes.contains(midiValue)) {
+      debugPrint('[$method] Note $midiValue already active. SKIPPING startNoteNow.');
       return;
     }
-    _activeMidiNotes.add(midiValue);
-    debugPrint('[$method] Added $midiValue to _activeMidiNotes. Current: $_activeMidiNotes');
+    _noteTracker.addNote(midiValue);
+    debugPrint('[$method] Added $midiValue to active notes. Current: ${_noteTracker.activeNotes}');
 
     try {
       final Stopwatch stopwatch = Stopwatch()..start();
@@ -211,14 +217,14 @@ class SequencerManager {
     }
     final pianoTrack = tracks[1]; // Assuming piano is always track 1
 
-    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current _activeMidiNotes: $_activeMidiNotes');
+    debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Current active notes: ${_noteTracker.activeNotes}');
 
-    if (!_activeMidiNotes.contains(midiValue)) {
-      debugPrint('[$method] Note $midiValue was NOT in _activeMidiNotes. SKIPPING stopNoteNow (might have been stopped already or never started).');
+    if (!_noteTracker.activeNotes.contains(midiValue)) {
+      debugPrint('[$method] Note $midiValue was NOT active. SKIPPING stopNoteNow (might have been stopped already or never started).');
       return;
     }
-    _activeMidiNotes.remove(midiValue);
-    debugPrint('[$method] Removed $midiValue from _activeMidiNotes. Current: $_activeMidiNotes');
+    _noteTracker.removeNote(midiValue);
+    debugPrint('[$method] Removed $midiValue from active notes. Current: ${_noteTracker.activeNotes}');
 
     try {
       final Stopwatch stopwatch = Stopwatch()..start();
@@ -255,22 +261,33 @@ class SequencerManager {
   Future<void> handleStop(Sequence sequence) async {
     try {
       debugPrint('[SequencerManager] handleStop called');
-      // Stop all active notes first
-      for (final note in _activeMidiNotes.toList()) {
-        for (final track in sequence.getTracks()) {
-          try {
-            track.stopNoteNow(noteNumber: note);
-          } catch (e) {
-            debugPrint('[SequencerManager] Error stopping note $note: $e');
+      
+      await PerformanceUtils.trackAsyncOperation('handleStop', () async {
+        // Stop all active notes efficiently - only iterate once
+        final activeNotes = _noteTracker.activeNotes.toList();
+        final tracks = sequence.getTracks();
+        
+        for (final note in activeNotes) {
+          for (final track in tracks) {
+            try {
+              track.stopNoteNow(noteNumber: note);
+            } catch (e) {
+              debugPrint('[SequencerManager] Error stopping note $note: $e');
+            }
           }
         }
-      }
-      _activeMidiNotes.clear();
-      
-      // Stop the sequence
-      sequence.stop();
-      isPlaying = false;
-      _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+        
+        // Clear all tracked notes
+        _noteTracker.clear();
+        
+        // Stop cleanup timer
+        _cleanupTimer?.cancel();
+        
+        // Stop the sequence
+        sequence.stop();
+        isPlaying = false;
+        _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+      });
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
       rethrow;
@@ -493,6 +510,13 @@ class SequencerManager {
     return eq(list1, list2);
   }
 
+  void _startCleanupTimer() {
+    _cleanupTimer?.cancel();
+    _cleanupTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _noteTracker.cleanupStaleNotes();
+    });
+  }
+
   Future<void> dispose() async {
     debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
     try {
@@ -506,7 +530,7 @@ class SequencerManager {
             try {
               debugPrint('[SequencerManager] Cleaning up track id: ${track.id}');
               // Stop any remaining notes on this track
-              for (final note in _activeMidiNotes.toList()) {
+              for (final note in _noteTracker.activeNotes.toList()) {
                 try {
                   track.stopNoteNow(noteNumber: note);
                 } catch (e) {
@@ -531,8 +555,9 @@ class SequencerManager {
       // Clear all state
       trackStepSequencerStates.clear();
       trackVolumes.clear();
-      _activeMidiNotes.clear();
+      _noteTracker.clear();
       _lastChords.clear();
+      _cleanupTimer?.cancel();
       
       debugPrint('[SequencerManager] State cleared');
     } catch (e, st) {

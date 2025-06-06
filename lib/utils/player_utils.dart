@@ -14,18 +14,28 @@ class SoundPlayerUtils {
   }
 
   static _getSound(instrument, instSound) {
-    // All instruments use FluidR3_GM.sf2 and select the correct presetIndex (program number)
     String gmName = '';
+    String soundFontPath = '';
+    
     switch (instrument) {
       case SettingsSelection.keyboardSound:
         gmName = instSound;
+        soundFontPath = "assets/sounds/sf2/GeneralUser-GS.sf2";
         break;
       case SettingsSelection.bassSound:
         gmName = instSound;
+        soundFontPath = "assets/sounds/sf2/GeneralUser-GS.sf2";
         break;
       case SettingsSelection.drumsSound:
-        gmName = 'Synth Drum'; // or 'Drums' if you want to use a melodic drum preset
-        break;
+        // For drums, we use the dedicated drum SoundFont
+        // and channel 9 (drums channel in MIDI)
+        soundFontPath = "assets/sounds/sf2/DrumsSlavo.sf2";
+        // For drum channel, preset doesn't matter as much since it's percussion
+        return Sf2Instrument(
+          path: soundFontPath,
+          isAsset: true,
+          presetIndex: 0, // Standard drum kit
+        );
       default:
         throw Exception('Unknown instrument type: $instrument');
     }
@@ -35,9 +45,9 @@ class SoundPlayerUtils {
       material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
       throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
     }
-    material.debugPrint('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex');
+    material.debugPrint('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex, soundFont: $soundFontPath');
     return Sf2Instrument(
-      path: "assets/sounds/sf2/FluidR3_GM.sf2",
+      path: soundFontPath,
       isAsset: true,
       presetIndex: presetIndex,
     );

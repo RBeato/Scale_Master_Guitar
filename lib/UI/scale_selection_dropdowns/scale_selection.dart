@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/scales/scales_data_v2.dart';
 import '../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import '../../services/feature_restriction_service.dart';
 import 'provider/mode_dropdown_value_provider.dart';
 import 'provider/scale_dropdown_value_provider.dart';
 
@@ -22,10 +23,11 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
   Widget build(BuildContext context) {
     final selectedScale = ref.watch(scaleDropdownValueProvider);
     final selectedMode = ref.watch(modeDropdownValueProvider);
-    // final entitlement = ref.watch(revenueCatProvider);
-
-    //TODO: Revert this
-    final entitlement = Entitlement.premium;
+    final entitlement = ref.watch(revenueCatProvider);
+    
+    // Get scales available to current user
+    final allScales = Scales.data.keys.toList();
+    final availableScales = ref.watch(availableScalesProvider(allScales));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -41,32 +43,55 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                   isExpanded: true,
                   dropdownColor: Colors.grey[800],
                   value: selectedScale,
-                  onTap: entitlement == Entitlement.free
+                  onTap: !entitlement.hasFullScaleAccess
                       ? () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                                 content: Text(
-                                    'Upgrade required to use this feature.')),
+                                    FeatureRestrictionService.getScaleRestrictionMessage())),
                           );
-                          // // Prevent opening the dropdown
                           return;
                         }
-                      : () {},
-                  onChanged: entitlement == Entitlement.free
-                      ? null
-                      : (newValue) {
-                          ref.read(scaleDropdownValueProvider.notifier).state =
-                              newValue!;
-                          ref.read(modeDropdownValueProvider.notifier).state =
-                              Scales.data[newValue].keys.first as String;
-                        },
-                  items: Scales.data.keys
-                      .map<DropdownMenuItem<String>>((dynamic value) {
+                      : null,
+                  onChanged: (newValue) {
+                    // Check if user can access this scale
+                    if (!FeatureRestrictionService.canAccessScale(newValue!, entitlement)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                FeatureRestrictionService.getScaleRestrictionMessage())),
+                      );
+                      return;
+                    }
+                    
+                    ref.read(scaleDropdownValueProvider.notifier).state = newValue;
+                    ref.read(modeDropdownValueProvider.notifier).state =
+                        Scales.data[newValue].keys.first as String;
+                  },
+                  items: availableScales
+                      .map<DropdownMenuItem<String>>((String value) {
+                    final isRestricted = !FeatureRestrictionService.canAccessScale(value, entitlement);
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70)),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              value,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isRestricted ? Colors.grey : Colors.white70,
+                              ),
+                            ),
+                          ),
+                          if (isRestricted)
+                            const Icon(
+                              Icons.lock,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                        ],
+                      ),
                     );
                   }).toList(),
                   hint: const Text('Select Scale',

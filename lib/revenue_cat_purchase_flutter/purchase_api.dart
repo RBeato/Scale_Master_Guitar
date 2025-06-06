@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 
 class PurchaseApi {
   static const String _premiumOfferingId = 'premium';
+  static const String _premiumSubEntitlementId = 'premium_subscription';
+  static const String _premiumOneTimeEntitlementId = 'premium_lifetime';
 
   static Future<void> init(String apiKey) async {
     await Purchases.setLogLevel(LogLevel.debug);
@@ -21,11 +24,38 @@ class PurchaseApi {
 
   static Future<bool> isPremiumUser() async {
     try {
-      final customerInfo = await getCustomerInfo();
-      return customerInfo.entitlements.active.containsKey(_premiumOfferingId);
+      final entitlement = await getUserEntitlement();
+      return entitlement.isPremium;
     } catch (e) {
       debugPrint('Error checking premium status: $e');
       return false;
+    }
+  }
+
+  static Future<Entitlement> getUserEntitlement() async {
+    try {
+      final customerInfo = await getCustomerInfo();
+      final activeEntitlements = customerInfo.entitlements.active;
+      
+      // Check for one-time purchase first
+      if (activeEntitlements.containsKey(_premiumOneTimeEntitlementId)) {
+        return Entitlement.premiumOneTime;
+      }
+      
+      // Check for subscription
+      if (activeEntitlements.containsKey(_premiumSubEntitlementId)) {
+        return Entitlement.premiumSub;
+      }
+      
+      // Fallback to old premium check for backward compatibility
+      if (activeEntitlements.containsKey(_premiumOfferingId)) {
+        return Entitlement.premiumSub;
+      }
+      
+      return Entitlement.free;
+    } catch (e) {
+      debugPrint('Error getting user entitlement: $e');
+      return Entitlement.free;
     }
   }
 

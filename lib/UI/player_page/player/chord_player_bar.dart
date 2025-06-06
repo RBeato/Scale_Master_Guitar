@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 
-import '../../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../chords_list.dart';
 import '../metronome/metronome_display.dart';
 import '../metronome/metronome_icon.dart';
@@ -39,10 +39,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final selectedChords = ref.watch(selectedChordsProvider);
-    // final entitlement = ref.watch(revenueCatProvider);
-
-    //TODO: Revert this
-    final entitlement = Entitlement.premium;
+    final entitlement = ref.watch(revenueCatProvider);
 
     // Reset _showNoChordSelected when there are changes in selectedChords
     if (selectedChords.isNotEmpty) {
@@ -103,12 +100,12 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
             child: Padding(
               padding: const EdgeInsets.all(10.0),
               child: GestureDetector(
-                onTap: entitlement == Entitlement.free
+                onTap: !FeatureRestrictionService.canUseAudioFeatures(entitlement)
                     ? () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                               content: Text(
-                                  'Upgrade required to use this feature.')),
+                                  FeatureRestrictionService.getAudioRestrictionMessage())),
                         );
                       }
                     : widget.handleTogglePlayStop,

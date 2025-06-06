@@ -29,9 +29,9 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
 
   Future<void> updatePurchaseStatus() async {
     try {
-      final isPremium = await PurchaseApi.isPremiumUser();
+      final entitlement = await PurchaseApi.getUserEntitlement();
       if (mounted) {
-        state = isPremium ? Entitlement.premium : Entitlement.free;
+        state = entitlement;
       }
     } catch (e) {
       debugPrint('Error updating purchase status: $e');
