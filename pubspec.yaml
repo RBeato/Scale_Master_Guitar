@@ -15,14 +15,11 @@ dependencies:
   auto_size_text: ^3.0.0
   async: ^2.8.2
   connectivity_plus: ^6.1.4
-  device_preview: ^1.2.0
   device_info_plus: ^11.2.0
   equatable: ^2.0.2
-  file_picker: ^10.1.7
   flutter_colorpicker: ^1.0.3
   flutter_dotenv: ^5.2.1
   flutter_native_splash: ^2.2.1
-  flutter_virtual_piano: ^0.0.9
   flutter_riverpod: ^2.6.1
   # flutter_sequencer:
   #   path: /Users/rbsou/Documents/CODE/FLUTTER/flutter_sequencer_plus 
@@ -30,7 +27,7 @@ dependencies:
   flutter_sequencer:
     git:
       url: https://github.com/RBeato/flutter_sequencer_plus.git
-      ref: bfa67d292f493af86db60d5ec8de08cf873c6e6f
+      ref: 899a0d388524edc0304adfa2799b5fa828a02e65
   google_fonts: ^6.2.1
   google_mobile_ads: ^6.0.0
   logger: ^2.5.0
@@ -43,8 +40,6 @@ dependencies:
   tonic: ^0.2.3
   audio_session: ^0.1.23
   just_audio: ^0.9.34  # Audio player
-  just_audio_background: ^0.0.1-beta.11  # Background audio support
-  audio_service: ^0.18.10  # Background audio service
   synchronized: ^3.1.0  # For thread-safe audio operations
   path: ^1.8.3  # For path manipulation
   rxdart: ^0.27.7  # For reactive programming with audio streams
