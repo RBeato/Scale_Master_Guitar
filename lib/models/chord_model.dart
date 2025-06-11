@@ -131,8 +131,62 @@ class ChordModel {
     );
   }
 
+  // Convert to JSON for storage
+  Map<String, dynamic> toJson() {
+    return {
+      'noteName': noteName,
+      'chordNameForUI': chordNameForUI,
+      'id': id,
+      'position': position,
+      'duration': duration,
+      'scale': scale,
+      'mode': mode,
+      'originalScaleType': originalScaleType,
+      'parentScaleKey': parentScaleKey,
+      'chordNotesWithIndexesRaw': chordNotesWithIndexesRaw,
+      'chordNameForAudio': chordNameForAudio,
+      'function': function,
+      'typeOfChord': typeOfChord,
+      'chordNotesInversionWithIndexes': chordNotesInversionWithIndexes,
+      'selectedChordPitches': selectedChordPitches,
+      'originModeType': originModeType,
+      'chordFunction': chordFunction,
+      'chordDegree': chordDegree,
+      'completeChordName': completeChordName,
+    };
+  }
+
+  // Create from JSON
+  factory ChordModel.fromJson(Map<String, dynamic> json) {
+    return ChordModel(
+      noteName: json['noteName'] as String,
+      id: json['id'] as int,
+      position: json['position'] as int,
+      duration: json['duration'] as int,
+      scale: json['scale'] as String,
+      mode: json['mode'] as String,
+      originalScaleType: json['originalScaleType'] as String,
+      parentScaleKey: json['parentScaleKey'] as String,
+      chordNotesWithIndexesRaw: List<String>.from(json['chordNotesWithIndexesRaw'] as List),
+      chordFunction: json['chordFunction'] as String?,
+      chordDegree: json['chordDegree'] as String?,
+      completeChordName: json['completeChordName'] as String?,
+      chordNameForAudio: json['chordNameForAudio'] as String?,
+      chordNameForUI: json['chordNameForUI'] as String?,
+      function: json['function'] as String?,
+      typeOfChord: json['typeOfChord'] as String?,
+      chordNotesInversionWithIndexes: json['chordNotesInversionWithIndexes'] != null
+          ? List<String>.from(json['chordNotesInversionWithIndexes'] as List)
+          : null,
+      selectedChordPitches: json['selectedChordPitches'] != null
+          ? List<String>.from(json['selectedChordPitches'] as List)
+          : null,
+      originModeType: json['originModeType'] as String?,
+    );
+  }
+
   @override
   String toString() {
-    return 'ScaleModel(scale: $scale, mode: $mode, chordNameForAudio: $chordNameForAudio, chordNameForUI: $chordNameForUI, function: $function,typeOfChord: $typeOfChord color: $color, selectedChordPitches: $selectedChordPitches,allChordExtension $chordNotesInversionWithIndexes, originModeType: $originModeType), completeChordName: $completeChordName, chordFunction: $chordFunction, chordDegree: $chordDegree, settings: $settings)';
+    return 'ChordModel(scale: $scale, mode: $mode, chordNameForAudio: $chordNameForAudio, chordNameForUI: $chordNameForUI, function: $function, typeOfChord: $typeOfChord, color: $color, selectedChordPitches: $selectedChordPitches, allChordExtensions: $chordNotesInversionWithIndexes, originModeType: $originModeType, completeChordName: $completeChordName, chordFunction: $chordFunction, chordDegree: $chordDegree)';
   }
 }

@@ -9,27 +9,55 @@ import 'package:scalemasterguitar/UI/player_page/provider/player_page_title.dart
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';  
 
 import '../../models/chord_scale_model.dart';
+import '../../models/progression_model.dart';
 import '../chords/chords.dart';
 import '../fretboard/UI/fretboard_neck.dart';
 import '../fretboard_page/fretboard_page.dart';
 import '../fretboard_page/provider/fretboard_page_fingerings_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
-  const PlayerPage({super.key});
+  final ProgressionModel? initialProgression;
+  
+  const PlayerPage({super.key, this.initialProgression});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return _PlayerPageContent();
+    return _PlayerPageContent(initialProgression: initialProgression);
   }
 }
 
 class _PlayerPageContent extends ConsumerStatefulWidget {
+  final ProgressionModel? initialProgression;
+  
+  const _PlayerPageContent({super.key, this.initialProgression});
+  
   @override
   _PlayerPageContentState createState() => _PlayerPageContentState();
 }
 
 class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
   bool _isDisposed = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Load initial progression if provided
+    if (widget.initialProgression != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadProgression(widget.initialProgression!);
+      });
+    }
+  }
+  
+  void _loadProgression(ProgressionModel progression) {
+    // Clear existing chords first
+    ref.read(selectedChordsProvider.notifier).removeAll();
+    
+    // Add each chord from the progression
+    for (final chord in progression.chords) {
+      ref.read(selectedChordsProvider.notifier).addChord(chord);
+    }
+  }
   
   // Helper method to clean up resources
   Future<void> _cleanupResources() async {
