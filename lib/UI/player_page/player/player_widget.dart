@@ -49,6 +49,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
+  bool _isDisposed = false;
   
   // Add debouncer for performance optimization
   late Debouncer _chordChangeDebouncer;
@@ -162,12 +163,28 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Future<void> _performFullSequencerReinitialization({required List<ChordModel> newChords}) async {
     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: start with ${newChords.length} chords');
     
-    // Debug chord content
+    // Check if we have valid chords to work with
+    if (newChords.isEmpty) {
+      debugPrint('[PlayerWidget] No chords to initialize, skipping');
+      return;
+    }
+    
+    // Debug chord content and validate
+    bool hasValidChords = false;
     for (int i = 0; i < newChords.length; i++) {
       final chord = newChords[i];
       debugPrint('[PlayerWidget] Chord $i: ${chord.completeChordName}');
       debugPrint('[PlayerWidget] Chord $i notes: ${chord.chordNotesInversionWithIndexes}');
       debugPrint('[PlayerWidget] Chord $i position: ${chord.position}, duration: ${chord.duration}');
+      
+      if (chord.chordNotesInversionWithIndexes != null && chord.chordNotesInversionWithIndexes!.isNotEmpty) {
+        hasValidChords = true;
+      }
+    }
+    
+    if (!hasValidChords) {
+      debugPrint('[PlayerWidget] No valid chord notes found, skipping initialization');
+      return;
     }
     
     if (!mounted) return;
@@ -208,6 +225,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   @override
   void dispose() {
     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
+    _isDisposed = true;
+    
     try {
       // Dispose debouncer first
       try {
@@ -229,8 +248,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         }
       }
       
-      // Don't dispose sequencer manager immediately as it might be reused
-      // The sequencer should only be cleaned up when truly leaving the player context
+      // Don't dispose sequencer manager during widget disposal
+      // Just stop any active playback
       if (sequence != null) {
         try {
           sequencerManager.handleStop(sequence!);
@@ -271,24 +290,31 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     ref.listen<int>(selectedChordsProvider.select((chords) => chords.length), (prevCount, nextCount) {
       debugPrint('[PlayerWidget] Chord count changed: $prevCount -> $nextCount');
       
+      // Prevent multiple initializations when already loading
+      if (isLoading) {
+        debugPrint('[PlayerWidget] Already loading, skipping chord count change');
+        return;
+      }
+      
       final nextChords = ref.read(selectedChordsProvider);
       
       // Handle loading progression (0 -> many chords)
       if (prevCount == 0 && nextCount > 0) {
         debugPrint('[PlayerWidget] Loading progression with $nextCount chords');
-        if (!isLoading) {
-          _performFullSequencerReinitialization(newChords: nextChords);
-        }
+        _performFullSequencerReinitialization(newChords: nextChords);
       }
       // Handle adding single chord (increment by 1)
-      else if (prevCount != null && nextCount == prevCount + 1 && !isLoading) {
+      else if (prevCount != null && nextCount == prevCount + 1) {
         debugPrint('[PlayerWidget] Adding single chord');
         _updateSequenceWithNewChord(nextChords);
       }
-      // Handle other changes (clearing, removing chords, etc.)
-      else if (!isLoading && nextCount != prevCount) {
+      // Handle other changes (clearing, removing chords, etc.) - use debouncing
+      else if (nextCount != prevCount) {
+        debugPrint('[PlayerWidget] Other chord change, using debouncer');
         _chordChangeDebouncer.run(() {
-          _performFullSequencerReinitialization(newChords: nextChords);
+          if (!isLoading) {
+            _performFullSequencerReinitialization(newChords: ref.read(selectedChordsProvider));
+          }
         });
       }
     });

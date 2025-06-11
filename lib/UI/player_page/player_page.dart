@@ -15,6 +15,10 @@ import '../chords/chords.dart';
 import '../fretboard/UI/fretboard_neck.dart';
 import '../fretboard_page/fretboard_page.dart';
 import '../fretboard_page/provider/fretboard_page_fingerings_provider.dart';
+import '../chromatic_wheel/provider/top_note_provider.dart';
+import '../scale_selection_dropdowns/provider/scale_dropdown_value_provider.dart';
+import '../scale_selection_dropdowns/provider/mode_dropdown_value_provider.dart';
+import '../fretboard/provider/beat_counter_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
   final ProgressionModel? initialProgression;
@@ -51,28 +55,73 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
   }
   
   void _loadProgression(ProgressionModel progression) {
-    debugPrint('[PlayerPage] Loading progression: ${progression.name} with ${progression.chords.length} chords');
-    
-    // Clear existing chords first
-    ref.read(selectedChordsProvider.notifier).removeAll();
-    
-    // Add a small delay to ensure the clear operation completes
-    Future.delayed(const Duration(milliseconds: 100), () {
-      // Add each chord from the progression
-      for (final chord in progression.chords) {
-        debugPrint('[PlayerPage] Adding loaded chord: ${chord.completeChordName}');
-        debugPrint('[PlayerPage] Chord notes before adding: ${chord.chordNotesInversionWithIndexes}');
-        ref.read(selectedChordsProvider.notifier).addChord(chord);
+    try {
+      debugPrint('[PlayerPage] Loading progression: ${progression.name} with ${progression.chords.length} chords');
+      
+      // Validate progression data
+      if (progression.chords.isEmpty) {
+        debugPrint('[PlayerPage] ERROR: Progression has no chords');
+        return;
       }
       
-      // Force a rebuild to ensure the PlayerWidget initializes with the new chords
-      if (mounted) {
-        setState(() {});
+      // Validate each chord has required data
+      for (int i = 0; i < progression.chords.length; i++) {
+        final chord = progression.chords[i];
+        if (chord.completeChordName == null || chord.completeChordName!.isEmpty) {
+          debugPrint('[PlayerPage] ERROR: Chord $i has invalid name: ${chord.completeChordName}');
+          return;
+        }
+        if (chord.selectedChordPitches == null || chord.selectedChordPitches!.isEmpty) {
+          debugPrint('[PlayerPage] ERROR: Chord $i has no pitches: ${chord.selectedChordPitches}');
+          return;
+        }
       }
-    });
+      
+      // Clear existing chords first
+      ref.read(selectedChordsProvider.notifier).removeAll();
+      
+      // Update scale context based on the first chord
+      final firstChord = progression.chords.first;
+      debugPrint('[PlayerPage] Setting scale context from first chord: ${firstChord.parentScaleKey} ${firstChord.scale} ${firstChord.mode}');
+      
+      // Update scale providers to match the progression
+      ref.read(topNoteProvider.notifier).update((state) => firstChord.parentScaleKey);
+      ref.read(scaleDropdownValueProvider.notifier).update((state) => firstChord.scale);
+      ref.read(modeDropdownValueProvider.notifier).update((state) => firstChord.mode);
+      
+      // Update beat counter to match progression total beats
+      final totalBeats = progression.totalBeats;
+      debugPrint('[PlayerPage] Setting beat counter to: $totalBeats');
+      ref.read(beatCounterProvider.notifier).update((state) => totalBeats);
+      
+      // Add a small delay to ensure the clear operation and scale updates complete
+      Future.delayed(const Duration(milliseconds: 150), () {
+        try {
+          // Log progression details
+          for (final chord in progression.chords) {
+            debugPrint('[PlayerPage] Loaded chord: ${chord.completeChordName}');
+            debugPrint('[PlayerPage] Chord notes: ${chord.chordNotesInversionWithIndexes}');
+          }
+          
+          // Add all chords at once using updateProgression to avoid multiple reinitializations
+          ref.read(selectedChordsProvider.notifier).updateProgression(progression.chords);
+          
+          // Force a rebuild to ensure the PlayerWidget initializes with the new chords
+          if (mounted) {
+            setState(() {});
+          }
+        } catch (e, stackTrace) {
+          debugPrint('[PlayerPage] ERROR during delayed progression loading: $e');
+          debugPrint('[PlayerPage] Stack trace: $stackTrace');
+        }
+      });
+    } catch (e, stackTrace) {
+      debugPrint('[PlayerPage] ERROR loading progression: $e');
+      debugPrint('[PlayerPage] Stack trace: $stackTrace');
+    }
   }
   
-  // Helper method to clean up resources
+  // Helper method to clean up resources - but preserve user data
   Future<void> _cleanupResources() async {
     debugPrint('[PlayerPage] Cleaning up resources...');
     final sequencerManager = ref.read(sequencerManagerProvider);
@@ -86,8 +135,8 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
         ref.read(isSequencerPlayingProvider.notifier).state = false;
       }
       
-      // NOTE: Don't clear chords during navigation cleanup!
-      // The chords should persist unless user explicitly clears them
+      // IMPORTANT: Don't clear chords! User data should persist across navigation
+      // ref.read(selectedChordsProvider.notifier).removeAll(); // REMOVED - this was the bug!
       
       debugPrint('[PlayerPage] Cleanup completed');
     } catch (e, st) {
@@ -117,8 +166,9 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
-          debugPrint('[PlayerPage] PopScope triggered - navigation handled');
-          // Don't clear user data on navigation
+          debugPrint('[PlayerPage] PopScope triggered');
+          // Cleanup sequencer but preserve user chords
+          _cleanupResources();
         }
       },
       child: Scaffold(
@@ -128,11 +178,14 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
           title: const PlayerPageTitle(),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () {
+            onPressed: () async {
               debugPrint('[PlayerPage] Back button pressed');
-              // Just navigate - don't clear user data
-              Navigator.of(context).pop();
-              debugPrint('[PlayerPage] Navigated back');
+              // Cleanup sequencer but preserve user chords
+              await _cleanupResources();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                debugPrint('[PlayerPage] Navigated back');
+              }
             },
           ),
           actions: [
@@ -148,7 +201,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
               icon: const Icon(Icons.library_music, color: Colors.white),
             ),
             IconButton(
-              onPressed: () {
+              onPressed: () async {
                 debugPrint('[PlayerPage] Forward button pressed');
                 
                 // Update fingerings if available - do this immediately
@@ -161,10 +214,14 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                   ref.read(fretboardPageFingeringsProvider.notifier).update(fingeringsValue);
                 }
 
-                // Navigate without clearing user data
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => const FretboardPage()));
-                debugPrint('[PlayerPage] Navigated forward to FretboardPage');
+                // Cleanup sequencer but preserve user chords
+                await _cleanupResources();
+                
+                if (context.mounted) {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const FretboardPage()));
+                  debugPrint('[PlayerPage] Navigated forward to FretboardPage');
+                }
               },
               icon: const Icon(Icons.arrow_forward_ios,
                   color: Colors.orangeAccent),

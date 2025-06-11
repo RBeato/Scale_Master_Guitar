@@ -14,7 +14,6 @@ import '../player_page/logic/sequencer_manager.dart';
 import '../player_page/provider/is_metronome_selected.dart';
 import '../player_page/provider/is_playing_provider.dart';
 import '../player_page/provider/metronome_tempo_provider.dart';
-import '../utils/debouncing.dart';
 import 'custom_piano.dart';
 
 class CustomPianoSoundController extends ConsumerStatefulWidget {
@@ -27,7 +26,7 @@ class CustomPianoSoundController extends ConsumerStatefulWidget {
 }
 
 class CustomPianoState extends ConsumerState<CustomPianoSoundController>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   List<Track> tracks = [];
   Map<int, double> trackVolumes = {};
@@ -40,22 +39,66 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   late Sequence sequence;
   Map<String, dynamic> sequencer = {};
   late bool isLoading;
+  String? _lastKeyboardSound; // Track the last keyboard sound setting
 
   @override
   void initState() {
     super.initState();
     sequencerManager = ref.read(sequencerManagerProvider);
+    _lastKeyboardSound = widget.scaleModel?.settings?.keyboardSound;
     initializeSequencer();
+  }
+
+  @override
+  void didUpdateWidget(CustomPianoSoundController oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Check if the keyboard sound has changed between widget updates
+    final oldKeyboardSound = oldWidget.scaleModel?.settings?.keyboardSound;
+    final newKeyboardSound = widget.scaleModel?.settings?.keyboardSound;
+    
+    if (oldKeyboardSound != newKeyboardSound) {
+      debugPrint('[CustomPianoPlayer] Keyboard sound changed in didUpdateWidget: $oldKeyboardSound → $newKeyboardSound');
+      _lastKeyboardSound = newKeyboardSound;
+      
+      // Reinitialize sequencer with new instrument
+      Future.microtask(() {
+        if (mounted) {
+          initializeSequencer();
+        }
+      });
+    }
   }
 
   Future<void> initializeSequencer() async {
     if (!mounted) return;
+    
+    // Stop and cleanup existing sequencer first to prevent iOS resource conflicts
+    try {
+      ticker?.stop();
+      ticker?.dispose();
+      ticker = null;
+      
+      if (tracks.isNotEmpty) {
+        debugPrint('[CustomPianoPlayer] Cleaning up ${tracks.length} existing tracks before reinitializing');
+        // Stop any active notes and clear tracks
+        await sequencerManager.handleStop(sequence);
+        tracks.clear();
+      }
+    } catch (e) {
+      debugPrint('[CustomPianoPlayer] Error during cleanup: $e');
+    }
+    
     setState(() {
       isLoading = true;
     });
+    
     isPlaying = ref.read(isSequencerPlayingProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
     sequence = Sequence(tempo: tempo, endBeat: stepCount);
+    
+    debugPrint('[CustomPianoPlayer] Initializing sequencer with keyboard sound: ${widget.scaleModel!.settings!.keyboardSound}');
+    
     tracks = await sequencerManager.initialize(
         tracks: tracks,
         sequence: sequence,
@@ -135,6 +178,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
 
   @override
   Widget build(BuildContext context) {
+    
     // debugPrint("tracks: \${tracks[0]}");
     // return CustomPianoTest(
     //   widget.scaleModel,

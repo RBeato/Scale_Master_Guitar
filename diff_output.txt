@@ -1,0 +1,2630 @@
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index c16ff04..aa450d6 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -9,6 +9,7 @@
+     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
++    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+diff --git a/lib/UI/fretboard/provider/beat_counter_provider.dart b/lib/UI/fretboard/provider/beat_counter_provider.dart
+index b2750c8..0997d8a 100644
+--- a/lib/UI/fretboard/provider/beat_counter_provider.dart
++++ b/lib/UI/fretboard/provider/beat_counter_provider.dart
+@@ -2,4 +2,4 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ final beatCounterProvider = StateProvider<int>((ref) => 1);
+ 
+-final currentBeatProvider = StateProvider.autoDispose<int>((ref) => 0);
++final currentBeatProvider = StateProvider<int>((ref) => 0);
+diff --git a/lib/UI/fretboard/service/chord_progression_voice_leading_creator.dart b/lib/UI/fretboard/service/chord_progression_voice_leading_creator.dart
+index 6ca5cc4..b35da57 100644
+--- a/lib/UI/fretboard/service/chord_progression_voice_leading_creator.dart
++++ b/lib/UI/fretboard/service/chord_progression_voice_leading_creator.dart
+@@ -41,12 +41,10 @@ class VoiceLeadingCreator {
+     reorderedChordNotes.sort(
+         (a, b) => MusicUtils.getNoteIndex(a) - MusicUtils.getNoteIndex(b));
+ 
+-    addOctaveIndexes(reorderedChordNotes);
+-
+-    lastChord.chordNotesInversionWithIndexes = reorderedChordNotes;
++    lastChord.chordNotesInversionWithIndexes = addOctaveIndexes(reorderedChordNotes);
+   }
+ 
+-  static addOctaveIndexes(List<String> reorderedNotes) {
++  static List<String> addOctaveIndexes(List<String> reorderedNotes) {
+     int octave = 4;
+     int prevNoteIndex = -1;
+ 
+diff --git a/lib/UI/fretboard_page/fretboard_page.dart b/lib/UI/fretboard_page/fretboard_page.dart
+index e2e48ac..fec06ef 100644
+--- a/lib/UI/fretboard_page/fretboard_page.dart
++++ b/lib/UI/fretboard_page/fretboard_page.dart
+@@ -23,12 +23,7 @@ class FretboardPage extends ConsumerWidget {
+     // Obtain a copy of ChordScaleFingeringsModel specific to this page
+     final fretboardFingerings = ref.watch(fretboardPageFingeringsProvider);
+ 
+-    return WillPopScope(
+-      onWillPop: () {
+-        Navigator.of(context).pop();
+-        return Future.value(true);
+-      },
+-      child: Scaffold(
++    return Scaffold(
+         backgroundColor: Colors.grey[900],
+         appBar: AppBar(
+           leading: IconButton(
+@@ -41,7 +36,6 @@ class FretboardPage extends ConsumerWidget {
+           title: const PlayerPageTitle(),
+         ),
+         body: FretboardFull(fingeringsModel: fretboardFingerings),
+-      ),
+-    );
++      );
+   }
+ }
+diff --git a/lib/UI/home_page/selection_page.dart b/lib/UI/home_page/selection_page.dart
+index b6dbc64..fddd6f8 100644
+--- a/lib/UI/home_page/selection_page.dart
++++ b/lib/UI/home_page/selection_page.dart
+@@ -4,6 +4,7 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
+ import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
+ 
+ import '../chromatic_wheel/provider/top_note_provider.dart';
++import '../fretboard/provider/fingerings_provider.dart';
+ import '../player_page/player_page.dart';
+ import '../scale_selection_dropdowns/scale_selection.dart';
+ import 'wheel_piano_widget.dart';
+@@ -30,8 +31,12 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
+         actions: [
+           IconButton(
+             onPressed: () {
++              // Ensure fingerings provider is warmed up before navigation
++              final fingerings = ref.read(chordModelFretboardFingeringProvider);
++              
++              // Navigate immediately - PlayerPage will handle loading states properly
+               Navigator.push(context,
+-                  MaterialPageRoute(builder: (context) => PlayerPage()));
++                  MaterialPageRoute(builder: (context) => const PlayerPage()));
+             },
+             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
+           ),
+diff --git a/lib/UI/player_page/logic/sequencer_manager.dart b/lib/UI/player_page/logic/sequencer_manager.dart
+index a46e421..d3b747b 100644
+--- a/lib/UI/player_page/logic/sequencer_manager.dart
++++ b/lib/UI/player_page/logic/sequencer_manager.dart
+@@ -28,7 +28,7 @@ class SequencerManager {
+ 
+   Map<int, StepSequencerState> trackStepSequencerStates = {};
+   // List<Track> tracks = [];
+-  late Sequence sequence;
++  Sequence? sequence;
+   List _lastChords = [];
+   // final List _lastExtensions = [];
+   bool _lastTonicAsUniversalBassNote = true;
+@@ -80,6 +80,15 @@ class SequencerManager {
+     this.isMetronomeSelected = isMetronomeSelected;
+ 
+     GlobalState().setKeepEngineRunning(true);
++    debugPrint('[SequencerManager] Audio engine keep running set to true');
++    
++    // Add audio engine debugging
++    try {
++      debugPrint('[SequencerManager] Checking audio engine state');
++      // Note: Some of these methods might not exist - we'll see what works
++    } catch (e) {
++      debugPrint('[SequencerManager] Audio engine state check failed: $e');
++    }
+ 
+     // Start periodic cleanup for stale notes
+     _startCleanupTimer();
+@@ -93,9 +102,12 @@ class SequencerManager {
+       selectedTrack = tracks[0];
+ 
+       for (Track track in tracks) {
+-        trackVolumes[track.id] =
+-            1.0; // Set maximum initial volume for all tracks
++        trackVolumes[track.id] = 0.8; // Set audible volume for all tracks
+         trackStepSequencerStates[track.id] = StepSequencerState();
++        
++        // Ensure track volume is properly set
++        track.changeVolumeNow(volume: 0.8);
++        debugPrint('[SequencerManager] Track ${track.id} volume set to: ${track.getVolume()}');
+       }
+ 
+       // Create project state
+@@ -128,10 +140,23 @@ class SequencerManager {
+ 
+     for (int i = 0; i < selectedChords.length; i++) {
+       ChordModel chord = selectedChords[i];
+-      debugPrint("Chord: $chord");
++      debugPrint("Chord ${i + 1}: ${chord.completeChordName}");
++      debugPrint("  Position: ${chord.position}");
++      debugPrint("  Notes with inversions: ${chord.chordNotesInversionWithIndexes}");
++      
++      if (chord.chordNotesInversionWithIndexes == null || chord.chordNotesInversionWithIndexes!.isEmpty) {
++        debugPrint("  WARNING: No chord notes found for piano! This will result in no sound.");
++        continue;
++      }
++      
+       for (var note in chord.chordNotesInversionWithIndexes!) {
+-        project.pianoState.setVelocity(
+-            chord.position, MusicConstants.midiValues[note]!, 0.89);
++        final midiValue = MusicConstants.midiValues[note];
++        if (midiValue != null) {
++          project.pianoState.setVelocity(chord.position, midiValue, 0.89);
++          debugPrint("  Added piano note: $note (MIDI: $midiValue)");
++        } else {
++          debugPrint("  ERROR: No MIDI value found for note: $note");
++        }
+       }
+ 
+       var note = tonicAsUniversalBassNote
+@@ -236,23 +261,42 @@ class SequencerManager {
+     }
+   }
+ 
+-  handleTogglePlayStop(Sequence sequence) {
++  Future<void> handleTogglePlayStop(Sequence sequence) async {
+     bool currentIsPlaying = _ref.read(isSequencerPlayingProvider);
+     bool nextIsPlaying = !currentIsPlaying;
++    
++    debugPrint('[SequencerManager] handleTogglePlayStop: currentIsPlaying=$currentIsPlaying, nextIsPlaying=$nextIsPlaying');
+ 
+     if (nextIsPlaying) {
+       var tracks = sequence.getTracks();
+-      debugPrint("PlayAllInstruments: $playAllInstruments");
+-      debugPrint("Playing sequence. Tracks: ${tracks.length}");
+-      if (tracks.length > 2) {
+-        debugPrint("Bass track events: ${tracks[2].events.length}");
+-        debugPrint("Bass track volume: ${tracks[2].getVolume()}");
+-      } else {
+-        debugPrint("Not enough tracks available");
++      debugPrint("[SequencerManager] PlayAllInstruments: $playAllInstruments");
++      debugPrint("[SequencerManager] Playing sequence. Tracks: ${tracks.length}");
++      
++      // Debug all tracks
++      for (int i = 0; i < tracks.length; i++) {
++        final track = tracks[i];
++        debugPrint("[SequencerManager] Track $i: id=${track.id}, events=${track.events.length}, volume=${track.getVolume()}");
++        
++        // Debug first few events for each track
++        for (int j = 0; j < track.events.length && j < 3; j++) {
++          final event = track.events[j];
++          debugPrint("[SequencerManager]   Event $j: $event");
++        }
+       }
++      
++      debugPrint("[SequencerManager] About to call sequence.play()");
+       sequence.play();
++      debugPrint("[SequencerManager] sequence.play() completed");
++      
++      // Verify sequence is actually playing
++      await Future.delayed(const Duration(milliseconds: 100));
++      debugPrint("[SequencerManager] Sequence is playing: ${sequence.getIsPlaying()}");
++      debugPrint("[SequencerManager] Sequence current beat: ${sequence.getBeat()}");
++      debugPrint("[SequencerManager] Sequence tempo: ${sequence.getTempo()}");
++      
+       _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+     } else {
++      debugPrint("[SequencerManager] Stopping sequence");
+       sequence.stop();
+       _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+     }
+@@ -263,17 +307,38 @@ class SequencerManager {
+       debugPrint('[SequencerManager] handleStop called');
+       
+       await PerformanceUtils.trackAsyncOperation('handleStop', () async {
+-        // Stop all active notes efficiently - only iterate once
++        // Stop the sequence first to prevent new notes from being triggered
++        try {
++          sequence.stop();
++          isPlaying = false;
++          _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
++        } catch (e) {
++          debugPrint('[SequencerManager] Error stopping sequence: $e');
++        }
++        
++        // Give sequence a moment to fully stop before cleaning up notes
++        await Future.delayed(const Duration(milliseconds: 50));
++        
++        // Stop all active notes efficiently with better error handling
+         final activeNotes = _noteTracker.activeNotes.toList();
+         final tracks = sequence.getTracks();
+         
+-        for (final note in activeNotes) {
+-          for (final track in tracks) {
+-            try {
+-              track.stopNoteNow(noteNumber: note);
+-            } catch (e) {
+-              debugPrint('[SequencerManager] Error stopping note $note: $e');
++        for (final track in tracks) {
++          try {
++            // Clear events first to prevent timing issues
++            track.clearEvents();
++            
++            // Then stop any active notes on this track
++            for (final note in activeNotes) {
++              try {
++                track.stopNoteNow(noteNumber: note);
++              } catch (e) {
++                // Log but don't crash on individual note stop failures
++                debugPrint('[SequencerManager] Non-critical error stopping note $note on track ${track.id}: $e');
++              }
+             }
++          } catch (e) {
++            debugPrint('[SequencerManager] Error cleaning track ${track.id}: $e');
+           }
+         }
+         
+@@ -282,15 +347,10 @@ class SequencerManager {
+         
+         // Stop cleanup timer
+         _cleanupTimer?.cancel();
+-        
+-        // Stop the sequence
+-        sequence.stop();
+-        isPlaying = false;
+-        _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+       });
+     } catch (e, st) {
+       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
+-      rethrow;
++      // Don't rethrow to prevent crashes, just log the error
+     }
+   }
+ 
+@@ -520,48 +580,66 @@ class SequencerManager {
+   Future<void> dispose() async {
+     debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
+     try {
++      // Stop cleanup timer first to prevent any interference
++      _cleanupTimer?.cancel();
++      _cleanupTimer = null;
++      
+       if (sequence != null) {
+         debugPrint('[SequencerManager] Stopping sequence');
+-        await handleStop(sequence);
+         
+-        // Clean up tracks
+-        if (sequence.getTracks().isNotEmpty) {
+-          for (final track in sequence.getTracks()) {
+-            try {
+-              debugPrint('[SequencerManager] Cleaning up track id: ${track.id}');
+-              // Stop any remaining notes on this track
+-              for (final note in _noteTracker.activeNotes.toList()) {
+-                try {
+-                  track.stopNoteNow(noteNumber: note);
+-                } catch (e) {
+-                  debugPrint('[SequencerManager] Error stopping note $note on track ${track.id}: $e');
+-                }
+-              }
+-              // Clear track events if possible
++        // Use handleStop but with extra safety
++        try {
++          await handleStop(sequence!);
++        } catch (e) {
++          debugPrint('[SequencerManager] Error in handleStop during dispose: $e');
++          // Continue with manual cleanup
++        }
++        
++        // Additional safety cleanup - stop all notes across all MIDI channels
++        try {
++          final tracks = sequence!.getTracks();
++          if (tracks.isNotEmpty) {
++            for (final track in tracks) {
+               try {
++                debugPrint('[SequencerManager] Force-clearing track id: ${track.id}');
++                
++                // Clear events first
+                 track.clearEvents();
++                
++                // Stop all possible MIDI notes (0-127) as a safety measure
++                for (int note = 0; note < 128; note++) {
++                  try {
++                    track.stopNoteNow(noteNumber: note);
++                  } catch (e) {
++                    // Individual note stop failures are not critical during dispose
++                  }
++                }
+               } catch (e) {
+-                debugPrint('[SequencerManager] Error clearing events for track ${track.id}: $e');
++                debugPrint('[SequencerManager] Non-critical error force-clearing track ${track.id}: $e');
+               }
+-            } catch (e) {
+-              debugPrint('[SequencerManager] Error disposing track ${track.id}: $e');
+             }
+           }
++        } catch (e) {
++          debugPrint('[SequencerManager] Error during force cleanup: $e');
+         }
+         
+         debugPrint('[SequencerManager] Sequence cleanup complete');
+       }
+       
+-      // Clear all state
+-      trackStepSequencerStates.clear();
+-      trackVolumes.clear();
+-      _noteTracker.clear();
+-      _lastChords.clear();
+-      _cleanupTimer?.cancel();
++      // Clear all state regardless of previous errors
++      try {
++        trackStepSequencerStates.clear();
++        trackVolumes.clear();
++        _noteTracker.clear();
++        _lastChords.clear();
++      } catch (e) {
++        debugPrint('[SequencerManager] Error clearing state: $e');
++      }
+       
+       debugPrint('[SequencerManager] State cleared');
+     } catch (e, st) {
+       debugPrint('[SequencerManager] Error during dispose: $e\n$st');
++      // Don't rethrow to prevent app crashes during cleanup
+     } finally {
+       debugPrint('[SequencerManager] Disposal complete');
+     }
+diff --git a/lib/UI/player_page/player/chord_player_bar.dart b/lib/UI/player_page/player/chord_player_bar.dart
+index 689b0bb..7c72bc2 100644
+--- a/lib/UI/player_page/player/chord_player_bar.dart
++++ b/lib/UI/player_page/player/chord_player_bar.dart
+@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:flutter_sequencer/track.dart';
+ import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
++import 'package:scalemasterguitar/UI/progression_library/widgets/save_progression_dialog.dart';
+ 
+ import '../chords_list.dart';
+ import '../metronome/metronome_display.dart';
+@@ -138,6 +139,23 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
+               ),
+             ),
+           ),
++          // Save button - positioned near metronome
++          Positioned(
++            top: 0,
++            right: 50,
++            child: Padding(
++              padding: const EdgeInsets.all(8.0),
++              child: GestureDetector(
++                onTap: () => _showSaveDialog(context, selectedChords),
++                child: const Icon(
++                  Icons.save,
++                  color: Colors.white70,
++                  size: 24,
++                ),
++              ),
++            ),
++          ),
++          
+           Positioned(
+             top: 0,
+             right: 0,
+@@ -147,4 +165,24 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
+       ),
+     );
+   }
++
++  void _showSaveDialog(BuildContext context, List<dynamic> selectedChords) {
++    if (selectedChords.isEmpty) {
++      ScaffoldMessenger.of(context).showSnackBar(
++        const SnackBar(
++          content: Text('No chords to save. Add some chords first!'),
++          backgroundColor: Colors.orange,
++        ),
++      );
++      return;
++    }
++
++    showDialog(
++      context: context,
++      builder: (context) => SaveProgressionDialog(
++        initialChords: selectedChords.cast(),
++      ),
++    );
++  }
++
+ }
+diff --git a/lib/UI/player_page/player/player_widget.dart b/lib/UI/player_page/player/player_widget.dart
+index 6de0ed0..4f22da2 100644
+--- a/lib/UI/player_page/player/player_widget.dart
++++ b/lib/UI/player_page/player/player_widget.dart
+@@ -87,12 +87,18 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+     tempo = ref.read(metronomeTempoProvider);
+     sequence = Sequence(tempo: tempo, endBeat: calculatedStepCount.toDouble());
+ 
++    final instruments = SoundPlayerUtils.getInstruments(widget.settings);
++    debugPrint('[PlayerWidget] Available instruments: ${instruments.length}');
++    for (int i = 0; i < instruments.length; i++) {
++      debugPrint('[PlayerWidget] Instrument $i: ${instruments[i].toString()}');
++    }
++    
+     debugPrint('[PlayerWidget] _initializeAndSetupTicker: calling sequencerManager.initialize');
+     tracks = await sequencerManager.initialize(
+       tracks: tracks, 
+       sequence: sequence!, 
+       playAllInstruments: true, 
+-      instruments: SoundPlayerUtils.getInstruments(widget.settings),
++      instruments: instruments,
+       isPlaying: ref.read(isSequencerPlayingProvider), 
+       stepCount: calculatedStepCount, 
+       trackVolumes: trackVolumes,
+@@ -104,6 +110,12 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+       tempo: tempo, 
+     );
+     debugPrint('[PlayerWidget] _initializeAndSetupTicker: sequencerManager.initialize complete, tracks.length = ${tracks.length}');
++    
++    // Debug track information
++    for (int i = 0; i < tracks.length; i++) {
++      final track = tracks[i];
++      debugPrint('[PlayerWidget] Track $i: id=${track.id}, events=${track.events.length}');
++    }
+ 
+     // Dispose old ticker if exists before creating a new one
+     if (ticker != null && ticker!.isActive) {
+@@ -149,10 +161,20 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+   // Replace initializeSequencer and getSequencer with a single method that does full init
+   Future<void> _performFullSequencerReinitialization({required List<ChordModel> newChords}) async {
+     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: start with ${newChords.length} chords');
++    
++    // Debug chord content
++    for (int i = 0; i < newChords.length; i++) {
++      final chord = newChords[i];
++      debugPrint('[PlayerWidget] Chord $i: ${chord.completeChordName}');
++      debugPrint('[PlayerWidget] Chord $i notes: ${chord.chordNotesInversionWithIndexes}');
++      debugPrint('[PlayerWidget] Chord $i position: ${chord.position}, duration: ${chord.duration}');
++    }
++    
+     if (!mounted) return;
+     
+     // Only show loading state if we're not just adding chords (i.e., initial load)
+     final bool isInitializing = sequence == null || tracks.isEmpty;
++    debugPrint('[PlayerWidget] isInitializing: $isInitializing, sequence: ${sequence != null}, tracks.length: ${tracks.length}');
+     
+     if (isInitializing) {
+       setState(() {
+@@ -161,6 +183,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+     }
+ 
+     if (sequence != null) {
++      debugPrint('[PlayerWidget] Stopping existing sequence');
+       sequencerManager.handleStop(sequence!); 
+     }
+     if (ticker != null && ticker!.isActive) {
+@@ -169,7 +192,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+       ticker = null;
+     }
+ 
++    debugPrint('[PlayerWidget] About to call _initializeAndSetupTicker');
+     await _initializeAndSetupTicker(chordsToProcess: newChords); // Pass newChords
++    debugPrint('[PlayerWidget] _initializeAndSetupTicker completed');
+ 
+     if (!mounted) return;
+     if (isInitializing) {
+@@ -185,53 +210,43 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
+     try {
+       // Dispose debouncer first
+-      _chordChangeDebouncer.dispose();
++      try {
++        _chordChangeDebouncer.dispose();
++      } catch (e) {
++        debugPrint('[PlayerWidget] Error disposing debouncer: $e');
++      }
++      
+       // Stop the ticker first
+       if (ticker != null) {
+-        if (ticker!.isActive) {
+-          ticker!.stop();
++        try {
++          if (ticker!.isActive) {
++            ticker!.stop();
++          }
++          ticker!.dispose();
++          ticker = null;
++        } catch (e) {
++          debugPrint('[PlayerWidget] Error disposing ticker: $e');
+         }
+-        ticker!.dispose();
+-        ticker = null;
+       }
+       
+-      // Stop any playing audio and clean up the sequencer
++      // Don't dispose sequencer manager immediately as it might be reused
++      // The sequencer should only be cleaned up when truly leaving the player context
+       if (sequence != null) {
+         try {
+-          // Stop the sequence if it's playing
+-          if (sequence!.getIsPlaying()) {
+-            sequence!.stop();
+-          }
+-          
+-          // Stop all active notes on all tracks
+-          for (final track in sequence!.getTracks()) {
+-            try {
+-              // Clear any pending events
+-              track.clearEvents();
+-              
+-              // Stop any playing notes
+-              for (int note = 0; note < 128; note++) {
+-                try {
+-                  track.stopNoteNow(noteNumber: note);
+-                } catch (e) {
+-                  debugPrint('[PlayerWidget] Error stopping note $note: $e');
+-                }
+-              }
+-            } catch (e) {
+-              debugPrint('[PlayerWidget] Error cleaning up track: $e');
+-            }
+-          }
+-          
+-          // Sequence cleanup complete
+-        } catch (e, st) {
+-          debugPrint('[PlayerWidget] Error stopping sequence: $e\n$st');
++          sequencerManager.handleStop(sequence!);
++        } catch (e) {
++          debugPrint('[PlayerWidget] Error stopping sequence: $e');
+         }
+       }
+       
+-      // Clear track references
+-      tracks.clear();
+-      trackStepSequencerStates.clear();
+-      trackVolumes.clear();
++      // Clear track references safely
++      try {
++        tracks.clear();
++        trackStepSequencerStates.clear();
++        trackVolumes.clear();
++      } catch (e) {
++        debugPrint('[PlayerWidget] Error clearing collections: $e');
++      }
+       
+       debugPrint('[PlayerWidget] Cleanup complete');
+     } catch (e, st) {
+@@ -244,34 +259,37 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+ 
+   @override
+   Widget build(BuildContext context) {
+-    debugPrint('[PlayerWidget] build called. isLoading: $isLoading');
++    // debugPrint('[PlayerWidget] build called. isLoading: $isLoading');
+     // Watch essential providers that trigger UI changes or logic
+     final isPlayingState = ref.watch(isSequencerPlayingProvider);
+     final metronomeTempoState = ref.watch(metronomeTempoProvider);
+     // currentBeat is watched by specific UI parts if needed, or use this.position
+ 
+-    // Listener for selectedChords changes with debouncing
+-    ref.listen<List<ChordModel>>(selectedChordsProvider, (previousChords, nextChords) {
+-      debugPrint('[PlayerWidget] selectedChordsProvider listener: prev=${previousChords?.length}, next=${nextChords.length}');
++    // Optimized: Split complex listener into simpler, more specific listeners
++    
++    // Listen for chord count changes
++    ref.listen<int>(selectedChordsProvider.select((chords) => chords.length), (prevCount, nextCount) {
++      debugPrint('[PlayerWidget] Chord count changed: $prevCount -> $nextCount');
+       
+-      // Skip reinitialization if we're just adding a chord (nextChords is one longer than previous)
+-      final isJustAddingChord = previousChords != null && 
+-                              nextChords.length == previousChords.length + 1 &&
+-                              nextChords.sublist(0, previousChords.length).every(
+-                                (chord) => previousChords.contains(chord)
+-                              );
++      final nextChords = ref.read(selectedChordsProvider);
+       
+-      if (isJustAddingChord) {
+-        debugPrint('[PlayerWidget] Just adding a chord, skipping full reinitialization');
+-        // Just update the sequence with the new chord without showing loading state
++      // Handle loading progression (0 -> many chords)
++      if (prevCount == 0 && nextCount > 0) {
++        debugPrint('[PlayerWidget] Loading progression with $nextCount chords');
++        if (!isLoading) {
++          _performFullSequencerReinitialization(newChords: nextChords);
++        }
++      }
++      // Handle adding single chord (increment by 1)
++      else if (prevCount != null && nextCount == prevCount + 1 && !isLoading) {
++        debugPrint('[PlayerWidget] Adding single chord');
+         _updateSequenceWithNewChord(nextChords);
+-      } else if (!isLoading) {
+-        // Use debouncing for performance optimization
++      }
++      // Handle other changes (clearing, removing chords, etc.)
++      else if (!isLoading && nextCount != prevCount) {
+         _chordChangeDebouncer.run(() {
+           _performFullSequencerReinitialization(newChords: nextChords);
+         });
+-      } else {
+-        debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
+       }
+     });
+ 
+@@ -296,7 +314,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+         }
+     });
+ 
+-    debugPrint('[PlayerWidget] returning ChordPlayerBar. isPlayingState: $isPlayingState, isLoading: $isLoading');
++    // debugPrint('[PlayerWidget] returning ChordPlayerBar. isPlayingState: $isPlayingState, isLoading: $isLoading');
+     return ChordPlayerBar(
+       selectedTrack: tracks.isEmpty ? null : tracks[0], // This needs careful review if tracks can be empty
+       isLoading: isLoading,
+@@ -317,10 +335,17 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
+       },
+       handleTogglePlayStop: () {
+         debugPrint('[PlayerWidget] handleTogglePlayStop UI action');
++        debugPrint('[PlayerWidget] sequence != null: ${sequence != null}');
++        debugPrint('[PlayerWidget] !isLoading: ${!isLoading}');
++        debugPrint('[PlayerWidget] tracks.length: ${tracks.length}');
++        
+         if (sequence != null && !isLoading) {
+-            debouncing_utils.Debouncer.handleButtonPress(() {
+-                sequencerManager.handleTogglePlayStop(sequence!); 
++            debugPrint('[PlayerWidget] Calling sequencerManager.handleTogglePlayStop');
++            debouncing_utils.Debouncer.handleButtonPress(() async {
++                await sequencerManager.handleTogglePlayStop(sequence!); 
+             });
++        } else {
++            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading');
+         }
+       },
+     );
+diff --git a/lib/UI/player_page/player_page.dart b/lib/UI/player_page/player_page.dart
+index 7e0349a..0b88b2c 100644
+--- a/lib/UI/player_page/player_page.dart
++++ b/lib/UI/player_page/player_page.dart
+@@ -9,21 +9,29 @@ import 'package:scalemasterguitar/UI/player_page/provider/player_page_title.dart
+ import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';  
+ 
+ import '../../models/chord_scale_model.dart';
++import '../../models/progression_model.dart';
++import '../progression_library/progression_library_page.dart';
+ import '../chords/chords.dart';
+ import '../fretboard/UI/fretboard_neck.dart';
+ import '../fretboard_page/fretboard_page.dart';
+ import '../fretboard_page/provider/fretboard_page_fingerings_provider.dart';
+ 
+ class PlayerPage extends ConsumerWidget {
+-  const PlayerPage({super.key});
++  final ProgressionModel? initialProgression;
++  
++  const PlayerPage({super.key, this.initialProgression});
+ 
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+-    return _PlayerPageContent();
++    return _PlayerPageContent(initialProgression: initialProgression);
+   }
+ }
+ 
+ class _PlayerPageContent extends ConsumerStatefulWidget {
++  final ProgressionModel? initialProgression;
++  
++  const _PlayerPageContent({super.key, this.initialProgression});
++  
+   @override
+   _PlayerPageContentState createState() => _PlayerPageContentState();
+ }
+@@ -31,6 +39,39 @@ class _PlayerPageContent extends ConsumerStatefulWidget {
+ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+   bool _isDisposed = false;
+   
++  @override
++  void initState() {
++    super.initState();
++    // Load initial progression if provided
++    if (widget.initialProgression != null) {
++      WidgetsBinding.instance.addPostFrameCallback((_) {
++        _loadProgression(widget.initialProgression!);
++      });
++    }
++  }
++  
++  void _loadProgression(ProgressionModel progression) {
++    debugPrint('[PlayerPage] Loading progression: ${progression.name} with ${progression.chords.length} chords');
++    
++    // Clear existing chords first
++    ref.read(selectedChordsProvider.notifier).removeAll();
++    
++    // Add a small delay to ensure the clear operation completes
++    Future.delayed(const Duration(milliseconds: 100), () {
++      // Add each chord from the progression
++      for (final chord in progression.chords) {
++        debugPrint('[PlayerPage] Adding loaded chord: ${chord.completeChordName}');
++        debugPrint('[PlayerPage] Chord notes before adding: ${chord.chordNotesInversionWithIndexes}');
++        ref.read(selectedChordsProvider.notifier).addChord(chord);
++      }
++      
++      // Force a rebuild to ensure the PlayerWidget initializes with the new chords
++      if (mounted) {
++        setState(() {});
++      }
++    });
++  }
++  
+   // Helper method to clean up resources
+   Future<void> _cleanupResources() async {
+     debugPrint('[PlayerPage] Cleaning up resources...');
+@@ -39,14 +80,14 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+     try {
+       // Stop the sequencer if it's playing
+       final isPlaying = ref.read(isSequencerPlayingProvider);
+-      if (isPlaying) {
++      if (isPlaying && sequencerManager.sequence != null) {
+         debugPrint('[PlayerPage] Stopping sequencer during cleanup');
+-        await sequencerManager.handleStop(sequencerManager.sequence);
++        await sequencerManager.handleStop(sequencerManager.sequence!);
+         ref.read(isSequencerPlayingProvider.notifier).state = false;
+       }
+       
+-      // Clear any selected chords
+-      ref.read(selectedChordsProvider.notifier).removeAll();
++      // NOTE: Don't clear chords during navigation cleanup!
++      // The chords should persist unless user explicitly clears them
+       
+       debugPrint('[PlayerPage] Cleanup completed');
+     } catch (e, st) {
+@@ -72,12 +113,13 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+     debugPrint('[PlayerPage] sequencerManager.sequence: \\${sequencerManager.sequence}');
+     // debugPrint('[PlayerPage] fingerings state: \\${fingerings}');
+ 
+-    // WillPopScope ensures cleanup before navigation
+-    return WillPopScope(
+-      onWillPop: () async {
+-        debugPrint('[PlayerPage] WillPopScope triggered');
+-        await _cleanupResources();
+-        return true;
++    // PopScope for back button handling
++    return PopScope(
++      onPopInvokedWithResult: (didPop, result) {
++        if (didPop) {
++          debugPrint('[PlayerPage] PopScope triggered - navigation handled');
++          // Don't clear user data on navigation
++        }
+       },
+       child: Scaffold(
+         backgroundColor: Colors.grey[900],
+@@ -86,21 +128,30 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+           title: const PlayerPageTitle(),
+           leading: IconButton(
+             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+-            onPressed: () async {
++            onPressed: () {
+               debugPrint('[PlayerPage] Back button pressed');
+-              await _cleanupResources();
+-              if (context.mounted) {
+-                Navigator.of(context).pop();
+-                debugPrint('[PlayerPage] Navigated back');
+-              }
++              // Just navigate - don't clear user data
++              Navigator.of(context).pop();
++              debugPrint('[PlayerPage] Navigated back');
+             },
+           ),
+           actions: [
+             IconButton(
+-              onPressed: () async {
++              onPressed: () {
++                Navigator.push(
++                  context,
++                  MaterialPageRoute(
++                    builder: (context) => const ProgressionLibraryPage(),
++                  ),
++                );
++              },
++              icon: const Icon(Icons.library_music, color: Colors.white),
++            ),
++            IconButton(
++              onPressed: () {
+                 debugPrint('[PlayerPage] Forward button pressed');
+                 
+-                // Update fingerings if available
++                // Update fingerings if available - do this immediately
+                 final fingeringsValue = fingerings.value;
+                 if (fingeringsValue != null && fingeringsValue.scaleModel != null) {
+                   if (fingeringsValue.scaleModel!.scaleNotesNames.take(5).any((s) => s.contains('♭'))) {
+@@ -110,15 +161,10 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
+                   ref.read(fretboardPageFingeringsProvider.notifier).update(fingeringsValue);
+                 }
+ 
+-                // Clean up resources before navigation
+-                await _cleanupResources();
+-                
+-                // Navigate to FretboardPage
+-                if (context.mounted) {
+-                  await Navigator.of(context).push(MaterialPageRoute(
+-                      builder: (context) => const FretboardPage()));
+-                  debugPrint('[PlayerPage] Navigated forward to FretboardPage');
+-                }
++                // Navigate without clearing user data
++                Navigator.of(context).push(MaterialPageRoute(
++                    builder: (context) => const FretboardPage()));
++                debugPrint('[PlayerPage] Navigated forward to FretboardPage');
+               },
+               icon: const Icon(Icons.arrow_forward_ios,
+                   color: Colors.orangeAccent),
+diff --git a/lib/UI/progression_library/progression_library_page.dart b/lib/UI/progression_library/progression_library_page.dart
+new file mode 100644
+index 0000000..a6b9b6a
+--- /dev/null
++++ b/lib/UI/progression_library/progression_library_page.dart
+@@ -0,0 +1,359 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:scalemasterguitar/UI/progression_library/widgets/progression_list_item.dart';
++import 'package:scalemasterguitar/UI/progression_library/widgets/save_progression_dialog.dart';
++import 'package:scalemasterguitar/UI/progression_library/widgets/progression_search_bar.dart';
++import 'package:scalemasterguitar/providers/progression_library_provider.dart';
++import 'package:scalemasterguitar/models/progression_model.dart';
++import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
++import '../player_page/player_page.dart';
++
++class ProgressionLibraryPage extends ConsumerStatefulWidget {
++  const ProgressionLibraryPage({super.key});
++
++  @override
++  ConsumerState<ProgressionLibraryPage> createState() => _ProgressionLibraryPageState();
++}
++
++class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage> {
++  String _searchQuery = '';
++  ProgressionSortType _sortType = ProgressionSortType.lastModifiedDesc;
++
++  @override
++  void initState() {
++    super.initState();
++    // Load progressions when page opens
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      ref.read(progressionLibraryProvider.notifier).loadProgressions();
++    });
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final libraryState = ref.watch(progressionLibraryProvider);
++    final progressionNotifier = ref.read(progressionLibraryProvider.notifier);
++
++    // Filter and sort progressions
++    final filteredProgressions = _searchQuery.isEmpty
++        ? progressionNotifier.getSortedProgressions(_sortType)
++        : progressionNotifier.searchProgressions(_searchQuery);
++
++    return ScreenWithBannerAd(
++      backgroundColor: Colors.grey[900],
++      appBar: AppBar(
++        backgroundColor: Colors.grey[800],
++        title: const Text(
++          "Progression Library",
++          style: TextStyle(color: Colors.orange),
++        ),
++        iconTheme: const IconThemeData(color: Colors.white),
++        actions: [
++          // Sort button
++          PopupMenuButton<ProgressionSortType>(
++            icon: const Icon(Icons.sort, color: Colors.orange),
++            onSelected: (sortType) {
++              setState(() {
++                _sortType = sortType;
++              });
++            },
++            itemBuilder: (context) => [
++              const PopupMenuItem(
++                value: ProgressionSortType.nameAsc,
++                child: Text('Name (A-Z)'),
++              ),
++              const PopupMenuItem(
++                value: ProgressionSortType.nameDesc,
++                child: Text('Name (Z-A)'),
++              ),
++              const PopupMenuItem(
++                value: ProgressionSortType.lastModifiedDesc,
++                child: Text('Recently Modified'),
++              ),
++              const PopupMenuItem(
++                value: ProgressionSortType.dateCreatedDesc,
++                child: Text('Recently Created'),
++              ),
++              const PopupMenuItem(
++                value: ProgressionSortType.durationAsc,
++                child: Text('Duration (Short)'),
++              ),
++              const PopupMenuItem(
++                value: ProgressionSortType.durationDesc,
++                child: Text('Duration (Long)'),
++              ),
++            ],
++          ),
++          // More options menu
++          PopupMenuButton<String>(
++            icon: const Icon(Icons.more_vert, color: Colors.white),
++            onSelected: (value) {
++              switch (value) {
++                case 'clear_all':
++                  _showClearAllDialog();
++                  break;
++                case 'export':
++                  _exportProgressions();
++                  break;
++                case 'import':
++                  _showImportDialog();
++                  break;
++              }
++            },
++            itemBuilder: (context) => [
++              const PopupMenuItem(
++                value: 'export',
++                child: Text('Export All'),
++              ),
++              const PopupMenuItem(
++                value: 'import',
++                child: Text('Import'),
++              ),
++              const PopupMenuItem(
++                value: 'clear_all',
++                child: Text('Clear All'),
++              ),
++            ],
++          ),
++        ],
++      ),
++      child: Column(
++        children: [
++          // Search bar
++          ProgressionSearchBar(
++            onSearchChanged: (query) {
++              setState(() {
++                _searchQuery = query;
++              });
++            },
++          ),
++          
++          // Error/Success messages
++          if (libraryState.error != null)
++            Container(
++              width: double.infinity,
++              margin: const EdgeInsets.all(16),
++              padding: const EdgeInsets.all(12),
++              decoration: BoxDecoration(
++                color: Colors.red.withValues(alpha: 0.1),
++                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
++                borderRadius: BorderRadius.circular(8),
++              ),
++              child: Row(
++                children: [
++                  const Icon(Icons.error, color: Colors.red),
++                  const SizedBox(width: 8),
++                  Expanded(child: Text(libraryState.error!, style: const TextStyle(color: Colors.red))),
++                  IconButton(
++                    icon: const Icon(Icons.close, color: Colors.red),
++                    onPressed: () => progressionNotifier.clearMessages(),
++                  ),
++                ],
++              ),
++            ),
++          
++          if (libraryState.successMessage != null)
++            Container(
++              width: double.infinity,
++              margin: const EdgeInsets.all(16),
++              padding: const EdgeInsets.all(12),
++              decoration: BoxDecoration(
++                color: Colors.green.withValues(alpha: 0.1),
++                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
++                borderRadius: BorderRadius.circular(8),
++              ),
++              child: Row(
++                children: [
++                  const Icon(Icons.check_circle, color: Colors.green),
++                  const SizedBox(width: 8),
++                  Expanded(child: Text(libraryState.successMessage!, style: const TextStyle(color: Colors.green))),
++                  IconButton(
++                    icon: const Icon(Icons.close, color: Colors.green),
++                    onPressed: () => progressionNotifier.clearMessages(),
++                  ),
++                ],
++              ),
++            ),
++
++          // Content area
++          Expanded(
++            child: libraryState.isLoading
++                ? const Center(child: CircularProgressIndicator(color: Colors.orange))
++                : filteredProgressions.isEmpty
++                    ? _buildEmptyState()
++                    : _buildProgressionList(filteredProgressions),
++          ),
++        ],
++      ),
++    );
++  }
++
++  Widget _buildEmptyState() {
++    return Center(
++      child: Column(
++        mainAxisAlignment: MainAxisAlignment.center,
++        children: [
++          Icon(
++            _searchQuery.isEmpty ? Icons.library_music : Icons.search_off,
++            size: 64,
++            color: Colors.grey[600],
++          ),
++          const SizedBox(height: 16),
++          Text(
++            _searchQuery.isEmpty
++                ? 'No saved progressions yet'
++                : 'No progressions found for "$_searchQuery"',
++            style: TextStyle(
++              fontSize: 18,
++              color: Colors.grey[400],
++            ),
++          ),
++          const SizedBox(height: 8),
++          if (_searchQuery.isEmpty)
++            Text(
++              'Create chord progressions in the player and save them here',
++              style: TextStyle(
++                fontSize: 14,
++                color: Colors.grey[500],
++              ),
++              textAlign: TextAlign.center,
++            ),
++          const SizedBox(height: 24),
++          if (_searchQuery.isEmpty)
++            ElevatedButton.icon(
++              onPressed: () {
++                Navigator.push(
++                  context,
++                  MaterialPageRoute(builder: (context) => PlayerPage()),
++                );
++              },
++              icon: const Icon(Icons.add),
++              label: const Text('Create Progression'),
++              style: ElevatedButton.styleFrom(
++                backgroundColor: Colors.orange,
++                foregroundColor: Colors.white,
++              ),
++            ),
++        ],
++      ),
++    );
++  }
++
++  Widget _buildProgressionList(List<ProgressionModel> progressions) {
++    return ListView.builder(
++      padding: const EdgeInsets.all(16),
++      itemCount: progressions.length,
++      itemBuilder: (context, index) {
++        final progression = progressions[index];
++        return ProgressionListItem(
++          progression: progression,
++          onTap: () => _loadProgression(progression),
++          onEdit: () => _editProgression(progression),
++          onDelete: () => _deleteProgression(progression),
++          onDuplicate: () => _duplicateProgression(progression),
++        );
++      },
++    );
++  }
++
++  void _loadProgression(ProgressionModel progression) {
++    // Navigate to player page and load the progression
++    Navigator.push(
++      context,
++      MaterialPageRoute(
++        builder: (context) => PlayerPage(initialProgression: progression),
++      ),
++    );
++  }
++
++  void _editProgression(ProgressionModel progression) {
++    showDialog(
++      context: context,
++      builder: (context) => SaveProgressionDialog(
++        existingProgression: progression,
++      ),
++    );
++  }
++
++  void _deleteProgression(ProgressionModel progression) {
++    showDialog(
++      context: context,
++      builder: (context) => AlertDialog(
++        backgroundColor: Colors.grey[900],
++        title: const Text('Delete Progression', style: TextStyle(color: Colors.white)),
++        content: Text(
++          'Are you sure you want to delete "${progression.name}"? This action cannot be undone.',
++          style: const TextStyle(color: Colors.white70),
++        ),
++        actions: [
++          TextButton(
++            onPressed: () => Navigator.pop(context),
++            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
++          ),
++          ElevatedButton(
++            onPressed: () async {
++              Navigator.pop(context);
++              await ref.read(progressionLibraryProvider.notifier).deleteProgression(progression.id);
++            },
++            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
++            child: const Text('Delete', style: TextStyle(color: Colors.white)),
++          ),
++        ],
++      ),
++    );
++  }
++
++  void _duplicateProgression(ProgressionModel progression) {
++    showDialog(
++      context: context,
++      builder: (context) => SaveProgressionDialog(
++        initialChords: progression.chords,
++        initialName: '${progression.name} (Copy)',
++        initialDescription: progression.description,
++        initialTags: progression.tags,
++      ),
++    );
++  }
++
++  void _showClearAllDialog() {
++    showDialog(
++      context: context,
++      builder: (context) => AlertDialog(
++        backgroundColor: Colors.grey[900],
++        title: const Text('Clear All Progressions', style: TextStyle(color: Colors.white)),
++        content: const Text(
++          'Are you sure you want to delete all saved progressions? This action cannot be undone.',
++          style: TextStyle(color: Colors.white70),
++        ),
++        actions: [
++          TextButton(
++            onPressed: () => Navigator.pop(context),
++            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
++          ),
++          ElevatedButton(
++            onPressed: () async {
++              Navigator.pop(context);
++              // Clear all progressions by reloading after clearing storage
++              await ref.read(progressionLibraryProvider.notifier).loadProgressions();
++            },
++            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
++            child: const Text('Clear All', style: TextStyle(color: Colors.white)),
++          ),
++        ],
++      ),
++    );
++  }
++
++  void _exportProgressions() {
++    // TODO: Implement export functionality
++    ScaffoldMessenger.of(context).showSnackBar(
++      const SnackBar(content: Text('Export functionality coming soon')),
++    );
++  }
++
++  void _showImportDialog() {
++    // TODO: Implement import functionality
++    ScaffoldMessenger.of(context).showSnackBar(
++      const SnackBar(content: Text('Import functionality coming soon')),
++    );
++  }
++}
+\ No newline at end of file
+diff --git a/lib/UI/progression_library/widgets/progression_list_item.dart b/lib/UI/progression_library/widgets/progression_list_item.dart
+new file mode 100644
+index 0000000..d606f62
+--- /dev/null
++++ b/lib/UI/progression_library/widgets/progression_list_item.dart
+@@ -0,0 +1,257 @@
++import 'package:flutter/material.dart';
++import 'package:scalemasterguitar/models/progression_model.dart';
++
++class ProgressionListItem extends StatelessWidget {
++  final ProgressionModel progression;
++  final VoidCallback onTap;
++  final VoidCallback onEdit;
++  final VoidCallback onDelete;
++  final VoidCallback onDuplicate;
++
++  const ProgressionListItem({
++    super.key,
++    required this.progression,
++    required this.onTap,
++    required this.onEdit,
++    required this.onDelete,
++    required this.onDuplicate,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Card(
++      color: Colors.grey[800],
++      margin: const EdgeInsets.only(bottom: 12),
++      child: InkWell(
++        onTap: onTap,
++        borderRadius: BorderRadius.circular(8),
++        child: Padding(
++          padding: const EdgeInsets.all(16),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              // Header row with title and menu
++              Row(
++                children: [
++                  Expanded(
++                    child: Text(
++                      progression.name,
++                      style: const TextStyle(
++                        color: Colors.white,
++                        fontSize: 18,
++                        fontWeight: FontWeight.bold,
++                      ),
++                    ),
++                  ),
++                  PopupMenuButton<String>(
++                    icon: const Icon(Icons.more_vert, color: Colors.grey),
++                    onSelected: (value) {
++                      switch (value) {
++                        case 'edit':
++                          onEdit();
++                          break;
++                        case 'duplicate':
++                          onDuplicate();
++                          break;
++                        case 'delete':
++                          onDelete();
++                          break;
++                      }
++                    },
++                    itemBuilder: (context) => [
++                      const PopupMenuItem(
++                        value: 'edit',
++                        child: Row(
++                          children: [
++                            Icon(Icons.edit, color: Colors.blue),
++                            SizedBox(width: 8),
++                            Text('Edit'),
++                          ],
++                        ),
++                      ),
++                      const PopupMenuItem(
++                        value: 'duplicate',
++                        child: Row(
++                          children: [
++                            Icon(Icons.copy, color: Colors.orange),
++                            SizedBox(width: 8),
++                            Text('Duplicate'),
++                          ],
++                        ),
++                      ),
++                      const PopupMenuItem(
++                        value: 'delete',
++                        child: Row(
++                          children: [
++                            Icon(Icons.delete, color: Colors.red),
++                            SizedBox(width: 8),
++                            Text('Delete'),
++                          ],
++                        ),
++                      ),
++                    ],
++                  ),
++                ],
++              ),
++              
++              const SizedBox(height: 8),
++              
++              // Chord preview
++              Container(
++                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
++                decoration: BoxDecoration(
++                  color: Colors.black.withValues(alpha: 0.3),
++                  borderRadius: BorderRadius.circular(6),
++                ),
++                child: Row(
++                  children: [
++                    const Icon(Icons.music_note, color: Colors.orange, size: 16),
++                    const SizedBox(width: 8),
++                    Expanded(
++                      child: Text(
++                        progression.chordsPreview,
++                        style: const TextStyle(
++                          color: Colors.white70,
++                          fontSize: 14,
++                        ),
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              
++              const SizedBox(height: 12),
++              
++              // Info row
++              Row(
++                children: [
++                  // Duration
++                  _buildInfoChip(
++                    icon: Icons.timer,
++                    label: progression.formattedDuration,
++                    color: Colors.blue,
++                  ),
++                  const SizedBox(width: 8),
++                  
++                  // Chord count
++                  _buildInfoChip(
++                    icon: Icons.queue_music,
++                    label: '${progression.chords.length} chords',
++                    color: Colors.green,
++                  ),
++                  
++                  const Spacer(),
++                  
++                  // Last modified date
++                  Text(
++                    _formatDate(progression.lastModified),
++                    style: TextStyle(
++                      color: Colors.grey[400],
++                      fontSize: 12,
++                    ),
++                  ),
++                ],
++              ),
++              
++              // Description (if present)
++              if (progression.description != null && progression.description!.isNotEmpty) ...[
++                const SizedBox(height: 8),
++                Text(
++                  progression.description!,
++                  style: TextStyle(
++                    color: Colors.grey[300],
++                    fontSize: 14,
++                  ),
++                  maxLines: 2,
++                  overflow: TextOverflow.ellipsis,
++                ),
++              ],
++              
++              // Tags (if present)
++              if (progression.tags != null && progression.tags!.isNotEmpty) ...[
++                const SizedBox(height: 8),
++                Wrap(
++                  spacing: 4,
++                  children: progression.tags!
++                      .split(',')
++                      .map((tag) => tag.trim())
++                      .where((tag) => tag.isNotEmpty)
++                      .map((tag) => _buildTag(tag))
++                      .toList(),
++                ),
++              ],
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++
++  Widget _buildInfoChip({
++    required IconData icon,
++    required String label,
++    required Color color,
++  }) {
++    return Container(
++      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
++      decoration: BoxDecoration(
++        color: color.withValues(alpha: 0.2),
++        borderRadius: BorderRadius.circular(12),
++      ),
++      child: Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          Icon(icon, color: color, size: 14),
++          const SizedBox(width: 4),
++          Text(
++            label,
++            style: TextStyle(
++              color: color,
++              fontSize: 12,
++              fontWeight: FontWeight.w500,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++
++  Widget _buildTag(String tag) {
++    return Container(
++      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
++      decoration: BoxDecoration(
++        color: Colors.purple.withValues(alpha: 0.2),
++        borderRadius: BorderRadius.circular(8),
++      ),
++      child: Text(
++        tag,
++        style: const TextStyle(
++          color: Colors.purple,
++          fontSize: 11,
++          fontWeight: FontWeight.w500,
++        ),
++      ),
++    );
++  }
++
++  String _formatDate(DateTime date) {
++    final now = DateTime.now();
++    final difference = now.difference(date);
++    
++    if (difference.inDays == 0) {
++      if (difference.inHours == 0) {
++        if (difference.inMinutes == 0) {
++          return 'Just now';
++        }
++        return '${difference.inMinutes}m ago';
++      }
++      return '${difference.inHours}h ago';
++    } else if (difference.inDays == 1) {
++      return 'Yesterday';
++    } else if (difference.inDays < 7) {
++      return '${difference.inDays}d ago';
++    } else {
++      return '${date.month}/${date.day}/${date.year}';
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/lib/UI/progression_library/widgets/progression_search_bar.dart b/lib/UI/progression_library/widgets/progression_search_bar.dart
+new file mode 100644
+index 0000000..7ab8df1
+--- /dev/null
++++ b/lib/UI/progression_library/widgets/progression_search_bar.dart
+@@ -0,0 +1,78 @@
++import 'package:flutter/material.dart';
++
++class ProgressionSearchBar extends StatefulWidget {
++  final Function(String) onSearchChanged;
++  final String? hintText;
++
++  const ProgressionSearchBar({
++    super.key,
++    required this.onSearchChanged,
++    this.hintText,
++  });
++
++  @override
++  State<ProgressionSearchBar> createState() => _ProgressionSearchBarState();
++}
++
++class _ProgressionSearchBarState extends State<ProgressionSearchBar> {
++  final TextEditingController _searchController = TextEditingController();
++  bool _isSearching = false;
++
++  @override
++  void dispose() {
++    _searchController.dispose();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return Container(
++      margin: const EdgeInsets.all(16),
++      child: Row(
++        children: [
++          Expanded(
++            child: Container(
++              decoration: BoxDecoration(
++                color: Colors.grey[800],
++                borderRadius: BorderRadius.circular(25),
++              ),
++              child: TextField(
++                controller: _searchController,
++                style: const TextStyle(color: Colors.white),
++                decoration: InputDecoration(
++                  hintText: widget.hintText ?? 'Search progressions...',
++                  hintStyle: TextStyle(color: Colors.grey[400]),
++                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
++                  suffixIcon: _isSearching
++                      ? IconButton(
++                          icon: const Icon(Icons.clear, color: Colors.grey),
++                          onPressed: _clearSearch,
++                        )
++                      : null,
++                  border: InputBorder.none,
++                  contentPadding: const EdgeInsets.symmetric(
++                    horizontal: 20,
++                    vertical: 16,
++                  ),
++                ),
++                onChanged: _onSearchChanged,
++              ),
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++
++  void _onSearchChanged(String query) {
++    setState(() {
++      _isSearching = query.isNotEmpty;
++    });
++    widget.onSearchChanged(query);
++  }
++
++  void _clearSearch() {
++    _searchController.clear();
++    _onSearchChanged('');
++  }
++}
+\ No newline at end of file
+diff --git a/lib/UI/progression_library/widgets/save_progression_dialog.dart b/lib/UI/progression_library/widgets/save_progression_dialog.dart
+new file mode 100644
+index 0000000..49a3c5a
+--- /dev/null
++++ b/lib/UI/progression_library/widgets/save_progression_dialog.dart
+@@ -0,0 +1,293 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:scalemasterguitar/models/progression_model.dart';
++import 'package:scalemasterguitar/models/chord_model.dart';
++import 'package:scalemasterguitar/providers/progression_library_provider.dart';
++
++class SaveProgressionDialog extends ConsumerStatefulWidget {
++  final List<ChordModel>? initialChords;
++  final String? initialName;
++  final String? initialDescription;
++  final String? initialTags;
++  final ProgressionModel? existingProgression;
++
++  const SaveProgressionDialog({
++    super.key,
++    this.initialChords,
++    this.initialName,
++    this.initialDescription,
++    this.initialTags,
++    this.existingProgression,
++  });
++
++  @override
++  ConsumerState<SaveProgressionDialog> createState() => _SaveProgressionDialogState();
++}
++
++class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
++  final _nameController = TextEditingController();
++  final _descriptionController = TextEditingController();
++  final _tagsController = TextEditingController();
++  final _formKey = GlobalKey<FormState>();
++  bool _isLoading = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _initializeFields();
++  }
++
++  void _initializeFields() {
++    if (widget.existingProgression != null) {
++      _nameController.text = widget.existingProgression!.name;
++      _descriptionController.text = widget.existingProgression!.description ?? '';
++      _tagsController.text = widget.existingProgression!.tags ?? '';
++    } else {
++      _nameController.text = widget.initialName ?? '';
++      _descriptionController.text = widget.initialDescription ?? '';
++      _tagsController.text = widget.initialTags ?? '';
++    }
++  }
++
++  @override
++  void dispose() {
++    _nameController.dispose();
++    _descriptionController.dispose();
++    _tagsController.dispose();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final isEditing = widget.existingProgression != null;
++
++    return AlertDialog(
++      backgroundColor: Colors.grey[900],
++      title: Text(
++        isEditing ? 'Edit Progression' : 'Save Progression',
++        style: const TextStyle(color: Colors.white),
++      ),
++      content: SizedBox(
++        width: MediaQuery.of(context).size.width * 0.8,
++        child: Form(
++          key: _formKey,
++          child: Column(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              // Name field
++              TextFormField(
++                controller: _nameController,
++                style: const TextStyle(color: Colors.white),
++                decoration: InputDecoration(
++                  labelText: 'Name *',
++                  labelStyle: const TextStyle(color: Colors.grey),
++                  hintText: 'Enter progression name',
++                  hintStyle: TextStyle(color: Colors.grey[600]),
++                  enabledBorder: OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.grey[600]!),
++                  ),
++                  focusedBorder: const OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.orange),
++                  ),
++                  errorBorder: const OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.red),
++                  ),
++                  focusedErrorBorder: const OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.red),
++                  ),
++                ),
++                validator: (value) {
++                  if (value == null || value.trim().isEmpty) {
++                    return 'Name is required';
++                  }
++                  if (value.trim().length < 2) {
++                    return 'Name must be at least 2 characters';
++                  }
++                  return null;
++                },
++              ),
++              
++              const SizedBox(height: 16),
++              
++              // Description field
++              TextFormField(
++                controller: _descriptionController,
++                style: const TextStyle(color: Colors.white),
++                maxLines: 3,
++                decoration: InputDecoration(
++                  labelText: 'Description',
++                  labelStyle: const TextStyle(color: Colors.grey),
++                  hintText: 'Optional description...',
++                  hintStyle: TextStyle(color: Colors.grey[600]),
++                  enabledBorder: OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.grey[600]!),
++                  ),
++                  focusedBorder: const OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.orange),
++                  ),
++                ),
++              ),
++              
++              const SizedBox(height: 16),
++              
++              // Tags field
++              TextFormField(
++                controller: _tagsController,
++                style: const TextStyle(color: Colors.white),
++                decoration: InputDecoration(
++                  labelText: 'Tags',
++                  labelStyle: const TextStyle(color: Colors.grey),
++                  hintText: 'jazz, blues, rock (comma-separated)',
++                  hintStyle: TextStyle(color: Colors.grey[600]),
++                  enabledBorder: OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.grey[600]!),
++                  ),
++                  focusedBorder: const OutlineInputBorder(
++                    borderSide: BorderSide(color: Colors.orange),
++                  ),
++                ),
++              ),
++              
++              // Preview info
++              if (!isEditing && widget.initialChords != null) ...[
++                const SizedBox(height: 16),
++                Container(
++                  padding: const EdgeInsets.all(12),
++                  decoration: BoxDecoration(
++                    color: Colors.black.withValues(alpha: 0.3),
++                    borderRadius: BorderRadius.circular(8),
++                  ),
++                  child: Column(
++                    crossAxisAlignment: CrossAxisAlignment.start,
++                    children: [
++                      const Text(
++                        'Progression Preview:',
++                        style: TextStyle(
++                          color: Colors.white,
++                          fontWeight: FontWeight.bold,
++                        ),
++                      ),
++                      const SizedBox(height: 4),
++                      Text(
++                        _getProgressionPreview(),
++                        style: const TextStyle(color: Colors.orange),
++                      ),
++                      const SizedBox(height: 4),
++                      Text(
++                        '${widget.initialChords!.length} chords, ${_getTotalBeats()} beats',
++                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
++                      ),
++                    ],
++                  ),
++                ),
++              ],
++            ],
++          ),
++        ),
++      ),
++      actions: [
++        TextButton(
++          onPressed: _isLoading ? null : () => Navigator.pop(context),
++          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
++        ),
++        ElevatedButton(
++          onPressed: _isLoading ? null : _saveProgression,
++          style: ElevatedButton.styleFrom(
++            backgroundColor: Colors.orange,
++            foregroundColor: Colors.white,
++          ),
++          child: _isLoading
++              ? const SizedBox(
++                  width: 16,
++                  height: 16,
++                  child: CircularProgressIndicator(
++                    strokeWidth: 2,
++                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
++                  ),
++                )
++              : Text(isEditing ? 'Update' : 'Save'),
++        ),
++      ],
++    );
++  }
++
++  String _getProgressionPreview() {
++    if (widget.initialChords == null || widget.initialChords!.isEmpty) {
++      return 'No chords';
++    }
++    
++    final chordNames = widget.initialChords!
++        .map((chord) => chord.completeChordName ?? chord.noteName)
++        .toList();
++    
++    if (chordNames.length <= 4) {
++      return chordNames.join(' - ');
++    }
++    
++    return '${chordNames.take(3).join(' - ')}...';
++  }
++
++  int _getTotalBeats() {
++    if (widget.initialChords == null) return 0;
++    return widget.initialChords!.fold<int>(
++      0,
++      (total, chord) => total + chord.duration,
++    );
++  }
++
++  Future<void> _saveProgression() async {
++    if (!_formKey.currentState!.validate()) return;
++
++    setState(() {
++      _isLoading = true;
++    });
++
++    try {
++      final name = _nameController.text.trim();
++      final description = _descriptionController.text.trim();
++      final tags = _tagsController.text.trim();
++
++      final progressionNotifier = ref.read(progressionLibraryProvider.notifier);
++      bool success = false;
++
++      if (widget.existingProgression != null) {
++        // Update existing progression
++        final updatedProgression = widget.existingProgression!.copyWith(
++          name: name,
++          description: description.isEmpty ? null : description,
++          tags: tags.isEmpty ? null : tags,
++        );
++        success = await progressionNotifier.updateProgression(updatedProgression);
++      } else {
++        // Create new progression
++        final chords = widget.initialChords ?? [];
++        final progression = ProgressionModel.fromChords(
++          name: name,
++          chords: chords,
++          description: description.isEmpty ? null : description,
++          tags: tags.isEmpty ? null : tags,
++        );
++        success = await progressionNotifier.saveProgression(progression);
++      }
++
++      if (success && mounted) {
++        Navigator.pop(context, true);
++      }
++    } catch (e) {
++      if (mounted) {
++        ScaffoldMessenger.of(context).showSnackBar(
++          SnackBar(
++            content: Text('Error saving progression: $e'),
++            backgroundColor: Colors.red,
++          ),
++        );
++      }
++    } finally {
++      if (mounted) {
++        setState(() {
++          _isLoading = false;
++        });
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/lib/constants/general_audio_constants.dart b/lib/constants/general_audio_constants.dart
+index d15ae0c..cfa4257 100644
+--- a/lib/constants/general_audio_constants.dart
++++ b/lib/constants/general_audio_constants.dart
+@@ -27,21 +27,21 @@ class Constants {
+   ];
+ 
+   static const Map<String, Map<String, String>> soundPath = {
+-    // All instrument types now use FluidR3_GM.sf2 for consistency and completeness.
++    // All instrument types now use GeneralUser-GS.sf2 for consistency and completeness.
+     'drums': {
+-      'Electronic': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Acoustic': "assets/sounds/sf2/FluidR3_GM.sf2"
++      'Electronic': "assets/sounds/sf2/DrumsSlavo.sf2",
++      'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
+     },
+     'keys': {
+-      'Piano': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Rhodes': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Organ': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Pad': "assets/sounds/sf2/FluidR3_GM.sf2"
++      'Piano': "assets/sounds/sf2/GeneralUser-GS.sf2",
++      'Rhodes': "assets/sounds/sf2/GeneralUser-GS.sf2",
++      'Organ': "assets/sounds/sf2/GeneralUser-GS.sf2",
++      'Pad': "assets/sounds/sf2/GeneralUser-GS.sf2"
+     },
+     'bass': {
+-      'Double Bass': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Electric': "assets/sounds/sf2/FluidR3_GM.sf2",
+-      'Synth': "assets/sounds/sf2/FluidR3_GM.sf2"
++      'Double Bass': "assets/sounds/sf2/GeneralUser-GS.sf2",
++      'Electric': "assets/sounds/sf2/GeneralUser-GS.sf2",
++      'Synth': "assets/sounds/sf2/GeneralUser-GS.sf2"
+     },
+   };
+ 
+diff --git a/lib/models/chord_model.dart b/lib/models/chord_model.dart
+index df3fcee..2c35ffb 100644
+--- a/lib/models/chord_model.dart
++++ b/lib/models/chord_model.dart
+@@ -131,8 +131,62 @@ class ChordModel {
+     );
+   }
+ 
++  // Convert to JSON for storage
++  Map<String, dynamic> toJson() {
++    return {
++      'noteName': noteName,
++      'chordNameForUI': chordNameForUI,
++      'id': id,
++      'position': position,
++      'duration': duration,
++      'scale': scale,
++      'mode': mode,
++      'originalScaleType': originalScaleType,
++      'parentScaleKey': parentScaleKey,
++      'chordNotesWithIndexesRaw': chordNotesWithIndexesRaw,
++      'chordNameForAudio': chordNameForAudio,
++      'function': function,
++      'typeOfChord': typeOfChord,
++      'chordNotesInversionWithIndexes': chordNotesInversionWithIndexes,
++      'selectedChordPitches': selectedChordPitches,
++      'originModeType': originModeType,
++      'chordFunction': chordFunction,
++      'chordDegree': chordDegree,
++      'completeChordName': completeChordName,
++    };
++  }
++
++  // Create from JSON
++  factory ChordModel.fromJson(Map<String, dynamic> json) {
++    return ChordModel(
++      noteName: json['noteName'] as String,
++      id: json['id'] as int,
++      position: json['position'] as int,
++      duration: json['duration'] as int,
++      scale: json['scale'] as String,
++      mode: json['mode'] as String,
++      originalScaleType: json['originalScaleType'] as String,
++      parentScaleKey: json['parentScaleKey'] as String,
++      chordNotesWithIndexesRaw: List<String>.from(json['chordNotesWithIndexesRaw'] as List),
++      chordFunction: json['chordFunction'] as String?,
++      chordDegree: json['chordDegree'] as String?,
++      completeChordName: json['completeChordName'] as String?,
++      chordNameForAudio: json['chordNameForAudio'] as String?,
++      chordNameForUI: json['chordNameForUI'] as String?,
++      function: json['function'] as String?,
++      typeOfChord: json['typeOfChord'] as String?,
++      chordNotesInversionWithIndexes: json['chordNotesInversionWithIndexes'] != null
++          ? List<String>.from(json['chordNotesInversionWithIndexes'] as List)
++          : null,
++      selectedChordPitches: json['selectedChordPitches'] != null
++          ? List<String>.from(json['selectedChordPitches'] as List)
++          : null,
++      originModeType: json['originModeType'] as String?,
++    );
++  }
++
+   @override
+   String toString() {
+-    return 'ScaleModel(scale: $scale, mode: $mode, chordNameForAudio: $chordNameForAudio, chordNameForUI: $chordNameForUI, function: $function,typeOfChord: $typeOfChord color: $color, selectedChordPitches: $selectedChordPitches,allChordExtension $chordNotesInversionWithIndexes, originModeType: $originModeType), completeChordName: $completeChordName, chordFunction: $chordFunction, chordDegree: $chordDegree, settings: $settings)';
++    return 'ChordModel(scale: $scale, mode: $mode, chordNameForAudio: $chordNameForAudio, chordNameForUI: $chordNameForUI, function: $function, typeOfChord: $typeOfChord, color: $color, selectedChordPitches: $selectedChordPitches, allChordExtensions: $chordNotesInversionWithIndexes, originModeType: $originModeType, completeChordName: $completeChordName, chordFunction: $chordFunction, chordDegree: $chordDegree)';
+   }
+ }
+diff --git a/lib/models/progression_model.dart b/lib/models/progression_model.dart
+new file mode 100644
+index 0000000..788c547
+--- /dev/null
++++ b/lib/models/progression_model.dart
+@@ -0,0 +1,152 @@
++import 'dart:convert';
++import 'package:scalemasterguitar/models/chord_model.dart';
++
++class ProgressionModel {
++  final String id;
++  final String name;
++  final List<ChordModel> chords;
++  final DateTime createdAt;
++  final DateTime lastModified;
++  final String? description;
++  final String? tags;
++  final int totalBeats;
++
++  ProgressionModel({
++    required this.id,
++    required this.name,
++    required this.chords,
++    required this.createdAt,
++    required this.lastModified,
++    this.description,
++    this.tags,
++    required this.totalBeats,
++  });
++
++  // Create a copy with updated fields
++  ProgressionModel copyWith({
++    String? id,
++    String? name,
++    List<ChordModel>? chords,
++    DateTime? createdAt,
++    DateTime? lastModified,
++    String? description,
++    String? tags,
++    int? totalBeats,
++  }) {
++    return ProgressionModel(
++      id: id ?? this.id,
++      name: name ?? this.name,
++      chords: chords ?? this.chords,
++      createdAt: createdAt ?? this.createdAt,
++      lastModified: lastModified ?? this.lastModified,
++      description: description ?? this.description,
++      tags: tags ?? this.tags,
++      totalBeats: totalBeats ?? this.totalBeats,
++    );
++  }
++
++  // Convert to JSON for storage
++  Map<String, dynamic> toJson() {
++    return {
++      'id': id,
++      'name': name,
++      'chords': chords.map((chord) => chord.toJson()).toList(),
++      'createdAt': createdAt.toIso8601String(),
++      'lastModified': lastModified.toIso8601String(),
++      'description': description,
++      'tags': tags,
++      'totalBeats': totalBeats,
++    };
++  }
++
++  // Create from JSON
++  factory ProgressionModel.fromJson(Map<String, dynamic> json) {
++    return ProgressionModel(
++      id: json['id'] as String,
++      name: json['name'] as String,
++      chords: (json['chords'] as List<dynamic>)
++          .map((chordJson) => ChordModel.fromJson(chordJson as Map<String, dynamic>))
++          .toList(),
++      createdAt: DateTime.parse(json['createdAt'] as String),
++      lastModified: DateTime.parse(json['lastModified'] as String),
++      description: json['description'] as String?,
++      tags: json['tags'] as String?,
++      totalBeats: json['totalBeats'] as int,
++    );
++  }
++
++  // Convert to JSON string
++  String toJsonString() => jsonEncode(toJson());
++
++  // Create from JSON string
++  factory ProgressionModel.fromJsonString(String jsonString) {
++    return ProgressionModel.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
++  }
++
++  // Generate a unique ID based on timestamp
++  static String generateId() {
++    return 'prog_${DateTime.now().millisecondsSinceEpoch}';
++  }
++
++  // Create a new progression from a list of chords
++  factory ProgressionModel.fromChords({
++    required String name,
++    required List<ChordModel> chords,
++    String? description,
++    String? tags,
++  }) {
++    final now = DateTime.now();
++    final totalBeats = chords.isNotEmpty 
++        ? chords.fold<int>(0, (prev, chord) => prev + chord.duration)
++        : 0;
++
++    return ProgressionModel(
++      id: generateId(),
++      name: name,
++      chords: chords,
++      createdAt: now,
++      lastModified: now,
++      description: description,
++      tags: tags,
++      totalBeats: totalBeats,
++    );
++  }
++
++  // Get a formatted display string for duration
++  String get formattedDuration {
++    if (totalBeats == 0) return '0 beats';
++    if (totalBeats == 1) return '1 beat';
++    return '$totalBeats beats';
++  }
++
++  // Get a preview of chord names
++  String get chordsPreview {
++    if (chords.isEmpty) return 'No chords';
++    if (chords.length <= 4) {
++      return chords.map((c) => c.completeChordName).join(' - ');
++    }
++    return chords.take(3).map((c) => c.completeChordName).join(' - ') + '...';
++  }
++
++  // Check if progression is empty
++  bool get isEmpty => chords.isEmpty;
++
++  @override
++  String toString() {
++    return 'ProgressionModel(id: $id, name: $name, chords: ${chords.length}, totalBeats: $totalBeats)';
++  }
++
++  @override
++  bool operator ==(Object other) {
++    if (identical(this, other)) return true;
++    return other is ProgressionModel &&
++        other.id == id &&
++        other.name == name &&
++        other.totalBeats == totalBeats;
++  }
++
++  @override
++  int get hashCode {
++    return id.hashCode ^ name.hashCode ^ totalBeats.hashCode;
++  }
++}
+\ No newline at end of file
+diff --git a/lib/providers/progression_library_provider.dart b/lib/providers/progression_library_provider.dart
+new file mode 100644
+index 0000000..8cd11ce
+--- /dev/null
++++ b/lib/providers/progression_library_provider.dart
+@@ -0,0 +1,254 @@
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:scalemasterguitar/models/progression_model.dart';
++import 'package:scalemasterguitar/services/progression_storage_service.dart';
++
++/// State for the progression library
++class ProgressionLibraryState {
++  final List<ProgressionModel> progressions;
++  final bool isLoading;
++  final String? error;
++  final String? successMessage;
++
++  const ProgressionLibraryState({
++    this.progressions = const [],
++    this.isLoading = false,
++    this.error,
++    this.successMessage,
++  });
++
++  ProgressionLibraryState copyWith({
++    List<ProgressionModel>? progressions,
++    bool? isLoading,
++    String? error,
++    String? successMessage,
++  }) {
++    return ProgressionLibraryState(
++      progressions: progressions ?? this.progressions,
++      isLoading: isLoading ?? this.isLoading,
++      error: error,
++      successMessage: successMessage,
++    );
++  }
++}
++
++/// Notifier for managing progression library state
++class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> {
++  ProgressionLibraryNotifier() : super(const ProgressionLibraryState()) {
++    loadProgressions();
++  }
++
++  /// Load all progressions from storage
++  Future<void> loadProgressions() async {
++    state = state.copyWith(isLoading: true, error: null);
++    
++    try {
++      final progressions = await ProgressionStorageService.loadAllProgressions();
++      state = state.copyWith(
++        progressions: progressions,
++        isLoading: false,
++      );
++    } catch (e) {
++      state = state.copyWith(
++        isLoading: false,
++        error: 'Failed to load progressions: $e',
++      );
++    }
++  }
++
++  /// Save a new progression
++  Future<bool> saveProgression(ProgressionModel progression) async {
++    state = state.copyWith(isLoading: true, error: null);
++    
++    try {
++      // Check if name already exists
++      final nameExists = await ProgressionStorageService.progressionNameExists(progression.name);
++      if (nameExists) {
++        state = state.copyWith(
++          isLoading: false,
++          error: 'A progression with that name already exists',
++        );
++        return false;
++      }
++
++      final success = await ProgressionStorageService.saveProgression(progression);
++      if (success) {
++        // Reload progressions to update the list
++        await loadProgressions();
++        state = state.copyWith(
++          successMessage: 'Progression "${progression.name}" saved successfully',
++        );
++        return true;
++      } else {
++        state = state.copyWith(
++          isLoading: false,
++          error: 'Failed to save progression',
++        );
++        return false;
++      }
++    } catch (e) {
++      state = state.copyWith(
++        isLoading: false,
++        error: 'Error saving progression: $e',
++      );
++      return false;
++    }
++  }
++
++  /// Update an existing progression
++  Future<bool> updateProgression(ProgressionModel progression) async {
++    state = state.copyWith(isLoading: true, error: null);
++    
++    try {
++      // Check if name already exists (excluding current progression)
++      final nameExists = await ProgressionStorageService.progressionNameExists(
++        progression.name,
++        excludeId: progression.id,
++      );
++      if (nameExists) {
++        state = state.copyWith(
++          isLoading: false,
++          error: 'A progression with that name already exists',
++        );
++        return false;
++      }
++
++      final success = await ProgressionStorageService.updateProgression(progression);
++      if (success) {
++        // Reload progressions to update the list
++        await loadProgressions();
++        state = state.copyWith(
++          successMessage: 'Progression "${progression.name}" updated successfully',
++        );
++        return true;
++      } else {
++        state = state.copyWith(
++          isLoading: false,
++          error: 'Failed to update progression',
++        );
++        return false;
++      }
++    } catch (e) {
++      state = state.copyWith(
++        isLoading: false,
++        error: 'Error updating progression: $e',
++      );
++      return false;
++    }
++  }
++
++  /// Delete a progression
++  Future<bool> deleteProgression(String id) async {
++    state = state.copyWith(isLoading: true, error: null);
++    
++    try {
++      final progression = state.progressions.firstWhere((p) => p.id == id);
++      final success = await ProgressionStorageService.deleteProgression(id);
++      
++      if (success) {
++        // Remove from current state
++        final updatedProgressions = state.progressions.where((p) => p.id != id).toList();
++        state = state.copyWith(
++          progressions: updatedProgressions,
++          isLoading: false,
++          successMessage: 'Progression "${progression.name}" deleted successfully',
++        );
++        return true;
++      } else {
++        state = state.copyWith(
++          isLoading: false,
++          error: 'Failed to delete progression',
++        );
++        return false;
++      }
++    } catch (e) {
++      state = state.copyWith(
++        isLoading: false,
++        error: 'Error deleting progression: $e',
++      );
++      return false;
++    }
++  }
++
++  /// Get a specific progression by ID
++  ProgressionModel? getProgression(String id) {
++    try {
++      return state.progressions.firstWhere((p) => p.id == id);
++    } catch (e) {
++      return null;
++    }
++  }
++
++  /// Clear any error or success messages
++  void clearMessages() {
++    state = state.copyWith(error: null, successMessage: null);
++  }
++
++  /// Get progressions filtered by name
++  List<ProgressionModel> searchProgressions(String query) {
++    if (query.isEmpty) return state.progressions;
++    
++    final lowerQuery = query.toLowerCase();
++    return state.progressions.where((progression) =>
++      progression.name.toLowerCase().contains(lowerQuery) ||
++      (progression.description?.toLowerCase().contains(lowerQuery) ?? false) ||
++      (progression.tags?.toLowerCase().contains(lowerQuery) ?? false)
++    ).toList();
++  }
++
++  /// Get progressions sorted by different criteria
++  List<ProgressionModel> getSortedProgressions(ProgressionSortType sortType) {
++    final progressions = List<ProgressionModel>.from(state.progressions);
++    
++    switch (sortType) {
++      case ProgressionSortType.nameAsc:
++        progressions.sort((a, b) => a.name.compareTo(b.name));
++        break;
++      case ProgressionSortType.nameDesc:
++        progressions.sort((a, b) => b.name.compareTo(a.name));
++        break;
++      case ProgressionSortType.dateCreatedAsc:
++        progressions.sort((a, b) => a.createdAt.compareTo(b.createdAt));
++        break;
++      case ProgressionSortType.dateCreatedDesc:
++        progressions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
++        break;
++      case ProgressionSortType.lastModifiedAsc:
++        progressions.sort((a, b) => a.lastModified.compareTo(b.lastModified));
++        break;
++      case ProgressionSortType.lastModifiedDesc:
++        progressions.sort((a, b) => b.lastModified.compareTo(a.lastModified));
++        break;
++      case ProgressionSortType.durationAsc:
++        progressions.sort((a, b) => a.totalBeats.compareTo(b.totalBeats));
++        break;
++      case ProgressionSortType.durationDesc:
++        progressions.sort((a, b) => b.totalBeats.compareTo(a.totalBeats));
++        break;
++    }
++    
++    return progressions;
++  }
++}
++
++/// Sort types for progressions
++enum ProgressionSortType {
++  nameAsc,
++  nameDesc,
++  dateCreatedAsc,
++  dateCreatedDesc,
++  lastModifiedAsc,
++  lastModifiedDesc,
++  durationAsc,
++  durationDesc,
++}
++
++/// Provider for progression library
++final progressionLibraryProvider = StateNotifierProvider<ProgressionLibraryNotifier, ProgressionLibraryState>((ref) {
++  return ProgressionLibraryNotifier();
++});
++
++/// Provider for progression count
++final progressionCountProvider = Provider<int>((ref) {
++  final state = ref.watch(progressionLibraryProvider);
++  return state.progressions.length;
++});
+\ No newline at end of file
+diff --git a/lib/services/progression_storage_service.dart b/lib/services/progression_storage_service.dart
+new file mode 100644
+index 0000000..d485bbf
+--- /dev/null
++++ b/lib/services/progression_storage_service.dart
+@@ -0,0 +1,238 @@
++import 'dart:convert';
++import 'package:flutter/foundation.dart';
++import 'package:shared_preferences/shared_preferences.dart';
++import 'package:scalemasterguitar/models/progression_model.dart';
++
++/// Service for managing chord progression persistence
++class ProgressionStorageService {
++  static const String _progressionIdListKey = 'progression_ids';
++
++  /// Save a progression to local storage
++  static Future<bool> saveProgression(ProgressionModel progression) async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      
++      // Save the progression data
++      final progressionJson = progression.toJsonString();
++      await prefs.setString('progression_${progression.id}', progressionJson);
++      
++      // Update the list of progression IDs
++      final existingIds = await getProgressionIds();
++      if (!existingIds.contains(progression.id)) {
++        existingIds.add(progression.id);
++        await prefs.setStringList(_progressionIdListKey, existingIds);
++      }
++      
++      return true;
++    } catch (e) {
++      debugPrint('Error saving progression: $e');
++      return false;
++    }
++  }
++
++  /// Load all saved progressions
++  static Future<List<ProgressionModel>> loadAllProgressions() async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      final progressionIds = await getProgressionIds();
++      final progressions = <ProgressionModel>[];
++
++      for (final id in progressionIds) {
++        final progressionJson = prefs.getString('progression_$id');
++        if (progressionJson != null) {
++          try {
++            final progression = ProgressionModel.fromJsonString(progressionJson);
++            progressions.add(progression);
++          } catch (e) {
++            debugPrint('Error loading progression $id: $e');
++            // Remove corrupted progression ID
++            await _removeProgressionId(id);
++          }
++        }
++      }
++
++      // Sort by last modified date (most recent first)
++      progressions.sort((a, b) => b.lastModified.compareTo(a.lastModified));
++      return progressions;
++    } catch (e) {
++      debugPrint('Error loading progressions: $e');
++      return [];
++    }
++  }
++
++  /// Load a specific progression by ID
++  static Future<ProgressionModel?> loadProgression(String id) async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      final progressionJson = prefs.getString('progression_$id');
++      
++      if (progressionJson != null) {
++        return ProgressionModel.fromJsonString(progressionJson);
++      }
++      return null;
++    } catch (e) {
++      debugPrint('Error loading progression $id: $e');
++      return null;
++    }
++  }
++
++  /// Update an existing progression
++  static Future<bool> updateProgression(ProgressionModel progression) async {
++    try {
++      // Update the last modified time
++      final updatedProgression = progression.copyWith(
++        lastModified: DateTime.now(),
++      );
++      
++      return await saveProgression(updatedProgression);
++    } catch (e) {
++      debugPrint('Error updating progression: $e');
++      return false;
++    }
++  }
++
++  /// Delete a progression
++  static Future<bool> deleteProgression(String id) async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      
++      // Remove the progression data
++      await prefs.remove('progression_$id');
++      
++      // Remove from ID list
++      await _removeProgressionId(id);
++      
++      return true;
++    } catch (e) {
++      debugPrint('Error deleting progression: $e');
++      return false;
++    }
++  }
++
++  /// Get list of all progression IDs
++  static Future<List<String>> getProgressionIds() async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      return prefs.getStringList(_progressionIdListKey) ?? [];
++    } catch (e) {
++      debugPrint('Error getting progression IDs: $e');
++      return [];
++    }
++  }
++
++  /// Check if a progression with given name already exists
++  static Future<bool> progressionNameExists(String name, {String? excludeId}) async {
++    try {
++      final progressions = await loadAllProgressions();
++      return progressions.any((p) => 
++        p.name.toLowerCase() == name.toLowerCase() && 
++        (excludeId == null || p.id != excludeId)
++      );
++    } catch (e) {
++      debugPrint('Error checking progression name: $e');
++      return false;
++    }
++  }
++
++  /// Get progression count
++  static Future<int> getProgressionCount() async {
++    try {
++      final ids = await getProgressionIds();
++      return ids.length;
++    } catch (e) {
++      debugPrint('Error getting progression count: $e');
++      return 0;
++    }
++  }
++
++  /// Clear all progressions (for testing/reset purposes)
++  static Future<bool> clearAllProgressions() async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      final ids = await getProgressionIds();
++      
++      // Remove all progression data
++      for (final id in ids) {
++        await prefs.remove('progression_$id');
++      }
++      
++      // Clear the ID list
++      await prefs.remove(_progressionIdListKey);
++      
++      return true;
++    } catch (e) {
++      debugPrint('Error clearing progressions: $e');
++      return false;
++    }
++  }
++
++  /// Export all progressions as JSON string
++  static Future<String?> exportProgressions() async {
++    try {
++      final progressions = await loadAllProgressions();
++      final exportData = {
++        'version': '1.0',
++        'exportDate': DateTime.now().toIso8601String(),
++        'progressions': progressions.map((p) => p.toJson()).toList(),
++      };
++      return jsonEncode(exportData);
++    } catch (e) {
++      debugPrint('Error exporting progressions: $e');
++      return null;
++    }
++  }
++
++  /// Import progressions from JSON string
++  static Future<bool> importProgressions(String jsonString, {bool overwrite = false}) async {
++    try {
++      final importData = jsonDecode(jsonString) as Map<String, dynamic>;
++      final progressionsList = importData['progressions'] as List<dynamic>;
++      
++      int successCount = 0;
++      for (final progressionJson in progressionsList) {
++        try {
++          final progression = ProgressionModel.fromJson(progressionJson as Map<String, dynamic>);
++          
++          // Check if progression name already exists
++          if (!overwrite && await progressionNameExists(progression.name)) {
++            // Generate a unique name
++            int counter = 1;
++            String newName;
++            do {
++              newName = '${progression.name} ($counter)';
++              counter++;
++            } while (await progressionNameExists(newName));
++            
++            final renamedProgression = progression.copyWith(
++              id: ProgressionModel.generateId(),
++              name: newName,
++            );
++            await saveProgression(renamedProgression);
++          } else {
++            await saveProgression(progression);
++          }
++          successCount++;
++        } catch (e) {
++          debugPrint('Error importing individual progression: $e');
++        }
++      }
++      
++      return successCount > 0;
++    } catch (e) {
++      debugPrint('Error importing progressions: $e');
++      return false;
++    }
++  }
++
++  /// Private helper to remove a progression ID from the list
++  static Future<void> _removeProgressionId(String id) async {
++    try {
++      final prefs = await SharedPreferences.getInstance();
++      final ids = await getProgressionIds();
++      ids.remove(id);
++      await prefs.setStringList(_progressionIdListKey, ids);
++    } catch (e) {
++      debugPrint('Error removing progression ID: $e');
++    }
++  }
++}
+\ No newline at end of file

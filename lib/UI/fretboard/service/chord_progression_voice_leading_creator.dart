@@ -6,26 +6,44 @@ class VoiceLeadingCreator {
     if (selectedChords.isEmpty) {
       return selectedChords;
     }
-    // Create random inversion for the first chord
-    _createFirstChordRandomInversion(selectedChords.first);
+    
+    try {
+      // Create random inversion for the first chord
+      _createFirstChordRandomInversion(selectedChords.first);
 
-    // Create voice leading for subsequent chords
-    for (int i = 1; i < selectedChords.length; i++) {
-      _createVoiceLeading(selectedChords[i], selectedChords[i - 1]);
+      // Create voice leading for subsequent chords
+      for (int i = 1; i < selectedChords.length; i++) {
+        _createVoiceLeading(selectedChords[i], selectedChords[i - 1]);
+      }
+    } catch (e) {
+      print('[VoiceLeadingCreator] ERROR in buildProgression: $e');
+      // Return the chords as-is if voice leading fails
     }
 
     return selectedChords;
   }
 
   static void _createFirstChordRandomInversion(ChordModel chordModel) {
-    List<String> chordNotes = List.from(chordModel
-        .selectedChordPitches!); //to create a new object. Not a reference to the same object
-    int randomInt = MusicUtils.selectRandomItem(chordNotes);
-    for (int i = 0; i < randomInt - 1; i++) {
-      chordNotes.add(chordNotes.first);
-      chordNotes.removeAt(0);
+    try {
+      if (chordModel.selectedChordPitches == null || chordModel.selectedChordPitches!.isEmpty) {
+        print('[VoiceLeadingCreator] ERROR: First chord has no pitches');
+        return;
+      }
+      
+      List<String> chordNotes = List.from(chordModel.selectedChordPitches!);
+      int randomInt = MusicUtils.selectRandomItem(chordNotes);
+      for (int i = 0; i < randomInt - 1; i++) {
+        chordNotes.add(chordNotes.first);
+        chordNotes.removeAt(0);
+      }
+      chordModel.chordNotesInversionWithIndexes = addOctaveIndexes(chordNotes);
+    } catch (e) {
+      print('[VoiceLeadingCreator] ERROR in _createFirstChordRandomInversion: $e');
+      // Fallback: use the chord pitches as-is
+      if (chordModel.selectedChordPitches != null) {
+        chordModel.chordNotesInversionWithIndexes = addOctaveIndexes(List.from(chordModel.selectedChordPitches!));
+      }
     }
-    chordModel.chordNotesInversionWithIndexes = addOctaveIndexes(chordNotes);
   }
 
   static void _createVoiceLeading(

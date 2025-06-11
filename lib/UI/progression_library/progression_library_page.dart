@@ -223,7 +223,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => PlayerPage()),
+                  MaterialPageRoute(builder: (context) => const PlayerPage()),
                 );
               },
               icon: const Icon(Icons.add),

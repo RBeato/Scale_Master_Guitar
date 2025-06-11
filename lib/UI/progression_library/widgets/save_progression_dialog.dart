@@ -29,6 +29,9 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _nameFocusNode = FocusNode();
+  final _descriptionFocusNode = FocusNode();
+  final _tagsFocusNode = FocusNode();
   bool _isLoading = false;
 
   @override
@@ -54,6 +57,9 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
     _nameController.dispose();
     _descriptionController.dispose();
     _tagsController.dispose();
+    _nameFocusNode.dispose();
+    _descriptionFocusNode.dispose();
+    _tagsFocusNode.dispose();
     super.dispose();
   }
 
@@ -61,22 +67,30 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.existingProgression != null;
 
-    return AlertDialog(
-      backgroundColor: Colors.grey[900],
-      title: Text(
-        isEditing ? 'Edit Progression' : 'Save Progression',
-        style: const TextStyle(color: Colors.white),
-      ),
+    return GestureDetector(
+      onTap: () {
+        // Dismiss keyboard when tapping outside text fields
+        FocusScope.of(context).unfocus();
+      },
+      child: AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          isEditing ? 'Edit Progression' : 'Save Progression',
+          style: const TextStyle(color: Colors.white),
+        ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width * 0.8,
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Name field
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Name field
               TextFormField(
                 controller: _nameController,
+                focusNode: _nameFocusNode,
+                autofocus: false,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Name *',
@@ -112,6 +126,8 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
               // Description field
               TextFormField(
                 controller: _descriptionController,
+                focusNode: _descriptionFocusNode,
+                autofocus: false,
                 style: const TextStyle(color: Colors.white),
                 maxLines: 3,
                 decoration: InputDecoration(
@@ -133,6 +149,8 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
               // Tags field
               TextFormField(
                 controller: _tagsController,
+                focusNode: _tagsFocusNode,
+                autofocus: false,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Tags',
@@ -182,12 +200,16 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
                 ),
               ],
             ],
+            ),
           ),
         ),
-      ),
-      actions: [
+        ),
+        actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () {
+            FocusScope.of(context).unfocus();
+            Navigator.pop(context);
+          },
           child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
@@ -208,6 +230,7 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
               : Text(isEditing ? 'Update' : 'Save'),
         ),
       ],
+      ),
     );
   }
 
@@ -237,6 +260,9 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
 
   Future<void> _saveProgression() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Dismiss keyboard before saving
+    FocusScope.of(context).unfocus();
 
     setState(() {
       _isLoading = true;

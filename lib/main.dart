@@ -72,10 +72,24 @@ void main() async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       
-      // Configure audio session early
+      // Configure audio session early for flutter_sequencer compatibility
       try {
         final session = await AudioSession.instance;
-        await session.configure(const AudioSessionConfiguration.music());
+        // Use playback configuration to ignore silent mode switch
+        await session.configure(const AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playback,
+          avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+          avAudioSessionMode: AVAudioSessionMode.defaultMode,
+          avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+          avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+          androidAudioAttributes: AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.music,
+            flags: AndroidAudioFlags.none,
+            usage: AndroidAudioUsage.media,
+          ),
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+          androidWillPauseWhenDucked: false,
+        ));
         await session.setActive(true);
         
         // Handle audio interruptions
@@ -136,8 +150,8 @@ void main() async {
     await MobileAds.instance.initialize();
     
     // Check connectivity and initialize AdService
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
+    var connectivityResults = await (Connectivity().checkConnectivity());
+    if (connectivityResults.contains(ConnectivityResult.none)) {
       debugPrint('No internet connection');
       // Handle no internet scenario
     } else {
@@ -184,7 +198,7 @@ class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  _MyAppState createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
 // Global flag to show debug overlay in TestFlight builds
