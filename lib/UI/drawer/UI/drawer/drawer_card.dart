@@ -2,59 +2,104 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/UI/common/upgrade_prompt.dart';
 
 class DrawerCard extends ConsumerWidget {
-  String title;
-  String subtitle;
-  String savedValue;
-  List dropdownList;
-  SettingsSelection settingsSelection;
+  final String title;
+  final String subtitle;
+  final String savedValue;
+  final List dropdownList;
+  final SettingsSelection settingsSelection;
+  final bool isPremiumFeature;
 
-  DrawerCard(
+  const DrawerCard(
       {super.key,
       required this.title,
       required this.subtitle,
       required this.dropdownList,
       required this.savedValue,
-      required this.settingsSelection});
-
-  late String _selection;
+      required this.settingsSelection,
+      this.isPremiumFeature = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(revenueCatProvider);
+    final isPremiumUser = entitlement.hasFullScaleAccess;
+    final isFeatureRestricted = isPremiumFeature && !isPremiumUser;
+    
     return Card(
       color: Colors.black12,
       child: ExpansionTile(
         backgroundColor: Colors.black87,
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white),
-        ),
-        trailing: DropdownButton<String>(
-            dropdownColor: Colors.grey[900],
-            value: _selection = savedValue,
-            style: const TextStyle(fontSize: 14.0),
-            icon: const Icon(Icons.arrow_downward),
-            iconSize: 15,
-            elevation: 10,
-            disabledHint: const Text('Disabled'),
-            underline:
-                Container(height: 2, color: Colors.black.withOpacity(0.5)),
-            onChanged: (String? newValue) {
-              _selection = newValue as String;
-              ref
-                  .read(settingsStateNotifierProvider.notifier)
-                  .changeValue(settingsSelection, _selection);
-            },
-            items: dropdownList.map((item) {
-              return DropdownMenuItem(
-                value: item.toString(),
-                child: Text(item,
-                    style:
-                        const TextStyle(fontSize: 14.0, color: Colors.white)),
-              );
-            }).toList() // ?? [],
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isFeatureRestricted ? Colors.grey : Colors.white,
+                ),
+              ),
             ),
+            if (isFeatureRestricted)
+              const Icon(
+                Icons.lock,
+                size: 16,
+                color: Colors.grey,
+              ),
+          ],
+        ),
+        trailing: GestureDetector(
+          onTap: isFeatureRestricted
+              ? () {
+                  UpgradePrompt.showUpgradeAlert(
+                    context,
+                    title: 'Premium Feature',
+                    message: 'Upgrade to Premium to customize instrument sounds',
+                  );
+                }
+              : null,
+          child: DropdownButton<String>(
+              dropdownColor: Colors.grey[900],
+              value: savedValue,
+              style: TextStyle(
+                fontSize: 14.0,
+                color: isFeatureRestricted ? Colors.grey : Colors.white,
+              ),
+              icon: Icon(
+                Icons.arrow_downward,
+                color: isFeatureRestricted ? Colors.grey : Colors.white,
+              ),
+              iconSize: 15,
+              elevation: 10,
+              disabledHint: const Text('Disabled'),
+              underline:
+                  Container(height: 2, color: Colors.black.withValues(alpha: 0.5)),
+              onChanged: isFeatureRestricted 
+                  ? null 
+                  : (String? newValue) {
+                      if (newValue != null) {
+                        ref
+                            .read(settingsStateNotifierProvider.notifier)
+                            .changeValue(settingsSelection, newValue);
+                      }
+                    },
+              items: dropdownList.map((item) {
+                return DropdownMenuItem(
+                  value: item.toString(),
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      fontSize: 14.0, 
+                      color: isFeatureRestricted ? Colors.grey : Colors.white,
+                    ),
+                  ),
+                );
+              }).toList(),
+              ),
+        ),
         children: <Widget>[
           Align(
             alignment: Alignment.centerLeft,

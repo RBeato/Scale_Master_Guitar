@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/scales/scales_data_v2.dart';
-import '../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import '../../services/feature_restriction_service.dart';
+import '../common/upgrade_prompt.dart';
 import 'provider/mode_dropdown_value_provider.dart';
 import 'provider/scale_dropdown_value_provider.dart';
 
@@ -43,23 +43,13 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                   isExpanded: true,
                   dropdownColor: Colors.grey[800],
                   value: selectedScale,
-                  onTap: !entitlement.hasFullScaleAccess
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    FeatureRestrictionService.getScaleRestrictionMessage())),
-                          );
-                          return;
-                        }
-                      : null,
                   onChanged: (newValue) {
                     // Check if user can access this scale
                     if (!FeatureRestrictionService.canAccessScale(newValue!, entitlement)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                FeatureRestrictionService.getScaleRestrictionMessage())),
+                      UpgradePrompt.showUpgradeAlert(
+                        context,
+                        title: 'Premium Feature',
+                        message: FeatureRestrictionService.getScaleRestrictionMessage(),
                       );
                       return;
                     }

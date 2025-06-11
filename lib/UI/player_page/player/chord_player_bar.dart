@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
-import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
-import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 
 import '../chords_list.dart';
 import '../metronome/metronome_display.dart';
@@ -39,7 +37,6 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final selectedChords = ref.watch(selectedChordsProvider);
-    final entitlement = ref.watch(revenueCatProvider);
 
     // Reset _showNoChordSelected when there are changes in selectedChords
     if (selectedChords.isNotEmpty) {
@@ -100,15 +97,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
             child: Padding(
               padding: const EdgeInsets.all(10.0),
               child: GestureDetector(
-                onTap: !FeatureRestrictionService.canUseAudioFeatures(entitlement)
-                    ? () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  FeatureRestrictionService.getAudioRestrictionMessage())),
-                        );
-                      }
-                    : widget.handleTogglePlayStop,
+                onTap: widget.handleTogglePlayStop,
                 child: Icon(
                   widget.isPlaying ? Icons.stop : Icons.play_arrow,
                   color: Colors.white70,

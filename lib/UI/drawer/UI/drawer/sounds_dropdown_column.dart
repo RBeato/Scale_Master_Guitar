@@ -37,6 +37,7 @@ Widget buildColumnWithData(BuildContext context, Settings settings) {
       dropdownList: const ['Piano', 'Rhodes', 'Organ', 'Pad'],
       savedValue: settings.keyboardSound,
       settingsSelection: SettingsSelection.keyboardSound,
+      isPremiumFeature: true,
     ),
     DrawerCard(
       title: 'Bass Sound',
@@ -44,6 +45,7 @@ Widget buildColumnWithData(BuildContext context, Settings settings) {
       dropdownList: const ['Double Bass', 'Electric', 'Synth'],
       savedValue: settings.bassSound,
       settingsSelection: SettingsSelection.bassSound,
+      isPremiumFeature: true,
     ),
     DrawerCard(
       title: 'Drum Kit Sound',
@@ -51,6 +53,7 @@ Widget buildColumnWithData(BuildContext context, Settings settings) {
       dropdownList: const ['Acoustic', 'Electronic'],
       savedValue: settings.drumsSound,
       settingsSelection: SettingsSelection.drumsSound,
+      isPremiumFeature: true,
     ),
   ]);
 }

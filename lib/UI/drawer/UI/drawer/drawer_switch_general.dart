@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/UI/common/upgrade_prompt.dart';
 
 class DrawerGeneralSwitch extends ConsumerWidget {
   const DrawerGeneralSwitch({
@@ -10,31 +13,63 @@ class DrawerGeneralSwitch extends ConsumerWidget {
     required this.subtitle,
     required this.settingSelection,
     required this.switchValue,
+    this.isPremiumFeature = false,
   });
 
   final String title;
   final String subtitle;
   final SettingsSelection settingSelection;
   final bool switchValue;
+  final bool isPremiumFeature;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(revenueCatProvider);
+    final isPremiumUser = entitlement.hasFullScaleAccess; // Using existing premium check
+    final isFeatureRestricted = isPremiumFeature && !isPremiumUser;
+    
     return Card(
       color: Colors.black12,
       child: ExpansionTile(
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isFeatureRestricted ? Colors.grey : Colors.white,
+                ),
+              ),
+            ),
+            if (isFeatureRestricted)
+              const Icon(
+                Icons.lock,
+                size: 16,
+                color: Colors.grey,
+              ),
+          ],
         ),
         trailing: Switch(
           value: switchValue,
-          onChanged: (value) async {
-            await ref
-                .read(settingsStateNotifierProvider.notifier)
-                .changeValue(settingSelection, value);
-          },
-          activeTrackColor: Colors.lightGreenAccent,
-          activeColor: Colors.green,
+          onChanged: isFeatureRestricted
+              ? (value) {
+                  UpgradePrompt.showUpgradeAlert(
+                    context,
+                    title: 'Premium Feature',
+                    message: 'Upgrade to Premium to access this feature',
+                  );
+                }
+              : (value) async {
+                  await ref
+                      .read(settingsStateNotifierProvider.notifier)
+                      .changeValue(settingSelection, value);
+                },
+          activeTrackColor: isFeatureRestricted 
+              ? Colors.grey 
+              : Colors.lightGreenAccent,
+          activeColor: isFeatureRestricted 
+              ? Colors.grey 
+              : Colors.green,
         ),
         children: <Widget>[
           Align(

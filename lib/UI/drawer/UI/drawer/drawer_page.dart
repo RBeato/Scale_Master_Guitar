@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/ads/banner_ad_widget.dart';
@@ -27,10 +28,12 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
+          Column(
             children: <Widget>[
-              GeneralOptions(),
-              SoundsDropdownColumn(),
+              const GeneralOptions(),
+              // Testing switch only visible in debug mode
+              if (kDebugMode) _buildTestingSection(),
+              const SoundsDropdownColumn(),
             ],
           ),
           Column(
@@ -130,5 +133,95 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildTestingSection() {
+    final revenueCatNotifier = ref.read(revenueCatProvider.notifier);
+    final testingState = ref.watch(testingStateProvider); // Watch for testing state changes
+    final isTestingMode = testingState.isEnabled;
+    final testingEntitlement = testingState.testEntitlement;
+
+    return Card(
+      color: Colors.deepPurple.withValues(alpha: 0.2),
+      child: ExpansionTile(
+        title: const Row(
+          children: [
+            Icon(Icons.science, color: Colors.deepPurple, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Testing Mode',
+              style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Override subscription status for testing:',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  title: const Text(
+                    'Enable Testing Mode',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    isTestingMode ? 'Testing: ${testingEntitlement.name}' : 'Using real subscription status',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  value: isTestingMode,
+                  activeColor: Colors.deepPurple,
+                  onChanged: (value) {
+                    if (value) {
+                      revenueCatNotifier.setTestingMode(true, Entitlement.free);
+                    } else {
+                      revenueCatNotifier.setTestingMode(false, Entitlement.free);
+                    }
+                  },
+                ),
+                if (isTestingMode) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Test as:',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  ...Entitlement.values.map((entitlement) => RadioListTile<Entitlement>(
+                    title: Text(
+                      _getEntitlementDisplayName(entitlement),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    value: entitlement,
+                    groupValue: testingEntitlement,
+                    activeColor: Colors.deepPurple,
+                    onChanged: (value) {
+                      if (value != null) {
+                        revenueCatNotifier.setTestingMode(true, value);
+                      }
+                    },
+                  )),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getEntitlementDisplayName(Entitlement entitlement) {
+    switch (entitlement) {
+      case Entitlement.free:
+        return 'Free User (with ads, limited scales)';
+      case Entitlement.premiumSub:
+        return 'Premium Subscriber';
+      case Entitlement.premiumOneTime:
+        return 'Premium Lifetime';
+    }
   }
 }
