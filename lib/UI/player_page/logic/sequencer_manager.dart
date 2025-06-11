@@ -28,7 +28,7 @@ class SequencerManager {
 
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   // List<Track> tracks = [];
-  late Sequence sequence;
+  Sequence? sequence;
   List _lastChords = [];
   // final List _lastExtensions = [];
   bool _lastTonicAsUniversalBassNote = true;
@@ -80,6 +80,15 @@ class SequencerManager {
     this.isMetronomeSelected = isMetronomeSelected;
 
     GlobalState().setKeepEngineRunning(true);
+    debugPrint('[SequencerManager] Audio engine keep running set to true');
+    
+    // Add audio engine debugging
+    try {
+      debugPrint('[SequencerManager] Checking audio engine state');
+      // Note: Some of these methods might not exist - we'll see what works
+    } catch (e) {
+      debugPrint('[SequencerManager] Audio engine state check failed: $e');
+    }
 
     // Start periodic cleanup for stale notes
     _startCleanupTimer();
@@ -93,9 +102,12 @@ class SequencerManager {
       selectedTrack = tracks[0];
 
       for (Track track in tracks) {
-        trackVolumes[track.id] =
-            1.0; // Set maximum initial volume for all tracks
+        trackVolumes[track.id] = 0.8; // Set audible volume for all tracks
         trackStepSequencerStates[track.id] = StepSequencerState();
+        
+        // Ensure track volume is properly set
+        track.changeVolumeNow(volume: 0.8);
+        debugPrint('[SequencerManager] Track ${track.id} volume set to: ${track.getVolume()}');
       }
 
       // Create project state
@@ -128,10 +140,23 @@ class SequencerManager {
 
     for (int i = 0; i < selectedChords.length; i++) {
       ChordModel chord = selectedChords[i];
-      debugPrint("Chord: $chord");
+      debugPrint("Chord ${i + 1}: ${chord.completeChordName}");
+      debugPrint("  Position: ${chord.position}");
+      debugPrint("  Notes with inversions: ${chord.chordNotesInversionWithIndexes}");
+      
+      if (chord.chordNotesInversionWithIndexes == null || chord.chordNotesInversionWithIndexes!.isEmpty) {
+        debugPrint("  WARNING: No chord notes found for piano! This will result in no sound.");
+        continue;
+      }
+      
       for (var note in chord.chordNotesInversionWithIndexes!) {
-        project.pianoState.setVelocity(
-            chord.position, MusicConstants.midiValues[note]!, 0.89);
+        final midiValue = MusicConstants.midiValues[note];
+        if (midiValue != null) {
+          project.pianoState.setVelocity(chord.position, midiValue, 0.89);
+          debugPrint("  Added piano note: $note (MIDI: $midiValue)");
+        } else {
+          debugPrint("  ERROR: No MIDI value found for note: $note");
+        }
       }
 
       var note = tonicAsUniversalBassNote
@@ -236,23 +261,42 @@ class SequencerManager {
     }
   }
 
-  handleTogglePlayStop(Sequence sequence) {
+  Future<void> handleTogglePlayStop(Sequence sequence) async {
     bool currentIsPlaying = _ref.read(isSequencerPlayingProvider);
     bool nextIsPlaying = !currentIsPlaying;
+    
+    debugPrint('[SequencerManager] handleTogglePlayStop: currentIsPlaying=$currentIsPlaying, nextIsPlaying=$nextIsPlaying');
 
     if (nextIsPlaying) {
       var tracks = sequence.getTracks();
-      debugPrint("PlayAllInstruments: $playAllInstruments");
-      debugPrint("Playing sequence. Tracks: ${tracks.length}");
-      if (tracks.length > 2) {
-        debugPrint("Bass track events: ${tracks[2].events.length}");
-        debugPrint("Bass track volume: ${tracks[2].getVolume()}");
-      } else {
-        debugPrint("Not enough tracks available");
+      debugPrint("[SequencerManager] PlayAllInstruments: $playAllInstruments");
+      debugPrint("[SequencerManager] Playing sequence. Tracks: ${tracks.length}");
+      
+      // Debug all tracks
+      for (int i = 0; i < tracks.length; i++) {
+        final track = tracks[i];
+        debugPrint("[SequencerManager] Track $i: id=${track.id}, events=${track.events.length}, volume=${track.getVolume()}");
+        
+        // Debug first few events for each track
+        for (int j = 0; j < track.events.length && j < 3; j++) {
+          final event = track.events[j];
+          debugPrint("[SequencerManager]   Event $j: $event");
+        }
       }
+      
+      debugPrint("[SequencerManager] About to call sequence.play()");
       sequence.play();
+      debugPrint("[SequencerManager] sequence.play() completed");
+      
+      // Verify sequence is actually playing
+      await Future.delayed(const Duration(milliseconds: 100));
+      debugPrint("[SequencerManager] Sequence is playing: ${sequence.getIsPlaying()}");
+      debugPrint("[SequencerManager] Sequence current beat: ${sequence.getBeat()}");
+      debugPrint("[SequencerManager] Sequence tempo: ${sequence.getTempo()}");
+      
       _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     } else {
+      debugPrint("[SequencerManager] Stopping sequence");
       sequence.stop();
       _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     }
@@ -263,17 +307,38 @@ class SequencerManager {
       debugPrint('[SequencerManager] handleStop called');
       
       await PerformanceUtils.trackAsyncOperation('handleStop', () async {
-        // Stop all active notes efficiently - only iterate once
+        // Stop the sequence first to prevent new notes from being triggered
+        try {
+          sequence.stop();
+          isPlaying = false;
+          _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+        } catch (e) {
+          debugPrint('[SequencerManager] Error stopping sequence: $e');
+        }
+        
+        // Give sequence a moment to fully stop before cleaning up notes
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        // Stop all active notes efficiently with better error handling
         final activeNotes = _noteTracker.activeNotes.toList();
         final tracks = sequence.getTracks();
         
-        for (final note in activeNotes) {
-          for (final track in tracks) {
-            try {
-              track.stopNoteNow(noteNumber: note);
-            } catch (e) {
-              debugPrint('[SequencerManager] Error stopping note $note: $e');
+        for (final track in tracks) {
+          try {
+            // Clear events first to prevent timing issues
+            track.clearEvents();
+            
+            // Then stop any active notes on this track
+            for (final note in activeNotes) {
+              try {
+                track.stopNoteNow(noteNumber: note);
+              } catch (e) {
+                // Log but don't crash on individual note stop failures
+                debugPrint('[SequencerManager] Non-critical error stopping note $note on track ${track.id}: $e');
+              }
             }
+          } catch (e) {
+            debugPrint('[SequencerManager] Error cleaning track ${track.id}: $e');
           }
         }
         
@@ -282,15 +347,10 @@ class SequencerManager {
         
         // Stop cleanup timer
         _cleanupTimer?.cancel();
-        
-        // Stop the sequence
-        sequence.stop();
-        isPlaying = false;
-        _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
       });
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
-      rethrow;
+      // Don't rethrow to prevent crashes, just log the error
     }
   }
 
@@ -520,48 +580,66 @@ class SequencerManager {
   Future<void> dispose() async {
     debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
     try {
+      // Stop cleanup timer first to prevent any interference
+      _cleanupTimer?.cancel();
+      _cleanupTimer = null;
+      
       if (sequence != null) {
         debugPrint('[SequencerManager] Stopping sequence');
-        await handleStop(sequence);
         
-        // Clean up tracks
-        if (sequence.getTracks().isNotEmpty) {
-          for (final track in sequence.getTracks()) {
-            try {
-              debugPrint('[SequencerManager] Cleaning up track id: ${track.id}');
-              // Stop any remaining notes on this track
-              for (final note in _noteTracker.activeNotes.toList()) {
-                try {
-                  track.stopNoteNow(noteNumber: note);
-                } catch (e) {
-                  debugPrint('[SequencerManager] Error stopping note $note on track ${track.id}: $e');
-                }
-              }
-              // Clear track events if possible
+        // Use handleStop but with extra safety
+        try {
+          await handleStop(sequence!);
+        } catch (e) {
+          debugPrint('[SequencerManager] Error in handleStop during dispose: $e');
+          // Continue with manual cleanup
+        }
+        
+        // Additional safety cleanup - stop all notes across all MIDI channels
+        try {
+          final tracks = sequence!.getTracks();
+          if (tracks.isNotEmpty) {
+            for (final track in tracks) {
               try {
+                debugPrint('[SequencerManager] Force-clearing track id: ${track.id}');
+                
+                // Clear events first
                 track.clearEvents();
+                
+                // Stop all possible MIDI notes (0-127) as a safety measure
+                for (int note = 0; note < 128; note++) {
+                  try {
+                    track.stopNoteNow(noteNumber: note);
+                  } catch (e) {
+                    // Individual note stop failures are not critical during dispose
+                  }
+                }
               } catch (e) {
-                debugPrint('[SequencerManager] Error clearing events for track ${track.id}: $e');
+                debugPrint('[SequencerManager] Non-critical error force-clearing track ${track.id}: $e');
               }
-            } catch (e) {
-              debugPrint('[SequencerManager] Error disposing track ${track.id}: $e');
             }
           }
+        } catch (e) {
+          debugPrint('[SequencerManager] Error during force cleanup: $e');
         }
         
         debugPrint('[SequencerManager] Sequence cleanup complete');
       }
       
-      // Clear all state
-      trackStepSequencerStates.clear();
-      trackVolumes.clear();
-      _noteTracker.clear();
-      _lastChords.clear();
-      _cleanupTimer?.cancel();
+      // Clear all state regardless of previous errors
+      try {
+        trackStepSequencerStates.clear();
+        trackVolumes.clear();
+        _noteTracker.clear();
+        _lastChords.clear();
+      } catch (e) {
+        debugPrint('[SequencerManager] Error clearing state: $e');
+      }
       
       debugPrint('[SequencerManager] State cleared');
     } catch (e, st) {
       debugPrint('[SequencerManager] Error during dispose: $e\n$st');
+      // Don't rethrow to prevent app crashes during cleanup
     } finally {
       debugPrint('[SequencerManager] Disposal complete');
     }

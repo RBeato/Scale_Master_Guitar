@@ -23,12 +23,7 @@ class FretboardPage extends ConsumerWidget {
     // Obtain a copy of ChordScaleFingeringsModel specific to this page
     final fretboardFingerings = ref.watch(fretboardPageFingeringsProvider);
 
-    return WillPopScope(
-      onWillPop: () {
-        Navigator.of(context).pop();
-        return Future.value(true);
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.grey[900],
         appBar: AppBar(
           leading: IconButton(
@@ -41,7 +36,6 @@ class FretboardPage extends ConsumerWidget {
           title: const PlayerPageTitle(),
         ),
         body: FretboardFull(fingeringsModel: fretboardFingerings),
-      ),
-    );
+      );
   }
 }

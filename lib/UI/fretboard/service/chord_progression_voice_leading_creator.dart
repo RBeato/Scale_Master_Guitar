@@ -41,12 +41,10 @@ class VoiceLeadingCreator {
     reorderedChordNotes.sort(
         (a, b) => MusicUtils.getNoteIndex(a) - MusicUtils.getNoteIndex(b));
 
-    addOctaveIndexes(reorderedChordNotes);
-
-    lastChord.chordNotesInversionWithIndexes = reorderedChordNotes;
+    lastChord.chordNotesInversionWithIndexes = addOctaveIndexes(reorderedChordNotes);
   }
 
-  static addOctaveIndexes(List<String> reorderedNotes) {
+  static List<String> addOctaveIndexes(List<String> reorderedNotes) {
     int octave = 4;
     int prevNoteIndex = -1;
 

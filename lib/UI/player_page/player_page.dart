@@ -10,6 +10,7 @@ import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provid
 
 import '../../models/chord_scale_model.dart';
 import '../../models/progression_model.dart';
+import '../progression_library/progression_library_page.dart';
 import '../chords/chords.dart';
 import '../fretboard/UI/fretboard_neck.dart';
 import '../fretboard_page/fretboard_page.dart';
@@ -50,13 +51,25 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
   }
   
   void _loadProgression(ProgressionModel progression) {
+    debugPrint('[PlayerPage] Loading progression: ${progression.name} with ${progression.chords.length} chords');
+    
     // Clear existing chords first
     ref.read(selectedChordsProvider.notifier).removeAll();
     
-    // Add each chord from the progression
-    for (final chord in progression.chords) {
-      ref.read(selectedChordsProvider.notifier).addChord(chord);
-    }
+    // Add a small delay to ensure the clear operation completes
+    Future.delayed(const Duration(milliseconds: 100), () {
+      // Add each chord from the progression
+      for (final chord in progression.chords) {
+        debugPrint('[PlayerPage] Adding loaded chord: ${chord.completeChordName}');
+        debugPrint('[PlayerPage] Chord notes before adding: ${chord.chordNotesInversionWithIndexes}');
+        ref.read(selectedChordsProvider.notifier).addChord(chord);
+      }
+      
+      // Force a rebuild to ensure the PlayerWidget initializes with the new chords
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
   
   // Helper method to clean up resources
@@ -67,14 +80,14 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     try {
       // Stop the sequencer if it's playing
       final isPlaying = ref.read(isSequencerPlayingProvider);
-      if (isPlaying) {
+      if (isPlaying && sequencerManager.sequence != null) {
         debugPrint('[PlayerPage] Stopping sequencer during cleanup');
-        await sequencerManager.handleStop(sequencerManager.sequence);
+        await sequencerManager.handleStop(sequencerManager.sequence!);
         ref.read(isSequencerPlayingProvider.notifier).state = false;
       }
       
-      // Clear any selected chords
-      ref.read(selectedChordsProvider.notifier).removeAll();
+      // NOTE: Don't clear chords during navigation cleanup!
+      // The chords should persist unless user explicitly clears them
       
       debugPrint('[PlayerPage] Cleanup completed');
     } catch (e, st) {
@@ -100,12 +113,13 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     debugPrint('[PlayerPage] sequencerManager.sequence: \\${sequencerManager.sequence}');
     // debugPrint('[PlayerPage] fingerings state: \\${fingerings}');
 
-    // WillPopScope ensures cleanup before navigation
-    return WillPopScope(
-      onWillPop: () async {
-        debugPrint('[PlayerPage] WillPopScope triggered');
-        await _cleanupResources();
-        return true;
+    // PopScope for back button handling
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          debugPrint('[PlayerPage] PopScope triggered - navigation handled');
+          // Don't clear user data on navigation
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.grey[900],
@@ -114,21 +128,30 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
           title: const PlayerPageTitle(),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () async {
+            onPressed: () {
               debugPrint('[PlayerPage] Back button pressed');
-              await _cleanupResources();
-              if (context.mounted) {
-                Navigator.of(context).pop();
-                debugPrint('[PlayerPage] Navigated back');
-              }
+              // Just navigate - don't clear user data
+              Navigator.of(context).pop();
+              debugPrint('[PlayerPage] Navigated back');
             },
           ),
           actions: [
             IconButton(
-              onPressed: () async {
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProgressionLibraryPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.library_music, color: Colors.white),
+            ),
+            IconButton(
+              onPressed: () {
                 debugPrint('[PlayerPage] Forward button pressed');
                 
-                // Update fingerings if available
+                // Update fingerings if available - do this immediately
                 final fingeringsValue = fingerings.value;
                 if (fingeringsValue != null && fingeringsValue.scaleModel != null) {
                   if (fingeringsValue.scaleModel!.scaleNotesNames.take(5).any((s) => s.contains('♭'))) {
@@ -138,15 +161,10 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                   ref.read(fretboardPageFingeringsProvider.notifier).update(fingeringsValue);
                 }
 
-                // Clean up resources before navigation
-                await _cleanupResources();
-                
-                // Navigate to FretboardPage
-                if (context.mounted) {
-                  await Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const FretboardPage()));
-                  debugPrint('[PlayerPage] Navigated forward to FretboardPage');
-                }
+                // Navigate without clearing user data
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const FretboardPage()));
+                debugPrint('[PlayerPage] Navigated forward to FretboardPage');
               },
               icon: const Icon(Icons.arrow_forward_ios,
                   color: Colors.orangeAccent),

@@ -87,12 +87,18 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     tempo = ref.read(metronomeTempoProvider);
     sequence = Sequence(tempo: tempo, endBeat: calculatedStepCount.toDouble());
 
+    final instruments = SoundPlayerUtils.getInstruments(widget.settings);
+    debugPrint('[PlayerWidget] Available instruments: ${instruments.length}');
+    for (int i = 0; i < instruments.length; i++) {
+      debugPrint('[PlayerWidget] Instrument $i: ${instruments[i].toString()}');
+    }
+    
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: calling sequencerManager.initialize');
     tracks = await sequencerManager.initialize(
       tracks: tracks, 
       sequence: sequence!, 
       playAllInstruments: true, 
-      instruments: SoundPlayerUtils.getInstruments(widget.settings),
+      instruments: instruments,
       isPlaying: ref.read(isSequencerPlayingProvider), 
       stepCount: calculatedStepCount, 
       trackVolumes: trackVolumes,
@@ -104,6 +110,12 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       tempo: tempo, 
     );
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: sequencerManager.initialize complete, tracks.length = ${tracks.length}');
+    
+    // Debug track information
+    for (int i = 0; i < tracks.length; i++) {
+      final track = tracks[i];
+      debugPrint('[PlayerWidget] Track $i: id=${track.id}, events=${track.events.length}');
+    }
 
     // Dispose old ticker if exists before creating a new one
     if (ticker != null && ticker!.isActive) {
@@ -149,10 +161,20 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   // Replace initializeSequencer and getSequencer with a single method that does full init
   Future<void> _performFullSequencerReinitialization({required List<ChordModel> newChords}) async {
     debugPrint('[PlayerWidget] _performFullSequencerReinitialization: start with ${newChords.length} chords');
+    
+    // Debug chord content
+    for (int i = 0; i < newChords.length; i++) {
+      final chord = newChords[i];
+      debugPrint('[PlayerWidget] Chord $i: ${chord.completeChordName}');
+      debugPrint('[PlayerWidget] Chord $i notes: ${chord.chordNotesInversionWithIndexes}');
+      debugPrint('[PlayerWidget] Chord $i position: ${chord.position}, duration: ${chord.duration}');
+    }
+    
     if (!mounted) return;
     
     // Only show loading state if we're not just adding chords (i.e., initial load)
     final bool isInitializing = sequence == null || tracks.isEmpty;
+    debugPrint('[PlayerWidget] isInitializing: $isInitializing, sequence: ${sequence != null}, tracks.length: ${tracks.length}');
     
     if (isInitializing) {
       setState(() {
@@ -161,6 +183,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     }
 
     if (sequence != null) {
+      debugPrint('[PlayerWidget] Stopping existing sequence');
       sequencerManager.handleStop(sequence!); 
     }
     if (ticker != null && ticker!.isActive) {
@@ -169,7 +192,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       ticker = null;
     }
 
+    debugPrint('[PlayerWidget] About to call _initializeAndSetupTicker');
     await _initializeAndSetupTicker(chordsToProcess: newChords); // Pass newChords
+    debugPrint('[PlayerWidget] _initializeAndSetupTicker completed');
 
     if (!mounted) return;
     if (isInitializing) {
@@ -185,53 +210,43 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
     try {
       // Dispose debouncer first
-      _chordChangeDebouncer.dispose();
+      try {
+        _chordChangeDebouncer.dispose();
+      } catch (e) {
+        debugPrint('[PlayerWidget] Error disposing debouncer: $e');
+      }
+      
       // Stop the ticker first
       if (ticker != null) {
-        if (ticker!.isActive) {
-          ticker!.stop();
+        try {
+          if (ticker!.isActive) {
+            ticker!.stop();
+          }
+          ticker!.dispose();
+          ticker = null;
+        } catch (e) {
+          debugPrint('[PlayerWidget] Error disposing ticker: $e');
         }
-        ticker!.dispose();
-        ticker = null;
       }
       
-      // Stop any playing audio and clean up the sequencer
+      // Don't dispose sequencer manager immediately as it might be reused
+      // The sequencer should only be cleaned up when truly leaving the player context
       if (sequence != null) {
         try {
-          // Stop the sequence if it's playing
-          if (sequence!.getIsPlaying()) {
-            sequence!.stop();
-          }
-          
-          // Stop all active notes on all tracks
-          for (final track in sequence!.getTracks()) {
-            try {
-              // Clear any pending events
-              track.clearEvents();
-              
-              // Stop any playing notes
-              for (int note = 0; note < 128; note++) {
-                try {
-                  track.stopNoteNow(noteNumber: note);
-                } catch (e) {
-                  debugPrint('[PlayerWidget] Error stopping note $note: $e');
-                }
-              }
-            } catch (e) {
-              debugPrint('[PlayerWidget] Error cleaning up track: $e');
-            }
-          }
-          
-          // Sequence cleanup complete
-        } catch (e, st) {
-          debugPrint('[PlayerWidget] Error stopping sequence: $e\n$st');
+          sequencerManager.handleStop(sequence!);
+        } catch (e) {
+          debugPrint('[PlayerWidget] Error stopping sequence: $e');
         }
       }
       
-      // Clear track references
-      tracks.clear();
-      trackStepSequencerStates.clear();
-      trackVolumes.clear();
+      // Clear track references safely
+      try {
+        tracks.clear();
+        trackStepSequencerStates.clear();
+        trackVolumes.clear();
+      } catch (e) {
+        debugPrint('[PlayerWidget] Error clearing collections: $e');
+      }
       
       debugPrint('[PlayerWidget] Cleanup complete');
     } catch (e, st) {
@@ -244,34 +259,37 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[PlayerWidget] build called. isLoading: $isLoading');
+    // debugPrint('[PlayerWidget] build called. isLoading: $isLoading');
     // Watch essential providers that trigger UI changes or logic
     final isPlayingState = ref.watch(isSequencerPlayingProvider);
     final metronomeTempoState = ref.watch(metronomeTempoProvider);
     // currentBeat is watched by specific UI parts if needed, or use this.position
 
-    // Listener for selectedChords changes with debouncing
-    ref.listen<List<ChordModel>>(selectedChordsProvider, (previousChords, nextChords) {
-      debugPrint('[PlayerWidget] selectedChordsProvider listener: prev=${previousChords?.length}, next=${nextChords.length}');
+    // Optimized: Split complex listener into simpler, more specific listeners
+    
+    // Listen for chord count changes
+    ref.listen<int>(selectedChordsProvider.select((chords) => chords.length), (prevCount, nextCount) {
+      debugPrint('[PlayerWidget] Chord count changed: $prevCount -> $nextCount');
       
-      // Skip reinitialization if we're just adding a chord (nextChords is one longer than previous)
-      final isJustAddingChord = previousChords != null && 
-                              nextChords.length == previousChords.length + 1 &&
-                              nextChords.sublist(0, previousChords.length).every(
-                                (chord) => previousChords.contains(chord)
-                              );
+      final nextChords = ref.read(selectedChordsProvider);
       
-      if (isJustAddingChord) {
-        debugPrint('[PlayerWidget] Just adding a chord, skipping full reinitialization');
-        // Just update the sequence with the new chord without showing loading state
+      // Handle loading progression (0 -> many chords)
+      if (prevCount == 0 && nextCount > 0) {
+        debugPrint('[PlayerWidget] Loading progression with $nextCount chords');
+        if (!isLoading) {
+          _performFullSequencerReinitialization(newChords: nextChords);
+        }
+      }
+      // Handle adding single chord (increment by 1)
+      else if (prevCount != null && nextCount == prevCount + 1 && !isLoading) {
+        debugPrint('[PlayerWidget] Adding single chord');
         _updateSequenceWithNewChord(nextChords);
-      } else if (!isLoading) {
-        // Use debouncing for performance optimization
+      }
+      // Handle other changes (clearing, removing chords, etc.)
+      else if (!isLoading && nextCount != prevCount) {
         _chordChangeDebouncer.run(() {
           _performFullSequencerReinitialization(newChords: nextChords);
         });
-      } else {
-        debugPrint('[PlayerWidget] selectedChordsProvider listener: SKIPPING re-init, isLoading is true.');
       }
     });
 
@@ -296,7 +314,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         }
     });
 
-    debugPrint('[PlayerWidget] returning ChordPlayerBar. isPlayingState: $isPlayingState, isLoading: $isLoading');
+    // debugPrint('[PlayerWidget] returning ChordPlayerBar. isPlayingState: $isPlayingState, isLoading: $isLoading');
     return ChordPlayerBar(
       selectedTrack: tracks.isEmpty ? null : tracks[0], // This needs careful review if tracks can be empty
       isLoading: isLoading,
@@ -317,10 +335,17 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       },
       handleTogglePlayStop: () {
         debugPrint('[PlayerWidget] handleTogglePlayStop UI action');
+        debugPrint('[PlayerWidget] sequence != null: ${sequence != null}');
+        debugPrint('[PlayerWidget] !isLoading: ${!isLoading}');
+        debugPrint('[PlayerWidget] tracks.length: ${tracks.length}');
+        
         if (sequence != null && !isLoading) {
-            debouncing_utils.Debouncer.handleButtonPress(() {
-                sequencerManager.handleTogglePlayStop(sequence!); 
+            debugPrint('[PlayerWidget] Calling sequencerManager.handleTogglePlayStop');
+            debouncing_utils.Debouncer.handleButtonPress(() async {
+                await sequencerManager.handleTogglePlayStop(sequence!); 
             });
+        } else {
+            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading');
         }
       },
     );

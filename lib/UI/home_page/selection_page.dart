@@ -4,6 +4,7 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
 import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
 
 import '../chromatic_wheel/provider/top_note_provider.dart';
+import '../fretboard/provider/fingerings_provider.dart';
 import '../player_page/player_page.dart';
 import '../scale_selection_dropdowns/scale_selection.dart';
 import 'wheel_piano_widget.dart';
@@ -30,8 +31,12 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
         actions: [
           IconButton(
             onPressed: () {
+              // Ensure fingerings provider is warmed up before navigation
+              final fingerings = ref.read(chordModelFretboardFingeringProvider);
+              
+              // Navigate immediately - PlayerPage will handle loading states properly
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => PlayerPage()));
+                  MaterialPageRoute(builder: (context) => const PlayerPage()));
             },
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
           ),

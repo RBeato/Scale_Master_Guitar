@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
 import 'package:scalemasterguitar/UI/progression_library/widgets/save_progression_dialog.dart';
-import 'package:scalemasterguitar/UI/progression_library/progression_library_page.dart';
 
 import '../chords_list.dart';
 import '../metronome/metronome_display.dart';
@@ -140,44 +139,27 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
               ),
             ),
           ),
+          // Save button - positioned near metronome
           Positioned(
             top: 0,
-            right: 0,
-            child: MetronomeButton(),
-          ),
-          
-          // Save button
-          Positioned(
-            bottom: 0,
-            left: 60,
+            right: 50,
             child: Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
                 onTap: () => _showSaveDialog(context, selectedChords),
                 child: const Icon(
                   Icons.save,
                   color: Colors.white70,
-                  size: 30,
+                  size: 24,
                 ),
               ),
             ),
           ),
           
-          // Library button
           Positioned(
-            bottom: 0,
-            left: 100,
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: GestureDetector(
-                onTap: () => _showLibrary(context),
-                child: const Icon(
-                  Icons.library_music,
-                  color: Colors.white70,
-                  size: 30,
-                ),
-              ),
-            ),
+            top: 0,
+            right: 0,
+            child: MetronomeButton(),
           ),
         ],
       ),
@@ -203,12 +185,4 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
     );
   }
 
-  void _showLibrary(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ProgressionLibraryPage(),
-      ),
-    );
-  }
 }
