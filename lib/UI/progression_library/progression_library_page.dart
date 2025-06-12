@@ -7,6 +7,9 @@ import 'package:scalemasterguitar/providers/progression_library_provider.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
 import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
 import '../player_page/player_page.dart';
+import '../home_page/selection_page.dart';
+import '../../services/feature_restriction_service.dart';
+import '../common/upgrade_prompt.dart';
 
 class ProgressionLibraryPage extends ConsumerStatefulWidget {
   const ProgressionLibraryPage({super.key});
@@ -32,6 +35,91 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
   Widget build(BuildContext context) {
     final libraryState = ref.watch(progressionLibraryProvider);
     final progressionNotifier = ref.read(progressionLibraryProvider.notifier);
+    final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
+
+    // Check premium access first
+    if (!canSaveProgressions) {
+      return ScreenWithBannerAd(
+        backgroundColor: Colors.grey[900],
+        appBar: AppBar(
+          backgroundColor: Colors.grey[800],
+          title: const Text(
+            "Progression Library",
+            style: TextStyle(color: Colors.orange),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const SelectionPage()),
+              );
+            },
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.library_music,
+                  size: 80,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Premium Feature',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  FeatureRestrictionService.getProgressionSaveRestrictionMessage(),
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    UpgradePrompt.showUpgradeDialog(context);
+                  },
+                  icon: const Icon(Icons.star),
+                  label: const Text('Upgrade to Premium'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SelectionPage()),
+                    );
+                  },
+                  child: const Text(
+                    'Back to Main App',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     // Filter and sort progressions
     final filteredProgressions = _searchQuery.isEmpty
@@ -47,6 +135,15 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
           style: TextStyle(color: Colors.orange),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SelectionPage()),
+            );
+          },
+        ),
         actions: [
           // Sort button
           PopupMenuButton<ProgressionSortType>(
@@ -221,7 +318,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
           if (_searchQuery.isEmpty)
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const PlayerPage()),
                 );
@@ -257,7 +354,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
 
   void _loadProgression(ProgressionModel progression) {
     // Navigate to player page and load the progression
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => PlayerPage(initialProgression: progression),

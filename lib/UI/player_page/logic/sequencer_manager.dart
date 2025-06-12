@@ -17,6 +17,7 @@ import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/performance_utils.dart';
 import 'dart:async';
+import 'dart:io';
 
 final sequencerManagerProvider = Provider((ref) => SequencerManager(ref));
 
@@ -97,8 +98,12 @@ class SequencerManager {
     try {
       // Create tracks
       List<Track> createdTracks = await sequence.createTracks(instruments);
-      // Wait for SoundFont to load (workaround for plugin race condition)
-      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Wait for SoundFont to load - iOS needs more time for proper audio loading
+      final loadingDelay = Platform.isIOS ? 1500 : 500;
+      debugPrint('[SequencerManager] Waiting ${loadingDelay}ms for SoundFont loading on ${Platform.operatingSystem}');
+      await Future.delayed(Duration(milliseconds: loadingDelay));
+      
       this.tracks = createdTracks;
       selectedTrack = this.tracks[0];
 
@@ -109,6 +114,15 @@ class SequencerManager {
         // Ensure track volume is properly set
         track.changeVolumeNow(volume: 0.8);
         debugPrint('[SequencerManager] Track ${track.id} volume set to: ${track.getVolume()}');
+        
+        // Debug instrument info for piano sound quality issues
+        debugPrint('[SequencerManager] Track ${track.id} instrument info:');
+        try {
+          // These are hypothetical methods - actual methods may vary
+          debugPrint('[SequencerManager] Track ${track.id} instrument type: ${track.runtimeType}');
+        } catch (e) {
+          debugPrint('[SequencerManager] Could not get instrument info: $e');
+        }
       }
 
       // Create project state
@@ -161,7 +175,7 @@ class SequencerManager {
       for (var note in chord.chordNotesInversionWithIndexes!) {
         final midiValue = MusicConstants.midiValues[note];
         if (midiValue != null) {
-          project.pianoState.setVelocity(chord.position, midiValue, 0.89);
+          project.pianoState.setVelocity(chord.position, midiValue, 0.95);
           debugPrint("  Added piano note: $note (MIDI: $midiValue)");
         } else {
           debugPrint("  ERROR: No MIDI value found for note: $note");
@@ -260,7 +274,7 @@ class SequencerManager {
       }
       
       final Stopwatch stopwatch = Stopwatch()..start();
-      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.60);
+      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.85);
       stopwatch.stop();
       
       // Only add to tracking AFTER successful start
@@ -627,13 +641,19 @@ class SequencerManager {
   }
 
   void clearEverything(List<Track> tracksToClear, Sequence sequence) {
+    // Simple approach - just stop sequence and clear track events
     sequence.stop();
+    
+    // Clear events from tracks without destroying them
     for (var track in tracksToClear) {
+      track.clearEvents();
       trackStepSequencerStates[track.id] = StepSequencerState();
-      _syncTrack(track);
     }
-    tracksToClear.clear(); // Clear all tracks
-    _handleStepCountChange(0, tracksToClear, sequence); // Reset the step count to 0
+    
+    // Don't clear the tracks list itself to avoid resetTrack crashes
+    // tracksToClear.clear(); // REMOVED - this causes crashes
+    
+    _handleStepCountChange(0, tracksToClear, sequence);
   }
 
   bool needToUpdateSequencer(

@@ -19,6 +19,9 @@ import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../scale_selection_dropdowns/provider/scale_dropdown_value_provider.dart';
 import '../scale_selection_dropdowns/provider/mode_dropdown_value_provider.dart';
 import '../fretboard/provider/beat_counter_provider.dart';
+import '../home_page/selection_page.dart';
+import '../../services/feature_restriction_service.dart';
+import '../../UI/common/upgrade_prompt.dart';
 
 class PlayerPage extends ConsumerWidget {
   final ProgressionModel? initialProgression;
@@ -67,14 +70,20 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
       // Validate each chord has required data
       for (int i = 0; i < progression.chords.length; i++) {
         final chord = progression.chords[i];
-        if (chord.completeChordName == null || chord.completeChordName!.isEmpty) {
+        if (chord.completeChordName?.isEmpty ?? true) {
           debugPrint('[PlayerPage] ERROR: Chord $i has invalid name: ${chord.completeChordName}');
           return;
         }
-        if (chord.selectedChordPitches == null || chord.selectedChordPitches!.isEmpty) {
+        if (chord.selectedChordPitches?.isEmpty ?? true) {
           debugPrint('[PlayerPage] ERROR: Chord $i has no pitches: ${chord.selectedChordPitches}');
           return;
         }
+      }
+      
+      // Check if widget is still mounted before proceeding
+      if (!mounted) {
+        debugPrint('[PlayerPage] Widget not mounted, aborting progression load');
+        return;
       }
       
       // Clear existing chords first
@@ -96,10 +105,16 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
       
       // Add a small delay to ensure the clear operation and scale updates complete
       Future.delayed(const Duration(milliseconds: 150), () {
+        // Double-check widget is still mounted before proceeding with async operation  
+        if (!mounted) {
+          debugPrint('[PlayerPage] Widget unmounted during async load, aborting');
+          return;
+        }
+        
         try {
-          // Log progression details
+          // Log progression details with null safety
           for (final chord in progression.chords) {
-            debugPrint('[PlayerPage] Loaded chord: ${chord.completeChordName}');
+            debugPrint('[PlayerPage] Loaded chord: ${chord.completeChordName ?? "Unknown"}');
             debugPrint('[PlayerPage] Chord notes: ${chord.chordNotesInversionWithIndexes}');
           }
           
@@ -183,22 +198,65 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
               // Cleanup sequencer but preserve user chords
               await _cleanupResources();
               if (context.mounted) {
-                Navigator.of(context).pop();
-                debugPrint('[PlayerPage] Navigated back');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SelectionPage()),
+                );
+                debugPrint('[PlayerPage] Navigated back to selection page');
               }
             },
           ),
           actions: [
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProgressionLibraryPage(),
+            Consumer(
+              builder: (context, ref, child) {
+                final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
+                
+                return IconButton(
+                  onPressed: () {
+                    if (!canSaveProgressions) {
+                      UpgradePrompt.showUpgradeAlert(
+                        context,
+                        title: 'Premium Feature',
+                        message: FeatureRestrictionService.getProgressionSaveRestrictionMessage(),
+                      );
+                      return;
+                    }
+                    
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProgressionLibraryPage(),
+                      ),
+                    );
+                  },
+                  icon: Stack(
+                    children: [
+                      Icon(
+                        Icons.library_music, 
+                        color: canSaveProgressions ? Colors.white : Colors.grey[600]
+                      ),
+                      if (!canSaveProgressions)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              color: Colors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.star,
+                              color: Colors.white,
+                              size: 8,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },
-              icon: const Icon(Icons.library_music, color: Colors.white),
             ),
             IconButton(
               onPressed: () async {

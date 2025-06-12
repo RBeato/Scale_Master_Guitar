@@ -123,9 +123,9 @@ class ProgressionModel {
   String get chordsPreview {
     if (chords.isEmpty) return 'No chords';
     if (chords.length <= 4) {
-      return chords.map((c) => c.completeChordName).join(' - ');
+      return chords.map((c) => c.completeChordName ?? 'Unknown').join(' - ');
     }
-    return chords.take(3).map((c) => c.completeChordName).join(' - ') + '...';
+    return '${chords.take(3).map((c) => c.completeChordName ?? 'Unknown').join(' - ')}...';
   }
 
   // Check if progression is empty

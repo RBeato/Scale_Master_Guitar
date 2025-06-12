@@ -49,6 +49,11 @@ class FeatureRestrictionService {
     return entitlement.showAds;
   }
 
+  /// Returns true if user can save progressions
+  static bool canSaveProgressions(Entitlement entitlement) {
+    return entitlement.isPremium;
+  }
+
   /// Get upgrade message for a restricted feature
   static String getUpgradeMessage(String featureName) {
     return 'Upgrade to Premium to access $featureName';
@@ -68,6 +73,11 @@ class FeatureRestrictionService {
   static String getAudioRestrictionMessage() {
     return 'Upgrade to Premium to use audio playback features';
   }
+
+  /// Get progression saving restriction message
+  static String getProgressionSaveRestrictionMessage() {
+    return 'Upgrade to Premium to save and manage chord progressions';
+  }
 }
 
 /// Provider for easy access to feature restrictions throughout the app
@@ -83,6 +93,8 @@ final featureRestrictionProvider = Provider.family<bool, String>((ref, feature) 
       return FeatureRestrictionService.shouldShowAds(entitlement);
     case 'full_scale_access':
       return entitlement.hasFullScaleAccess;
+    case 'save_progressions':
+      return FeatureRestrictionService.canSaveProgressions(entitlement);
     default:
       return false;
   }

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
 import 'package:scalemasterguitar/UI/progression_library/widgets/save_progression_dialog.dart';
+import 'package:scalemasterguitar/services/feature_restriction_service.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/UI/common/upgrade_prompt.dart';
 
 import '../chords_list.dart';
 import '../metronome/metronome_display.dart';
@@ -38,6 +41,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   @override
   Widget build(BuildContext context) {
     final selectedChords = ref.watch(selectedChordsProvider);
+    final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
 
     // Reset _showNoChordSelected when there are changes in selectedChords
     if (selectedChords.isNotEmpty) {
@@ -147,10 +151,32 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
                 onTap: () => _showSaveDialog(context, selectedChords),
-                child: const Icon(
-                  Icons.save,
-                  color: Colors.white70,
-                  size: 24,
+                child: Stack(
+                  children: [
+                    Icon(
+                      Icons.save,
+                      color: canSaveProgressions ? Colors.white70 : Colors.grey[600],
+                      size: 24,
+                    ),
+                    if (!canSaveProgressions)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.star,
+                            color: Colors.white,
+                            size: 8,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -167,6 +193,18 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
   }
 
   void _showSaveDialog(BuildContext context, List<dynamic> selectedChords) {
+    final entitlement = ref.read(revenueCatProvider);
+    final canSave = FeatureRestrictionService.canSaveProgressions(entitlement);
+    
+    if (!canSave) {
+      UpgradePrompt.showUpgradeAlert(
+        context,
+        title: 'Premium Feature',
+        message: FeatureRestrictionService.getProgressionSaveRestrictionMessage(),
+      );
+      return;
+    }
+    
     if (selectedChords.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

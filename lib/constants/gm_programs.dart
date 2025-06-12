@@ -128,8 +128,8 @@ const Map<String, int> gmProgramNumbers = {
   'Helicopter': 125,
   'Applause': 126,
   'Gunshot': 127,
-  // App-specific mappings
-  'Piano': 0,
+  // App-specific mappings - using Electric Piano 1 for Piano to fix iOS issues
+  'Piano': 4, // Changed from 0 to 4 (Electric Piano 1) for better iOS compatibility
   'Rhodes': 4,
   'Organ': 16,
   'Pad': 88,

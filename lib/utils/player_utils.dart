@@ -45,7 +45,20 @@ class SoundPlayerUtils {
       material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
       throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
     }
-    material.debugPrint('[SoundPlayerUtils] Using instrument: $instrument, instSound: $instSound, presetIndex: $presetIndex, soundFont: $soundFontPath');
+    
+    // Enhanced debugging for piano sound quality issues
+    material.debugPrint('[SoundPlayerUtils] Creating instrument:');
+    material.debugPrint('[SoundPlayerUtils]   Type: $instrument');
+    material.debugPrint('[SoundPlayerUtils]   Sound: $instSound');
+    material.debugPrint('[SoundPlayerUtils]   PresetIndex: $presetIndex');
+    material.debugPrint('[SoundPlayerUtils]   SoundFont: $soundFontPath');
+    
+    // For piano specifically, add extra debugging
+    if (instrument == SettingsSelection.keyboardSound && gmName == 'Piano') {
+      material.debugPrint('[SoundPlayerUtils] PIANO: Using GM Piano preset $presetIndex (Electric Piano 1 for iOS compatibility)');
+      material.debugPrint('[SoundPlayerUtils] PIANO: SoundFont path is assets/sounds/sf2/GeneralUser-GS.sf2');
+    }
+    
     return Sf2Instrument(
       path: soundFontPath,
       isAsset: true,

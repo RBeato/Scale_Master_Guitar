@@ -14,6 +14,8 @@ import '../../../constants.dart';
 import '../../../models/settings_model.dart';
 import '../../../models/step_sequencer_state.dart';
 import '../../fretboard/provider/beat_counter_provider.dart';
+import '../../drawer/provider/settings_state_notifier.dart';
+import '../../drawer/models/settings_state.dart';
 
 import '../../utils/debouncing.dart' as debouncing_utils;
 import '../../../utils/performance_utils.dart';
@@ -49,7 +51,6 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
-  bool _isDisposed = false;
   
   // Add debouncer for performance optimization
   late Debouncer _chordChangeDebouncer;
@@ -60,9 +61,19 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     super.initState();
     sequencerManager = ref.read(sequencerManagerProvider);
     _chordChangeDebouncer = Debouncer(milliseconds: 300);
-    // initializeSequencer(); // Defer to first chord or explicit play action
-    // Initial setup might not need full sequencer init if no chords are present initially
-    // Consider if Ticker should only start when sequence is actually ready and playing.
+    
+    // Check if chords already exist when widget is created (e.g., returning from navigation)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final existingChords = ref.read(selectedChordsProvider);
+        if (existingChords.isNotEmpty) {
+          debugPrint('[PlayerWidget] initState: Found ${existingChords.length} existing chords, initializing sequencer');
+          _performFullSequencerReinitialization(newChords: existingChords);
+        } else {
+          debugPrint('[PlayerWidget] initState: No existing chords found');
+        }
+      }
+    });
   }
 
   Future<void> _initializeAndSetupTicker({required List<ChordModel> chordsToProcess}) async {
@@ -88,7 +99,17 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     tempo = ref.read(metronomeTempoProvider);
     sequence = Sequence(tempo: tempo, endBeat: calculatedStepCount.toDouble());
 
-    final instruments = SoundPlayerUtils.getInstruments(widget.settings);
+    // Get current settings from provider instead of using static widget.settings
+    final currentSettingsState = ref.read(settingsStateNotifierProvider);
+    Settings currentSettings;
+    if (currentSettingsState is SettingsLoaded) {
+      currentSettings = currentSettingsState.settings;
+    } else {
+      // Fallback to widget settings if provider isn't loaded yet
+      currentSettings = widget.settings;
+    }
+    
+    final instruments = SoundPlayerUtils.getInstruments(currentSettings);
     debugPrint('[PlayerWidget] Available instruments: ${instruments.length}');
     for (int i = 0; i < instruments.length; i++) {
       debugPrint('[PlayerWidget] Instrument $i: ${instruments[i].toString()}');
@@ -107,7 +128,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       selectedChords: chordsToProcess, // Use passed chordsToProcess
       isLoading: isLoading, 
       isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
-      isScaleTonicSelected: widget.settings.isTonicUniversalBassNote,
+      isScaleTonicSelected: currentSettings.isTonicUniversalBassNote,
       tempo: tempo, 
     );
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: sequencerManager.initialize complete, tracks.length = ${tracks.length}');
@@ -148,7 +169,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
 
       if (mounted) {
           setState(() {
-            this.position = currentPluginBeat;
+            position = currentPluginBeat;
             // isLoading = false; // isLoading should be managed by the async operations themselves
           });
       }
@@ -225,7 +246,6 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   @override
   void dispose() {
     debugPrint('[PlayerWidget] Disposing: stopping sequencer and cleaning up tracks');
-    _isDisposed = true;
     
     try {
       // Dispose debouncer first
@@ -286,6 +306,28 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
 
     // Optimized: Split complex listener into simpler, more specific listeners
     
+    // Listen for settings changes - specifically keyboard sound changes
+    ref.listen<SettingsState>(settingsStateNotifierProvider, (previous, next) {
+      debugPrint('[PlayerWidget] Settings state changed: ${next.runtimeType}');
+      
+      if (previous is SettingsLoaded && next is SettingsLoaded) {
+        final prevKeyboardSound = previous.settings.keyboardSound;
+        final nextKeyboardSound = next.settings.keyboardSound;
+        
+        if (prevKeyboardSound != nextKeyboardSound) {
+          debugPrint('[PlayerWidget] Keyboard sound changed: $prevKeyboardSound -> $nextKeyboardSound');
+          
+          if (!isLoading) {
+            final currentChords = ref.read(selectedChordsProvider);
+            if (currentChords.isNotEmpty) {
+              debugPrint('[PlayerWidget] Reinitializing sequencer due to keyboard sound change');
+              _performFullSequencerReinitialization(newChords: currentChords);
+            }
+          }
+        }
+      }
+    });
+
     // Listen for chord count changes
     ref.listen<int>(selectedChordsProvider.select((chords) => chords.length), (prevCount, nextCount) {
       debugPrint('[PlayerWidget] Chord count changed: $prevCount -> $nextCount');

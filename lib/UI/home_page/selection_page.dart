@@ -35,7 +35,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
               final fingerings = ref.read(chordModelFretboardFingeringProvider);
               
               // Navigate immediately - PlayerPage will handle loading states properly
-              Navigator.push(context,
+              Navigator.pushReplacement(context,
                   MaterialPageRoute(builder: (context) => const PlayerPage()));
             },
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
