@@ -45,21 +45,38 @@ class _PlayerPageContent extends ConsumerStatefulWidget {
 
 class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
   bool _isDisposed = false;
+  bool _isCleaningUp = false;
   
   @override
   void initState() {
     super.initState();
     // Load initial progression if provided
     if (widget.initialProgression != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadProgression(widget.initialProgression!);
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _loadProgression(widget.initialProgression!);
       });
     }
   }
   
-  void _loadProgression(ProgressionModel progression) {
+  Future<void> _loadProgression(ProgressionModel progression) async {
     try {
       debugPrint('[PlayerPage] Loading progression: ${progression.name} with ${progression.chords.length} chords');
+      
+      // CRITICAL: Stop any current playback before loading new progression
+      final sequencerManager = ref.read(sequencerManagerProvider);
+      final isCurrentlyPlaying = ref.read(isSequencerPlayingProvider);
+      
+      if (isCurrentlyPlaying && sequencerManager.sequence != null) {
+        debugPrint('[PlayerPage] Stopping current playback before loading new progression');
+        try {
+          await sequencerManager.handleStop(sequencerManager.sequence!);
+          ref.read(isSequencerPlayingProvider.notifier).state = false;
+          // Small delay to ensure sequencer has fully stopped
+          await Future.delayed(const Duration(milliseconds: 100));
+        } catch (e) {
+          debugPrint('[PlayerPage] Error stopping playback: $e');
+        }
+      }
       
       // Validate progression data
       if (progression.chords.isEmpty) {
@@ -138,10 +155,18 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
   
   // Helper method to clean up resources - but preserve user data
   Future<void> _cleanupResources() async {
+    // Prevent multiple cleanup calls
+    if (_isCleaningUp || _isDisposed) {
+      debugPrint('[PlayerPage] Cleanup already in progress or disposed, skipping');
+      return;
+    }
+    
+    _isCleaningUp = true;
     debugPrint('[PlayerPage] Cleaning up resources...');
-    final sequencerManager = ref.read(sequencerManagerProvider);
     
     try {
+      final sequencerManager = ref.read(sequencerManagerProvider);
+      
       // Stop the sequencer if it's playing
       final isPlaying = ref.read(isSequencerPlayingProvider);
       if (isPlaying && sequencerManager.sequence != null) {
@@ -156,6 +181,8 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
       debugPrint('[PlayerPage] Cleanup completed');
     } catch (e, st) {
       debugPrint('[PlayerPage] Error during cleanup: $e\n$st');
+    } finally {
+      _isCleaningUp = false;
     }
   }
 
@@ -181,9 +208,8 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
-          debugPrint('[PlayerPage] PopScope triggered');
-          // Cleanup sequencer but preserve user chords
-          _cleanupResources();
+          debugPrint('[PlayerPage] PopScope triggered - cleanup handled by back button');
+          // Note: cleanup is handled by the back button onPressed to avoid double cleanup
         }
       },
       child: Scaffold(
@@ -212,7 +238,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                 final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
                 
                 return IconButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (!canSaveProgressions) {
                       UpgradePrompt.showUpgradeAlert(
                         context,
@@ -222,12 +248,30 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                       return;
                     }
                     
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProgressionLibraryPage(),
-                      ),
-                    );
+                    // Stop any current playback before navigating to library
+                    final sequencerManager = ref.read(sequencerManagerProvider);
+                    final isCurrentlyPlaying = ref.read(isSequencerPlayingProvider);
+                    
+                    if (isCurrentlyPlaying && sequencerManager.sequence != null) {
+                      debugPrint('[PlayerPage] Stopping playback before navigating to library');
+                      try {
+                        await sequencerManager.handleStop(sequencerManager.sequence!);
+                        ref.read(isSequencerPlayingProvider.notifier).state = false;
+                        // Small delay to ensure sequencer has fully stopped
+                        await Future.delayed(const Duration(milliseconds: 100));
+                      } catch (e) {
+                        debugPrint('[PlayerPage] Error stopping playback: $e');
+                      }
+                    }
+                    
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProgressionLibraryPage(),
+                        ),
+                      );
+                    }
                   },
                   icon: Stack(
                     children: [

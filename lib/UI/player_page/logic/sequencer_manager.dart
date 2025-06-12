@@ -337,12 +337,17 @@ class SequencerManager {
   }
 
   Future<void> handleTogglePlayStop(Sequence sequence) async {
-    bool currentIsPlaying = _ref.read(isSequencerPlayingProvider);
-    bool nextIsPlaying = !currentIsPlaying;
+    // Check actual sequence state rather than just provider state
+    bool sequenceIsPlaying = sequence.getIsPlaying();
+    bool providerIsPlaying = _ref.read(isSequencerPlayingProvider);
     
-    debugPrint('[SequencerManager] handleTogglePlayStop: currentIsPlaying=$currentIsPlaying, nextIsPlaying=$nextIsPlaying');
-
+    debugPrint('[SequencerManager] handleTogglePlayStop: sequenceIsPlaying=$sequenceIsPlaying, providerIsPlaying=$providerIsPlaying');
+    
+    // Use sequence state as source of truth
+    bool nextIsPlaying = !sequenceIsPlaying;
+    
     if (nextIsPlaying) {
+      debugPrint("[SequencerManager] Starting playback");
       debugPrint("[SequencerManager] PlayAllInstruments: $playAllInstruments");
       debugPrint("[SequencerManager] Playing sequence. Tracks: ${tracks.length}");
       
@@ -360,6 +365,8 @@ class SequencerManager {
       
       debugPrint("[SequencerManager] About to call sequence.play()");
       sequence.play();
+      isPlaying = true;
+      _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
       debugPrint("[SequencerManager] sequence.play() completed");
       
       // Verify sequence is actually playing
@@ -367,12 +374,9 @@ class SequencerManager {
       debugPrint("[SequencerManager] Sequence is playing: ${sequence.getIsPlaying()}");
       debugPrint("[SequencerManager] Sequence current beat: ${sequence.getBeat()}");
       debugPrint("[SequencerManager] Sequence tempo: ${sequence.getTempo()}");
-      
-      _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     } else {
-      debugPrint("[SequencerManager] Stopping sequence");
-      sequence.stop();
-      _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+      debugPrint("[SequencerManager] Stopping sequence via handleStop");
+      await handleStop(sequence);
     }
   }
 
@@ -406,10 +410,18 @@ class SequencerManager {
     try {
       debugPrint('[SequencerManager] handleStop called');
       
+      // Prevent multiple simultaneous stop calls
+      if (!isPlaying && !sequence.getIsPlaying()) {
+        debugPrint('[SequencerManager] Already stopped, skipping');
+        return;
+      }
+      
       await PerformanceUtils.trackAsyncOperation('handleStop', () async {
         // Stop the sequence first to prevent new notes from being triggered
         try {
-          sequence.stop();
+          if (sequence.getIsPlaying()) {
+            sequence.stop();
+          }
           isPlaying = false;
           _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
         } catch (e) {
@@ -424,9 +436,6 @@ class SequencerManager {
         
         for (final track in tracks) {
           try {
-            // Clear events first to prevent timing issues
-            track.clearEvents();
-            
             // Only stop notes that were actually started on this specific track
             final trackActiveNotes = _trackActiveNotes[track.id]?.toList() ?? [];
             for (final note in trackActiveNotes) {
@@ -448,9 +457,6 @@ class SequencerManager {
         
         // Clear all tracked notes as final safety
         _trackActiveNotes.clear();
-        
-        // Stop cleanup timer
-        _cleanupTimer?.cancel();
       });
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');

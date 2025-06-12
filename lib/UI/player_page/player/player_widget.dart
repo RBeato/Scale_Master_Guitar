@@ -222,7 +222,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
 
     if (sequence != null) {
       debugPrint('[PlayerWidget] Stopping existing sequence');
-      sequencerManager.handleStop(sequence!); 
+      await sequencerManager.handleStop(sequence!); 
     }
     if (ticker != null && ticker!.isActive) {
       debugPrint('[PlayerWidget] Disposing ticker in _performFullSequencerReinitialization');
@@ -269,10 +269,12 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       }
       
       // Don't dispose sequencer manager during widget disposal
-      // Just stop any active playback
+      // Just stop any active playback synchronously
       if (sequence != null) {
         try {
-          sequencerManager.handleStop(sequence!);
+          // Use synchronous stop to avoid async issues in dispose
+          sequence!.stop();
+          ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
         } catch (e) {
           debugPrint('[PlayerWidget] Error stopping sequence: $e');
         }
@@ -407,13 +409,12 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         debugPrint('[PlayerWidget] !isLoading: ${!isLoading}');
         debugPrint('[PlayerWidget] tracks.length: ${tracks.length}');
         
-        if (sequence != null && !isLoading) {
+        if (sequence != null && !isLoading && tracks.isNotEmpty) {
             debugPrint('[PlayerWidget] Calling sequencerManager.handleTogglePlayStop');
-            debouncing_utils.Debouncer.handleButtonPress(() async {
-                await sequencerManager.handleTogglePlayStop(sequence!); 
-            });
+            // Remove debouncing to prevent double-press issues
+            sequencerManager.handleTogglePlayStop(sequence!);
         } else {
-            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading');
+            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading, tracks=${tracks.length}');
         }
       },
     );
@@ -454,7 +455,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     try {
       // Stop any current playback
       final wasPlaying = ref.read(isSequencerPlayingProvider);
-      sequencerManager.handleStop(sequence!);
+      await sequencerManager.handleStop(sequence!);
       
       // Clear existing tracks
       sequencerManager.clearEverything(tracks, sequence!);
