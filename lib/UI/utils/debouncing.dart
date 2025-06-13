@@ -10,7 +10,7 @@ class Debouncer {
       onTap();
       // This function will only be executed once, even if called multiple times rapidly
       await Future.delayed(
-          const Duration(milliseconds: 500)); // Adjust the delay time as needed
+          const Duration(milliseconds: 100)); // Reduced for musical responsiveness
     });
   }
 }

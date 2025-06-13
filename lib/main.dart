@@ -123,9 +123,6 @@ void main() async {
       // Load environment variables
       await dotenv.load(fileName: ".env");
       
-      // Initialize Mobile Ads
-      await MobileAds.instance.initialize();
-
       // Initialize RevenueCat
       if (Platform.isIOS || Platform.isMacOS) {
         await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '');

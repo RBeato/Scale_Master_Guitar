@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -8,7 +9,13 @@ class AdService {
   factory AdService() => _instance;
   AdService._internal();
 
-  static String get _bannerAdUnitId => dotenv.get('ADMOB_BANNER_AD_UNIT_ID', fallback: 'ca-app-pub-3940256099942544/6300978111');
+  static String get _bannerAdUnitId {
+    if (Platform.isIOS) {
+      return dotenv.get('ADMOB_BANNER_IOS_AD_UNIT_ID', fallback: 'ca-app-pub-3940256099942544/6300978111');
+    } else {
+      return dotenv.get('ADMOB_BANNER_ANDROID_AD_UNIT_ID', fallback: 'ca-app-pub-3940256099942544/6300978111');
+    }
+  }
   BannerAd? _bannerAd;
   bool _isInitialized = false;
   bool _isProUser = false;
