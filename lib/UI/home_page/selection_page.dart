@@ -36,7 +36,11 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
               
               // Navigate immediately - PlayerPage will handle loading states properly
               Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => const PlayerPage()));
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => const PlayerPage(),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                  ));
             },
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
           ),

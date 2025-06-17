@@ -19,7 +19,11 @@ class HomePage extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const SelectionPage()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const SelectionPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         );
       });
       return const Scaffold(
