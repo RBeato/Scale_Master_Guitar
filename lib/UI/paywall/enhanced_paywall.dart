@@ -27,27 +27,42 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   Future<void> _fetchOfferings() async {
     setState(() => isLoading = true);
     try {
+      debugPrint('[Paywall] Fetching offerings...');
       offering = await PurchaseApi.fetchPremiumOffering();
+      debugPrint('[Paywall] Offering received: ${offering != null}');
+      
       if (offering != null) {
+        debugPrint('[Paywall] Available packages count: ${offering!.availablePackages.length}');
+        
         // Find packages by type
         for (final package in offering!.availablePackages) {
+          debugPrint('[Paywall] Package: ${package.identifier} - ${package.packageType} - ${package.storeProduct.priceString}');
+          
           switch (package.packageType) {
             case PackageType.monthly:
               monthlyPackage = package;
+              debugPrint('[Paywall] Found monthly package: ${package.identifier}');
               break;
             case PackageType.annual:
               yearlyPackage = package;
+              debugPrint('[Paywall] Found yearly package: ${package.identifier}');
               break;
             case PackageType.lifetime:
               lifetimePackage = package;
+              debugPrint('[Paywall] Found lifetime package: ${package.identifier}');
               break;
             default:
+              debugPrint('[Paywall] Unknown package type: ${package.packageType}');
               break;
           }
         }
+        
+        debugPrint('[Paywall] Package summary - Monthly: ${monthlyPackage != null}, Yearly: ${yearlyPackage != null}, Lifetime: ${lifetimePackage != null}');
+      } else {
+        debugPrint('[Paywall] No offering found! This might be a RevenueCat configuration issue.');
       }
     } catch (e) {
-      debugPrint('Error fetching offerings: $e');
+      debugPrint('[Paywall] Error fetching offerings: $e');
     } finally {
       setState(() => isLoading = false);
     }
@@ -147,6 +162,8 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
                   // Purchase options
                   if (isLoading)
                     const Center(child: CircularProgressIndicator())
+                  else if (offering == null)
+                    _buildNoOfferingsMessage()
                   else
                     _buildPurchaseOptions(),
                   
@@ -210,6 +227,50 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
           ],
         ),
       )).toList(),
+    );
+  }
+
+  Widget _buildNoOfferingsMessage() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red, width: 1),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 16),
+          const Text(
+            'Unable to Load Subscription Options',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This usually happens on simulators or when there\'s no internet connection. Please try on a physical device or check your connection.',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _fetchOfferings,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
     );
   }
 

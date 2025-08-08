@@ -133,6 +133,9 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
       ref
           .read(wheelRotationProvider.notifier)
           .update((state) => _currentRotation);
+      // Update the top note provider in real-time during rotation
+      final String currentTopNote = _calculateTopNoteForRotation(_currentRotation);
+      ref.read(topNoteProvider.notifier).update((state) => currentTopNote);
     });
   }
 
@@ -218,7 +221,15 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
       noteIndex = (noteIndex + 1) % numStops;
     }
 
-    return MusicConstants.notesWithFlatsAndSharps[noteIndex];
+    String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
+    
+    // Convert compound note names like 'C♯/D♭' to simple notes
+    // Use the sharp version for consistency
+    if (rawNote.contains('/')) {
+      return rawNote.split('/')[0]; // Take the first part (sharp version)
+    }
+    
+    return rawNote;
   }
 
   String _calculateTopNoteForRotation(double rotation) {
@@ -231,7 +242,18 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
             ((topPositionAngle / _rotationPerStop) % numStops).floor()) %
         numStops;
 
-    return MusicConstants.notesWithFlatsAndSharps[noteIndex];
+    String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
+    debugPrint('[TopNote] Raw note from wheel: $rawNote at index $noteIndex');
+    
+    // Convert compound note names like 'C♯/D♭' to simple notes
+    // Use the sharp version for consistency
+    if (rawNote.contains('/')) {
+      String simpleNote = rawNote.split('/')[0]; // Take the first part (sharp version)
+      debugPrint('[TopNote] Converted $rawNote to $simpleNote');
+      return simpleNote;
+    }
+    
+    return rawNote;
   }
 
   @override
