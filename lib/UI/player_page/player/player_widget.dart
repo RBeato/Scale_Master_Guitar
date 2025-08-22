@@ -116,7 +116,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     }
     
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: calling sequencerManager.initialize');
-    tracks = await sequencerManager.initialize(
+    // Update the tracks reference to ensure we're using the correct tracks
+    final newTracks = await sequencerManager.initialize(
       tracks: tracks, 
       sequence: sequence!, 
       playAllInstruments: true, 
@@ -131,6 +132,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       isScaleTonicSelected: currentSettings.isTonicUniversalBassNote,
       tempo: tempo, 
     );
+    
+    // CRITICAL: Update the widget's tracks reference to use the new tracks
+    tracks = newTracks;
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: sequencerManager.initialize complete, tracks.length = ${tracks.length}');
     
     // Debug track information
@@ -154,8 +158,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         return;
       }
 
-      final double currentPluginBeat = sequence!.getBeat();
-      final bool currentPluginIsPlaying = sequence!.getIsPlaying();
+      // Use custom playback system position instead of sequence.getBeat()
+      final double currentPluginBeat = sequencerManager.position;
+      final bool currentPluginIsPlaying = sequencerManager.isPlaying;
 
       final int currentBeatInt = currentPluginBeat.toInt();
       if (ref.read(currentBeatProvider) != currentBeatInt) {
@@ -349,8 +354,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       }
       // Handle adding single chord (increment by 1)
       else if (prevCount != null && nextCount == prevCount + 1) {
-        debugPrint('[PlayerWidget] Adding single chord');
-        _updateSequenceWithNewChord(nextChords);
+        debugPrint('[PlayerWidget] Adding single chord - using full reinitialization for track consistency');
+        _performFullSequencerReinitialization(newChords: nextChords);
       }
       // Handle other changes (clearing, removing chords, etc.) - use debouncing
       else if (nextCount != prevCount) {
@@ -395,6 +400,12 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         debugPrint('[PlayerWidget] clearTracks UI action');
         if (!isLoading) {
             debouncing_utils.Debouncer.handleButtonPress(() {
+                // Stop playback if sequence is currently playing
+                if (sequence != null && sequencerManager.isPlaying) {
+                  debugPrint('[PlayerWidget] Stopping playback before clearing tracks');
+                  sequencerManager.handleTogglePlayStop(sequence!);
+                }
+                
                 // setState(() { isLoading = true; }); // isLoading set by _performFullSequencerReinitialization
                 ref.read(selectedChordsProvider.notifier).removeAll(); 
                 // The listener for selectedChordsProvider will pick up the empty list 
@@ -409,12 +420,16 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         debugPrint('[PlayerWidget] !isLoading: ${!isLoading}');
         debugPrint('[PlayerWidget] tracks.length: ${tracks.length}');
         
-        if (sequence != null && !isLoading && tracks.isNotEmpty) {
+        // Check if tracks have events loaded before allowing playback
+        bool hasEventsLoaded = tracks.isNotEmpty && tracks.any((track) => 
+          track.events.isNotEmpty);
+        
+        if (sequence != null && !isLoading && hasEventsLoaded) {
             debugPrint('[PlayerWidget] Calling sequencerManager.handleTogglePlayStop');
             // Remove debouncing to prevent double-press issues
             sequencerManager.handleTogglePlayStop(sequence!);
         } else {
-            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading, tracks=${tracks.length}');
+            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading, tracks=${tracks.length}, hasEvents=$hasEventsLoaded');
         }
       },
     );

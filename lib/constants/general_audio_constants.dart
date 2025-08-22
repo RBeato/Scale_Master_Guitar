@@ -27,21 +27,21 @@ class Constants {
   ];
 
   static const Map<String, Map<String, String>> soundPath = {
-    // All instrument types now use GeneralUser-GS.sf2 for consistency and completeness.
+    // Updated to use working SF2 files from guitar_progression_generator pattern
     'drums': {
       'Electronic': "assets/sounds/sf2/DrumsSlavo.sf2",
       'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
     },
     'keys': {
-      'Piano': "assets/sounds/sf2/GeneralUser-GS.sf2",
-      'Rhodes': "assets/sounds/sf2/GeneralUser-GS.sf2",
-      'Organ': "assets/sounds/sf2/GeneralUser-GS.sf2",
-      'Pad': "assets/sounds/sf2/GeneralUser-GS.sf2"
+      'Piano': "assets/sounds/sf2/j_piano.sf2",        // Proven to work on iOS TestFlight
+      'Rhodes': "assets/sounds/sf2/rhodes.sf2",         // Dedicated Rhodes SF2
+      'Organ': "assets/sounds/sf2/korg.sf2",           // Dedicated Korg SF2
+      'Pad': "assets/sounds/sf2/j_piano.sf2"           // Use piano for pad sounds
     },
     'bass': {
-      'Double Bass': "assets/sounds/sf2/GeneralUser-GS.sf2",
-      'Electric': "assets/sounds/sf2/GeneralUser-GS.sf2",
-      'Synth': "assets/sounds/sf2/GeneralUser-GS.sf2"
+      'Double Bass': "assets/sounds/sf2/acoustic_bass.sf2",    // Dedicated acoustic bass
+      'Electric': "assets/sounds/sf2/BassGuitars.sf2",         // Proven electric bass SF2
+      'Synth': "assets/sounds/sf2/BassGuitars.sf2"             // Use electric bass for synth
     },
   };
 

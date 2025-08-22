@@ -18,6 +18,10 @@ import 'package:collection/collection.dart';
 import '../../../utils/performance_utils.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:flutter_sequencer/native_bridge.dart';
+import 'package:flutter_sequencer/global_state.dart';
+import 'package:flutter_sequencer/models/events.dart';
 
 final sequencerManagerProvider = Provider((ref) => SequencerManager(ref));
 
@@ -51,6 +55,12 @@ class SequencerManager {
   
   // Mutex for thread-safe note operations
   bool _noteOperationInProgress = false;
+
+  // Custom playback system (like working reference app)
+  Timer? _playbackTimer;
+  DateTime? _playbackStartTime;
+  double _playbackStartBeat = 0.0;
+  Set<String> _processedEvents = {};
 
   Future<List<Track>> initialize({
     required List<Track> tracks,
@@ -94,6 +104,17 @@ class SequencerManager {
 
     // Start periodic cleanup for stale notes
     _startCleanupTimer();
+
+    // CRITICAL: Initialize iOS audio session for sound output (flutter_sequencer_plus method)
+    if (Platform.isIOS) {
+      try {
+        debugPrint('[SequencerManager] Initializing iOS audio session for sound output...');
+        await const MethodChannel('flutter_sequencer').invokeMethod('initializeAudioSession');
+        debugPrint('[SequencerManager] ✅ iOS audio session initialized successfully');
+      } catch (e) {
+        debugPrint('[SequencerManager] ⚠️ Could not initialize iOS audio session: $e');
+      }
+    }
 
     try {
       // Create tracks
@@ -337,21 +358,14 @@ class SequencerManager {
   }
 
   Future<void> handleTogglePlayStop(Sequence sequence) async {
-    // Check actual sequence state rather than just provider state
-    bool sequenceIsPlaying = sequence.getIsPlaying();
-    bool providerIsPlaying = _ref.read(isSequencerPlayingProvider);
-    
-    debugPrint('[SequencerManager] handleTogglePlayStop: sequenceIsPlaying=$sequenceIsPlaying, providerIsPlaying=$providerIsPlaying');
-    
-    // Use sequence state as source of truth
-    bool nextIsPlaying = !sequenceIsPlaying;
-    
-    if (nextIsPlaying) {
-      debugPrint("[SequencerManager] Starting playback");
-      debugPrint("[SequencerManager] PlayAllInstruments: $playAllInstruments");
+    if (_playbackTimer != null) {
+      debugPrint("[SequencerManager] CUSTOM: Stopping playback");
+      _stopCustomPlayback();
+    } else {
+      debugPrint("[SequencerManager] CUSTOM: Starting playback");
       debugPrint("[SequencerManager] Playing sequence. Tracks: ${tracks.length}");
       
-      // Debug all tracks - use stored tracks, not sequence.getTracks()
+      // Debug all tracks
       for (int i = 0; i < tracks.length; i++) {
         final track = tracks[i];
         debugPrint("[SequencerManager] Track $i: id=${track.id}, events=${track.events.length}, volume=${track.getVolume()}");
@@ -363,20 +377,113 @@ class SequencerManager {
         }
       }
       
-      debugPrint("[SequencerManager] About to call sequence.play()");
-      sequence.play();
-      isPlaying = true;
-      _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
-      debugPrint("[SequencerManager] sequence.play() completed");
-      
-      // Verify sequence is actually playing
-      await Future.delayed(const Duration(milliseconds: 100));
-      debugPrint("[SequencerManager] Sequence is playing: ${sequence.getIsPlaying()}");
-      debugPrint("[SequencerManager] Sequence current beat: ${sequence.getBeat()}");
-      debugPrint("[SequencerManager] Sequence tempo: ${sequence.getTempo()}");
-    } else {
-      debugPrint("[SequencerManager] Stopping sequence via handleStop");
-      await handleStop(sequence);
+      _startCustomPlayback();
+    }
+  }
+
+  void _startCustomPlayback() {
+    debugPrint("🎵 [SequencerManager] Starting CUSTOM playback system");
+    
+    _playbackStartTime = DateTime.now();
+    _playbackStartBeat = 0.0;
+    _processedEvents.clear();
+    position = 0.0;
+    isPlaying = true;
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+    
+    // Start playback timer (16ms for smooth 60fps updates)
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      _processCustomPlayback();
+    });
+  }
+
+  void _processCustomPlayback() {
+    if (_playbackStartTime == null) return;
+    
+    // Calculate current beat based on elapsed time
+    final elapsed = DateTime.now().difference(_playbackStartTime!);
+    final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
+    final currentBeat = _playbackStartBeat + elapsedBeats;
+    
+    position = currentBeat;
+    
+    // Check if we've reached the end
+    if (currentBeat >= stepCount) {
+      if (isTrackLooping) {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Looping back to beginning...");
+        _playbackStartTime = DateTime.now();
+        _playbackStartBeat = 0.0;
+        _processedEvents.clear();
+        position = 0.0;
+      } else {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
+        _stopCustomPlayback();
+        return;
+      }
+    }
+    
+    // Process events at current beat (THE CRITICAL PART!)
+    _processEventsAtBeat(currentBeat);
+  }
+
+  void _processEventsAtBeat(double currentBeat) {
+    for (final track in tracks) {
+      for (final event in track.events) {
+        if (event is MidiEvent) {
+          final eventBeat = event.beat;
+          
+          // Check if event should trigger now (with timing tolerance)
+          if (eventBeat >= currentBeat - 0.15 && eventBeat <= currentBeat + 0.15) {
+            final eventKey = '${track.id}-${(eventBeat * 100).round()}-${event.midiData1}-${event.midiData2}';
+            
+            if (!_processedEvents.contains(eventKey)) {
+              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1}");
+              
+              // Send MIDI event directly using NativeBridge (like working reference app)
+              NativeBridge.handleEventsNow(
+                track.id, 
+                [event], 
+                GlobalState().sampleRate!, 
+                tempo
+              );
+              
+              _processedEvents.add(eventKey);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  void _stopCustomPlayback() {
+    debugPrint("🎵 [SequencerManager] Stopping CUSTOM playback...");
+    _playbackTimer?.cancel();
+    _playbackTimer = null;
+    _playbackStartTime = null;
+    _processedEvents.clear();
+    
+    // Stop all sustaining notes
+    _stopAllNotes();
+    
+    isPlaying = false;
+    position = 0.0;
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+  }
+
+  void _stopAllNotes() {
+    debugPrint("🛑 [SequencerManager] Stopping all sustaining notes on ${tracks.length} tracks");
+    
+    // Send note-off events to all tracks for common MIDI notes
+    for (final track in tracks) {
+      try {
+        // Stop common piano notes (C3-C6 range)
+        for (int noteNumber = 48; noteNumber <= 84; noteNumber++) {
+          track.stopNoteNow(noteNumber: noteNumber);
+        }
+        debugPrint("🛑 [SequencerManager] Stopped all notes on track ${track.id}");
+      } catch (e) {
+        debugPrint("🛑 [SequencerManager] Error stopping notes on track ${track.id}: $e");
+      }
     }
   }
 

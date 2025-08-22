@@ -44,7 +44,26 @@ import 'package:audio_session/audio_session.dart';
 
 final logger = Logger();
 
+// Initialize proper audio session on iOS for flutter_sequencer
+Future<void> _initAudioSession() async {
+  try {
+    const methodChannel = MethodChannel('flutter_sequencer');
+    await methodChannel.invokeMethod('initializeAudioSession');
+    print('Audio session initialized successfully');
+  } catch (e) {
+    print('Error initializing audio session: $e');
+  }
+}
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize audio session with proper settings for flutter_sequencer
+  if (Platform.isIOS) {
+    print('Running on iOS ${Platform.operatingSystemVersion}');
+    await _initAudioSession();
+  }
+  
   // Set up error handling for the entire app
   FlutterError.onError = (details) {
     logger.e('Flutter error', 
@@ -68,8 +87,8 @@ void main() async {
   // Set up zone for error handling
   runZonedGuarded(() async {
     try {
-      // Ensure Flutter binding is initialized first
-      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      // Use already initialized widgets binding
+      WidgetsBinding widgetsBinding = WidgetsBinding.instance;
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       
       // Configure audio session early for flutter_sequencer compatibility

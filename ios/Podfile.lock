@@ -25,12 +25,12 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
-  - purchases_flutter (8.10.0):
+  - purchases_flutter (8.8.0):
     - Flutter
-    - PurchasesHybridCommon (= 13.33.0)
-  - PurchasesHybridCommon (13.33.0):
-    - RevenueCat (= 5.26.0)
-  - RevenueCat (5.26.0)
+    - PurchasesHybridCommon (= 13.29.1)
+  - PurchasesHybridCommon (13.29.1):
+    - RevenueCat (= 5.22.2)
+  - RevenueCat (5.22.2)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -94,16 +94,16 @@ SPEC CHECKSUMS:
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
-  flutter_sequencer: 5a160b81d7a43a1439b5b01c2c3b9017c1915cba
+  flutter_sequencer: df4f3d95d4f7ca54364e847f3f870673e17ef901
   Google-Mobile-Ads-SDK: 1dfb0c3cb46c7e2b00b0f4de74a1e06d9ea25d67
   google_mobile_ads: 535223588a6791b7a3cc3513a1bc7b89d12f3e62
   GoogleUserMessagingPlatform: f8d0cdad3ca835406755d0a69aa634f00e76d576
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
-  purchases_flutter: c3ed75d964796e47fbb9265162a584d8b17a3d75
-  PurchasesHybridCommon: cce67d208599efd1557e7a4746d964179c00f55e
-  RevenueCat: 30ef961962ccc42c9cd0f375fdac62baee22238b
+  purchases_flutter: 437a2d875b16ea37f1847b2f88604fc13a18646b
+  PurchasesHybridCommon: 1728ff834821ecfc85e987a565d51eda36213958
+  RevenueCat: 234d2361e453ce1282cee7e18449d01aba45ebbf
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
