@@ -14,7 +14,7 @@ _getFontFamily({size, weight, color}) {
 
 final ThemeData appThemeData = ThemeData(
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: Colors.black54,
+  scaffoldBackgroundColor: Constants.mainBackgroundColor,
   drawerTheme:
       const DrawerThemeData(backgroundColor: Constants.mainBackgroundColor),
   visualDensity: VisualDensity.adaptivePlatformDensity,

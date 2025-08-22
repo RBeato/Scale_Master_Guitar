@@ -158,7 +158,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         return;
       }
 
-      // Use custom playback system position instead of sequence.getBeat()
+      // Use custom playback system position
       final double currentPluginBeat = sequencerManager.position;
       final bool currentPluginIsPlaying = sequencerManager.isPlaying;
 

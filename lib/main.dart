@@ -56,37 +56,38 @@ Future<void> _initAudioSession() async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize audio session with proper settings for flutter_sequencer
-  if (Platform.isIOS) {
-    print('Running on iOS ${Platform.operatingSystemVersion}');
-    await _initAudioSession();
-  }
-  
-  // Set up error handling for the entire app
-  FlutterError.onError = (details) {
-    logger.e('Flutter error', 
-      error: details.exception, 
-      stackTrace: details.stack,
-      time: DateTime.now()
-    );
-    FlutterError.presentError(details);
-  };
-  
-  // Set up uncaught error handling
-  PlatformDispatcher.instance.onError = (error, stack) {
-    logger.e('Uncaught error', 
-      error: error, 
-      stackTrace: stack,
-      time: DateTime.now()
-    );
-    return true;
-  };
-  
   // Set up zone for error handling
   runZonedGuarded(() async {
     try {
+      // Initialize Flutter bindings inside the zone
+      WidgetsFlutterBinding.ensureInitialized();
+      
+      // Initialize audio session with proper settings for flutter_sequencer
+      if (Platform.isIOS) {
+        print('Running on iOS ${Platform.operatingSystemVersion}');
+        await _initAudioSession();
+      }
+      
+      // Set up error handling for the entire app
+      FlutterError.onError = (details) {
+        logger.e('Flutter error', 
+          error: details.exception, 
+          stackTrace: details.stack,
+          time: DateTime.now()
+        );
+        FlutterError.presentError(details);
+      };
+      
+      // Set up uncaught error handling
+      PlatformDispatcher.instance.onError = (error, stack) {
+        logger.e('Uncaught error', 
+          error: error, 
+          stackTrace: stack,
+          time: DateTime.now()
+        );
+        return true;
+      };
+      
       // Use already initialized widgets binding
       WidgetsBinding widgetsBinding = WidgetsBinding.instance;
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);

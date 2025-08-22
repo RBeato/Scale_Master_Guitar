@@ -39,15 +39,23 @@ class DrawerCard extends ConsumerWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: isFeatureRestricted ? Colors.grey : Colors.white,
+                  color: isFeatureRestricted ? Colors.white.withValues(alpha: 0.5) : Colors.white,
                 ),
               ),
             ),
             if (isFeatureRestricted)
-              const Icon(
-                Icons.lock,
-                size: 16,
-                color: Colors.grey,
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.star,
+                  size: 12,
+                  color: Colors.white,
+                ),
               ),
           ],
         ),

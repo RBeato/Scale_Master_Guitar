@@ -61,6 +61,7 @@ class SequencerManager {
   DateTime? _playbackStartTime;
   double _playbackStartBeat = 0.0;
   Set<String> _processedEvents = {};
+  int _lastCompletedLoops = 0;
 
   Future<List<Track>> initialize({
     required List<Track> tracks,
@@ -387,12 +388,13 @@ class SequencerManager {
     _playbackStartTime = DateTime.now();
     _playbackStartBeat = 0.0;
     _processedEvents.clear();
+    _lastCompletedLoops = 0;
     position = 0.0;
     isPlaying = true;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    // Start playback timer (16ms for smooth 60fps updates)
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+    // Start high-frequency timer for event processing (like working reference app)
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
       _processCustomPlayback();
     });
   }
@@ -400,29 +402,30 @@ class SequencerManager {
   void _processCustomPlayback() {
     if (_playbackStartTime == null) return;
     
-    // Calculate current beat based on elapsed time
+    // Calculate current beat - simple and reliable
     final elapsed = DateTime.now().difference(_playbackStartTime!);
     final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
-    final currentBeat = _playbackStartBeat + elapsedBeats;
+    var currentBeat = _playbackStartBeat + elapsedBeats;
     
-    position = currentBeat;
-    
-    // Check if we've reached the end
-    if (currentBeat >= stepCount) {
-      if (isTrackLooping) {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Looping back to beginning...");
-        _playbackStartTime = DateTime.now();
-        _playbackStartBeat = 0.0;
+    // Simple modulo looping - no complex timing calculations
+    if (isTrackLooping && currentBeat >= stepCount) {
+      final loops = (currentBeat / stepCount).floor();
+      currentBeat = currentBeat % stepCount;
+      
+      // Clear events only once per loop
+      if (loops > _lastCompletedLoops) {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Loop $loops (beat: ${currentBeat.toStringAsFixed(2)})");
         _processedEvents.clear();
-        position = 0.0;
-      } else {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
-        _stopCustomPlayback();
-        return;
+        _lastCompletedLoops = loops;
       }
+    } else if (!isTrackLooping && currentBeat >= stepCount) {
+      debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
+      _stopCustomPlayback();
+      return;
     }
     
-    // Process events at current beat (THE CRITICAL PART!)
+    // Update position and process events
+    position = currentBeat;
     _processEventsAtBeat(currentBeat);
   }
 
