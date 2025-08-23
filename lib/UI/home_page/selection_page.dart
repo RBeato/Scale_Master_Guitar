@@ -22,9 +22,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
     ref.watch(topNoteProvider);
 
     return ScreenWithBannerAd(
-      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        backgroundColor: Colors.grey[800],
         title: const Text("Scale Master Guitar",
             style: TextStyle(color: Colors.orange)),
         iconTheme: const IconThemeData(color: Colors.white),

@@ -16,6 +16,7 @@ class Constants {
   ];
 
   static const mainBackgroundColor = Color(0xFF1D1D1D);
+  static const appBarBackgroundColor = Color(0xFF0F0F0F); // Darker than body background
   static const Color appBarColorTheme = Color.fromARGB(255, 235, 182, 103);
 
   static const List<Color> colors = [

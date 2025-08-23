@@ -249,9 +249,11 @@ packages:
   flutter_sequencer:
     dependency: "direct main"
     description:
-      path: "/Users/rbsou/Documents/CODE/FLUTTER/flutter_sequencer_plus"
-      relative: false
-    source: path
+      path: "."
+      ref: eff3773
+      resolved-ref: eff377389de90b020cf26410d5bdb98fd8c086e7
+      url: "https://github.com/RBeato/flutter_sequencer_plus.git"
+    source: git
     version: "1.0.0+1"
   flutter_test:
     dependency: "direct dev"

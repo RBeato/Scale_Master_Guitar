@@ -213,9 +213,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[900],
         appBar: AppBar(
-          backgroundColor: Colors.grey[800],
           title: const PlayerPageTitle(),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),

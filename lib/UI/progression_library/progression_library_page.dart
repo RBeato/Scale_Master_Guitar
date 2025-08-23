@@ -40,9 +40,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     // Check premium access first
     if (!canSaveProgressions) {
       return ScreenWithBannerAd(
-        backgroundColor: Colors.grey[900],
         appBar: AppBar(
-          backgroundColor: Colors.grey[800],
           title: const Text(
             "Progression Library",
             style: TextStyle(color: Colors.orange),
@@ -375,7 +373,6 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
         title: const Text('Delete Progression', style: TextStyle(color: Colors.white)),
         content: Text(
           'Are you sure you want to delete "${progression.name}"? This action cannot be undone.',
@@ -415,7 +412,6 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
         title: const Text('Clear All Progressions', style: TextStyle(color: Colors.white)),
         content: const Text(
           'Are you sure you want to delete all saved progressions? This action cannot be undone.',

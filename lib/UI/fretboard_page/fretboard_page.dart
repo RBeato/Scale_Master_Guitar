@@ -24,7 +24,6 @@ class FretboardPage extends ConsumerWidget {
     final fretboardFingerings = ref.watch(fretboardPageFingeringsProvider);
 
     return Scaffold(
-        backgroundColor: Colors.grey[900],
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
