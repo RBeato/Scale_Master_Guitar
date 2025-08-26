@@ -10,6 +10,7 @@ import 'package:scalemasterguitar/utils/debug_overlay.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/UI/home_page/home_page.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:logger/logger.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/services/ad_service.dart';
@@ -155,6 +156,19 @@ void main() async {
       final container = ProviderContainer();
       await container.read(settingsStateNotifierProvider.notifier).settings;
       await container.read(chordModelFretboardFingeringProvider.future);
+      
+      // Enable testing mode for simulators in debug mode
+      if (kDebugMode && (Platform.isIOS || Platform.isAndroid)) {
+        // Check if running on simulator/emulator
+        try {
+          // For iOS simulator, we can check if it's a simulator environment
+          // For now, let's enable premium for all debug builds to test the layout
+          container.read(revenueCatProvider.notifier).setTestingMode(true, Entitlement.premiumSub);
+          debugPrint('Debug mode: Enabled premium testing mode');
+        } catch (e) {
+          debugPrint('Error setting testing mode: $e');
+        }
+      }
 
       // Initialize AdMob with test devices
       final List<String> deviceIds = []; // Add your test device IDs here

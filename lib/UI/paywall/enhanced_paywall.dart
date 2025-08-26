@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -27,42 +28,64 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   Future<void> _fetchOfferings() async {
     setState(() => isLoading = true);
     try {
-      debugPrint('[Paywall] Fetching offerings...');
+      if (kDebugMode) {
+        debugPrint('[Paywall] Fetching offerings...');
+      }
       offering = await PurchaseApi.fetchPremiumOffering();
-      debugPrint('[Paywall] Offering received: ${offering != null}');
+      if (kDebugMode) {
+        debugPrint('[Paywall] Offering received: ${offering != null}');
+      }
       
       if (offering != null) {
-        debugPrint('[Paywall] Available packages count: ${offering!.availablePackages.length}');
+        if (kDebugMode) {
+          debugPrint('[Paywall] Available packages count: ${offering!.availablePackages.length}');
+        }
         
         // Find packages by type
         for (final package in offering!.availablePackages) {
-          debugPrint('[Paywall] Package: ${package.identifier} - ${package.packageType} - ${package.storeProduct.priceString}');
+          if (kDebugMode) {
+            debugPrint('[Paywall] Package: ${package.identifier} - ${package.packageType} - ${package.storeProduct.priceString}');
+          }
           
           switch (package.packageType) {
             case PackageType.monthly:
               monthlyPackage = package;
-              debugPrint('[Paywall] Found monthly package: ${package.identifier}');
+              if (kDebugMode) {
+                debugPrint('[Paywall] Found monthly package: ${package.identifier}');
+              }
               break;
             case PackageType.annual:
               yearlyPackage = package;
-              debugPrint('[Paywall] Found yearly package: ${package.identifier}');
+              if (kDebugMode) {
+                debugPrint('[Paywall] Found yearly package: ${package.identifier}');
+              }
               break;
             case PackageType.lifetime:
               lifetimePackage = package;
-              debugPrint('[Paywall] Found lifetime package: ${package.identifier}');
+              if (kDebugMode) {
+                debugPrint('[Paywall] Found lifetime package: ${package.identifier}');
+              }
               break;
             default:
-              debugPrint('[Paywall] Unknown package type: ${package.packageType}');
+              if (kDebugMode) {
+                debugPrint('[Paywall] Unknown package type: ${package.packageType}');
+              }
               break;
           }
         }
         
-        debugPrint('[Paywall] Package summary - Monthly: ${monthlyPackage != null}, Yearly: ${yearlyPackage != null}, Lifetime: ${lifetimePackage != null}');
+        if (kDebugMode) {
+          debugPrint('[Paywall] Package summary - Monthly: ${monthlyPackage != null}, Yearly: ${yearlyPackage != null}, Lifetime: ${lifetimePackage != null}');
+        }
       } else {
-        debugPrint('[Paywall] No offering found! This might be a RevenueCat configuration issue.');
+        if (kDebugMode) {
+          debugPrint('[Paywall] No offering found! This might be a RevenueCat configuration issue.');
+        }
       }
     } catch (e) {
-      debugPrint('[Paywall] Error fetching offerings: $e');
+      if (kDebugMode) {
+        debugPrint('[Paywall] Error fetching offerings: $e');
+      }
     } finally {
       setState(() => isLoading = false);
     }
@@ -82,7 +105,9 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         _showError('Purchase failed. Please try again.');
       }
     } catch (e) {
-      debugPrint('Error making purchase: $e');
+      if (kDebugMode) {
+        debugPrint('Error making purchase: $e');
+      }
       _showError('An error occurred during purchase');
     } finally {
       if (mounted) {
@@ -99,7 +124,9 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         Navigator.of(context).pop(true);
       }
     } catch (e) {
-      debugPrint('Error restoring purchases: $e');
+      if (kDebugMode) {
+        debugPrint('Error restoring purchases: $e');
+      }
       _showError('No purchases found to restore');
     } finally {
       if (mounted) {
@@ -133,58 +160,60 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Header
-                  const Icon(
-                    Icons.music_note,
-                    size: 80,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Unlock Premium Features',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Header
+                    const Icon(
+                      Icons.music_note,
+                      size: 80,
+                      color: Colors.orange,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Features list
-                  _buildFeatureList(),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Purchase options
-                  if (isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (offering == null)
-                    _buildNoOfferingsMessage()
-                  else
-                    _buildPurchaseOptions(),
-                  
-                  const Spacer(),
-                  
-                  // Restore button
-                  TextButton(
-                    onPressed: _restorePurchases,
-                    child: const Text(
-                      'Restore Purchases',
-                      style: TextStyle(color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Unlock Premium Features',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  
-                  // Terms and privacy
-                  const Text(
-                    'By purchasing, you agree to our Terms of Service and Privacy Policy',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    
+                    // Features list
+                    _buildFeatureList(),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Purchase options
+                    if (isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (offering == null)
+                      _buildNoOfferingsMessage()
+                    else
+                      _buildPurchaseOptions(),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Restore button
+                    TextButton(
+                      onPressed: _restorePurchases,
+                      child: const Text(
+                        'Restore Purchases',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    
+                    // Terms and privacy
+                    const Text(
+                      'By purchasing, you agree to our Terms of Service and Privacy Policy',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

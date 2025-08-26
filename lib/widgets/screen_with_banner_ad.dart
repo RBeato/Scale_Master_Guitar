@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/services/ad_service.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
-class ScreenWithBannerAd extends StatelessWidget {
+class ScreenWithBannerAd extends ConsumerWidget {
   final Widget child;
   final PreferredSizeWidget? appBar;
   final Widget? bottomNavigationBar;
@@ -32,7 +35,10 @@ class ScreenWithBannerAd extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(revenueCatProvider);
+    final isPremium = entitlement.isPremium;
+    
     return Scaffold(
       appBar: appBar,
       body: Column(
@@ -40,10 +46,11 @@ class ScreenWithBannerAd extends StatelessWidget {
           Expanded(
             child: child,
           ),
-          const SafeArea(
-            top: false,
-            child: BannerAdWidget(),
-          ),
+          if (!isPremium)
+            const SafeArea(
+              top: false,
+              child: BannerAdWidget(),
+            ),
         ],
       ),
       bottomNavigationBar: bottomNavigationBar,

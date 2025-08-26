@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
@@ -14,6 +16,14 @@ class BannerAdWidget extends ConsumerStatefulWidget {
 
 class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
+
+  static String get _bannerAdUnitId {
+    if (Platform.isIOS) {
+      return dotenv.get('ADMOB_BANNER_IOS_AD_UNIT_ID', fallback: 'ca-app-pub-3940256099942544/6300978111');
+    } else {
+      return dotenv.get('ADMOB_BANNER_ANDROID_AD_UNIT_ID', fallback: 'ca-app-pub-3940256099942544/6300978111');
+    }
+  }
 
   @override
   void initState() {
@@ -33,7 +43,7 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
 
   void _loadAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'your-ad-unit-id',
+      adUnitId: _bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(

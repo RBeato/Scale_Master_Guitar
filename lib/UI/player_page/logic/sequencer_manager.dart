@@ -521,13 +521,19 @@ class SequencerManager {
       debugPrint('[SequencerManager] handleStop called');
       
       // Prevent multiple simultaneous stop calls
-      if (!isPlaying && !sequence.getIsPlaying()) {
+      if (!isPlaying && !sequence.getIsPlaying() && _playbackTimer == null) {
         debugPrint('[SequencerManager] Already stopped, skipping');
         return;
       }
       
       await PerformanceUtils.trackAsyncOperation('handleStop', () async {
-        // Stop the sequence first to prevent new notes from being triggered
+        // CRITICAL: Stop custom playback timer FIRST to prevent audio freezing
+        if (_playbackTimer != null) {
+          debugPrint('[SequencerManager] Stopping custom playback timer');
+          _stopCustomPlayback();
+        }
+        
+        // Stop the sequence quickly without waiting
         try {
           if (sequence.getIsPlaying()) {
             sequence.stop();
@@ -538,8 +544,22 @@ class SequencerManager {
           debugPrint('[SequencerManager] Error stopping sequence: $e');
         }
         
-        // Give sequence a moment to fully stop before cleaning up notes
-        await Future.delayed(const Duration(milliseconds: 50));
+        // Do cleanup in background to avoid UI blocking
+        _performBackgroundCleanup();
+      });
+    } catch (e, st) {
+      debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
+      // Don't rethrow to prevent crashes, just log the error
+    }
+  }
+
+  // Perform cleanup asynchronously to avoid blocking the UI thread
+  void _performBackgroundCleanup() {
+    // Use a microtask to avoid blocking the current execution
+    Future.microtask(() async {
+      try {
+        // Minimal delay for Android audio system to process stop command
+        await Future.delayed(const Duration(milliseconds: 10));
         
         // Stop notes only on tracks where they were actually started
         final tracks = this.tracks; // Use stored tracks instead of sequence.getTracks()
@@ -551,10 +571,9 @@ class SequencerManager {
             for (final note in trackActiveNotes) {
               try {
                 track.stopNoteNow(noteNumber: note);
-                debugPrint('[SequencerManager] Stopped note $note on track ${track.id}');
               } catch (e) {
-                // Log but don't crash on individual note stop failures
-                debugPrint('[SequencerManager] Non-critical error stopping note $note on track ${track.id}: $e');
+                // Silently ignore individual note stop failures to avoid spam
+                // debugPrint('[SequencerManager] Note stop error: $e');
               }
             }
             
@@ -567,11 +586,10 @@ class SequencerManager {
         
         // Clear all tracked notes as final safety
         _trackActiveNotes.clear();
-      });
-    } catch (e, st) {
-      debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
-      // Don't rethrow to prevent crashes, just log the error
-    }
+      } catch (e) {
+        debugPrint('[SequencerManager] Background cleanup error: $e');
+      }
+    });
   }
 
   _handleSetLoop(bool nextIsLooping, Sequence sequence) {

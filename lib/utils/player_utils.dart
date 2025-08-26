@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:scalemasterguitar/models/settings_model.dart';
 import '../constants/gm_programs.dart';
@@ -56,21 +57,25 @@ class SoundPlayerUtils {
 
     final presetIndex = gmProgramNumbers[gmName];
     if (presetIndex == null) {
-      material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
+      if (kDebugMode) {
+        material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
+      }
       throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
     }
     
-    // Enhanced debugging for piano sound quality issues
-    material.debugPrint('[SoundPlayerUtils] Creating instrument:');
-    material.debugPrint('[SoundPlayerUtils]   Type: $instrument');
-    material.debugPrint('[SoundPlayerUtils]   Sound: $instSound');
-    material.debugPrint('[SoundPlayerUtils]   PresetIndex: $presetIndex');
-    material.debugPrint('[SoundPlayerUtils]   SoundFont: $soundFontPath');
-    
-    // For piano specifically, add extra debugging
-    if (instrument == SettingsSelection.keyboardSound && gmName == 'Piano') {
-      material.debugPrint('[SoundPlayerUtils] PIANO: Using GM Piano preset $presetIndex');
-      material.debugPrint('[SoundPlayerUtils] PIANO: SoundFont path is $soundFontPath (optimized for iOS compatibility)');
+    if (kDebugMode) {
+      // Enhanced debugging for piano sound quality issues
+      material.debugPrint('[SoundPlayerUtils] Creating instrument:');
+      material.debugPrint('[SoundPlayerUtils]   Type: $instrument');
+      material.debugPrint('[SoundPlayerUtils]   Sound: $instSound');
+      material.debugPrint('[SoundPlayerUtils]   PresetIndex: $presetIndex');
+      material.debugPrint('[SoundPlayerUtils]   SoundFont: $soundFontPath');
+      
+      // For piano specifically, add extra debugging
+      if (instrument == SettingsSelection.keyboardSound && gmName == 'Piano') {
+        material.debugPrint('[SoundPlayerUtils] PIANO: Using GM Piano preset $presetIndex');
+        material.debugPrint('[SoundPlayerUtils] PIANO: SoundFont path is $soundFontPath (optimized for iOS compatibility)');
+      }
     }
     
     return Sf2Instrument(

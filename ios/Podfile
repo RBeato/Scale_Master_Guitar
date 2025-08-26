@@ -44,6 +44,10 @@ post_install do |installer|
       config.build_settings['ENABLE_TESTABILITY'] = 'YES'
       # Ensure proper resource bundling for audio files
       config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = ''
+      # Only update deployment target if it's below 15.0
+      if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
     end
   end
 end

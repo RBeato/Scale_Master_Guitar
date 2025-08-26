@@ -12,7 +12,7 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entitlement = ref.watch(revenueCatProvider);
-    final isPremium = true; //entitlement == Entitlement.premium;
+    final isPremium = entitlement.isPremium; // Use the proper check for premium status
 
     if (isPremium) {
       // If premium, go to selection page

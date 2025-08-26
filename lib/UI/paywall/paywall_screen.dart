@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
@@ -92,7 +93,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         title: const Text('Unlock Premium'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SelectionPage()),
+            );
+          },
         ),
       ),
       body: Padding(
