@@ -13,6 +13,7 @@ import '../../../models/step_sequencer_state.dart';
 import '../../../utils/player_utils.dart';
 import '../../fretboard/provider/beat_counter_provider.dart';
 import '../logic/sequencer_manager.dart';
+import '../logic/audio_service.dart';
 import '../provider/is_metronome_selected.dart';
 import '../provider/metronome_tempo_provider.dart';
 
@@ -41,6 +42,9 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
   Map<String, dynamic> sequencer = {};
   late bool isLoading;
   late Settings settings;
+  
+  // Use AudioService singleton for proper audio lifecycle management
+  AudioService get _audioService => AudioService();
 
   @override
   void initState() {
@@ -56,7 +60,21 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
     });
     isPlaying = ref.read(isSequencerPlayingProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
-    sequence = Sequence(tempo: tempo, endBeat: stepCount);
+    
+    // Initialize AudioService and get properly initialized sequence  
+    try {
+      await _audioService.initialize(
+        tempo: tempo, 
+        endBeat: stepCount,
+        forceReinitialize: false,
+      );
+      sequence = _audioService.sequence!;
+      debugPrint('[SequencerInitializer] AudioService initialized for progression player');
+    } catch (e) {
+      debugPrint('[SequencerInitializer] AudioService initialization failed: $e');
+      // Fallback to direct sequence creation if AudioService fails
+      sequence = Sequence(tempo: tempo, endBeat: stepCount);
+    }
     await sequencerManager.initialize(
         tracks: tracks,
         sequence: sequence,
@@ -83,9 +101,7 @@ class SequencerInitializerState extends ConsumerState<SequencerInitializer>
         position = sequence.getBeat();
         isPlaying = sequence.getIsPlaying();
         ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
-        for (var track in tracks) {
-          trackVolumes[track.id] = track.getVolume();
-        }
+        // Removed excessive volume polling - volumes are set once and don't change frequently
         isLoading = false;
       });
     });

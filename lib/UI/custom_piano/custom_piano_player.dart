@@ -11,6 +11,7 @@ import '../../models/step_sequencer_state.dart';
 import '../../utils/player_utils.dart';
 import '../fretboard/provider/beat_counter_provider.dart';
 import '../player_page/logic/sequencer_manager.dart';
+import '../player_page/logic/audio_service.dart';
 import '../player_page/provider/is_metronome_selected.dart';
 import '../player_page/provider/is_playing_provider.dart';
 import '../player_page/provider/metronome_tempo_provider.dart';
@@ -40,6 +41,9 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   Map<String, dynamic> sequencer = {};
   late bool isLoading;
   String? _lastKeyboardSound; // Track the last keyboard sound setting
+  
+  // Use AudioService singleton for proper audio lifecycle management
+  AudioService get _audioService => AudioService();
 
   @override
   void initState() {
@@ -95,7 +99,21 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     
     isPlaying = ref.read(isSequencerPlayingProvider);
     var stepCount = ref.read(beatCounterProvider).toDouble();
-    sequence = Sequence(tempo: tempo, endBeat: stepCount);
+    
+    // Initialize AudioService and get properly initialized sequence
+    try {
+      await _audioService.initialize(
+        tempo: tempo, 
+        endBeat: stepCount,
+        forceReinitialize: true, // Force reinit for piano controller changes
+      );
+      sequence = _audioService.sequence!;
+      debugPrint('[CustomPianoPlayer] AudioService initialized for piano');
+    } catch (e) {
+      debugPrint('[CustomPianoPlayer] AudioService initialization failed: $e');
+      // Fallback to direct sequence creation if AudioService fails
+      sequence = Sequence(tempo: tempo, endBeat: stepCount);
+    }
     
     debugPrint('[CustomPianoPlayer] Initializing sequencer with keyboard sound: ${widget.scaleModel!.settings!.keyboardSound}');
     
@@ -125,9 +143,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
         position = sequence.getBeat();
         isPlaying = sequence.getIsPlaying();
         ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
-        for (var track in tracks) {
-          trackVolumes[track.id] = track.getVolume();
-        }
+        // Removed excessive volume polling - volumes are set once and don't change frequently
         isLoading = false;
       });
     });

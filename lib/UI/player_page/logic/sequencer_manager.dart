@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sequencer/global_state.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:flutter_sequencer/sequence.dart';
 import 'package:flutter_sequencer/track.dart';
@@ -17,17 +16,20 @@ import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/performance_utils.dart';
 import 'dart:async';
-import 'dart:io';
-import 'package:flutter/services.dart';
+import 'audio_service.dart';
+// Custom playback system imports (based on working guitar_progression_generator)
+import 'package:flutter_sequencer/models/events.dart';
 import 'package:flutter_sequencer/native_bridge.dart';
 import 'package:flutter_sequencer/global_state.dart';
-import 'package:flutter_sequencer/models/events.dart';
 
 final sequencerManagerProvider = Provider((ref) => SequencerManager(ref));
 
 class SequencerManager {
   final Ref _ref;
   SequencerManager(this._ref);
+  
+  // Use AudioService singleton for proper audio lifecycle management
+  AudioService get _audioService => AudioService();
 
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   List<Track> tracks = [];
@@ -42,7 +44,9 @@ class SequencerManager {
   Track? selectedTrack;
   double _lastTempo = Constants.INITIAL_TEMPO;
   double tempo = Constants.INITIAL_TEMPO;
-  double position = 0.0;
+  double _position = 0.0;
+  double get position => _position;
+  set position(double value) => _position = value;
   bool isPlaying = false;
   bool isTrackLooping = true;
   int stepCount = 0;
@@ -56,12 +60,15 @@ class SequencerManager {
   // Mutex for thread-safe note operations
   bool _noteOperationInProgress = false;
 
-  // Custom playback system (like working reference app)
+  // Custom playback system (based on working flutter_sequencer_plus example)
   Timer? _playbackTimer;
   DateTime? _playbackStartTime;
   double _playbackStartBeat = 0.0;
-  Set<String> _processedEvents = {};
-  int _lastCompletedLoops = 0;
+  double _pausedAtBeat = 0.0;
+  final Set<String> _processedEvents = {};
+  bool isPaused = false;
+
+  // Use native position tracking from flutter_sequencer
 
   Future<List<Track>> initialize({
     required List<Track> tracks,
@@ -92,39 +99,34 @@ class SequencerManager {
     tonicAsUniversalBassNote = isScaleTonicSelected;
     this.isMetronomeSelected = isMetronomeSelected;
 
-    GlobalState().setKeepEngineRunning(true);
-    debugPrint('[SequencerManager] Audio engine keep running set to true');
+    // Initialize audio service with proper lifecycle management - based on working guitar_progression_generator
+    debugPrint('[SequencerManager] Initializing AudioService...');
     
-    // Add audio engine debugging
     try {
-      debugPrint('[SequencerManager] Checking audio engine state');
-      // Note: Some of these methods might not exist - we'll see what works
-    } catch (e) {
-      debugPrint('[SequencerManager] Audio engine state check failed: $e');
+      // Initialize AudioService with sequence parameters
+      await _audioService.initialize(
+        tempo: tempo, 
+        endBeat: stepCount.toDouble(),
+        forceReinitialize: false,
+      );
+      
+      // Get the properly initialized sequence from AudioService
+      this.sequence = _audioService.sequence!;
+      debugPrint('[SequencerManager] AudioService initialized successfully');
+    } catch (e, stackTrace) {
+      debugPrint('[SequencerManager] AudioService initialization failed: $e');
+      debugPrint('[SequencerManager] Stack trace: $stackTrace');
+      throw Exception('Failed to initialize audio engine: $e');
     }
 
     // Start periodic cleanup for stale notes
     _startCleanupTimer();
 
-    // CRITICAL: Initialize iOS audio session for sound output (flutter_sequencer_plus method)
-    if (Platform.isIOS) {
-      try {
-        debugPrint('[SequencerManager] Initializing iOS audio session for sound output...');
-        await const MethodChannel('flutter_sequencer').invokeMethod('initializeAudioSession');
-        debugPrint('[SequencerManager] ✅ iOS audio session initialized successfully');
-      } catch (e) {
-        debugPrint('[SequencerManager] ⚠️ Could not initialize iOS audio session: $e');
-      }
-    }
-
     try {
-      // Create tracks
-      List<Track> createdTracks = await sequence.createTracks(instruments);
-      
-      // Wait for SoundFont to load - iOS needs more time for proper audio loading
-      final loadingDelay = Platform.isIOS ? 1500 : 500;
-      debugPrint('[SequencerManager] Waiting ${loadingDelay}ms for SoundFont loading on ${Platform.operatingSystem}');
-      await Future.delayed(Duration(milliseconds: loadingDelay));
+      // Create tracks using AudioService method (critical difference from direct sequence.createTracks)
+      debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
+      List<Track> createdTracks = await _audioService.createTracks(instruments);
+      debugPrint('[SequencerManager] AudioService created ${createdTracks.length} tracks successfully');
       
       this.tracks = createdTracks;
       selectedTrack = this.tracks[0];
@@ -135,7 +137,9 @@ class SequencerManager {
         
         // Ensure track volume is properly set
         track.changeVolumeNow(volume: 0.8);
-        debugPrint('[SequencerManager] Track ${track.id} volume set to: ${track.getVolume()}');
+        if (kDebugMode) {
+          debugPrint('[SequencerManager] Track ${track.id} volume set to: ${trackVolumes[track.id]}');
+        }
         
         // Debug instrument info for piano sound quality issues
         debugPrint('[SequencerManager] Track ${track.id} instrument info:');
@@ -359,76 +363,108 @@ class SequencerManager {
   }
 
   Future<void> handleTogglePlayStop(Sequence sequence) async {
-    if (_playbackTimer != null) {
-      debugPrint("[SequencerManager] CUSTOM: Stopping playback");
-      _stopCustomPlayback();
+    debugPrint("[SequencerManager] CUSTOM: Toggle play/stop - current playing: $isPlaying");
+    
+    if (isPlaying) {
+      // Use CUSTOM pause system (flutter_sequencer_plus style)
+      debugPrint("[SequencerManager] CUSTOM: Using custom pause system");
+      _pauseCustomPlayback();
     } else {
-      debugPrint("[SequencerManager] CUSTOM: Starting playback");
-      debugPrint("[SequencerManager] Playing sequence. Tracks: ${tracks.length}");
+      // Use CUSTOM playback system (flutter_sequencer_plus style)
+      debugPrint("[SequencerManager] CUSTOM: Using custom playback system");
       
-      // Debug all tracks
-      for (int i = 0; i < tracks.length; i++) {
-        final track = tracks[i];
-        debugPrint("[SequencerManager] Track $i: id=${track.id}, events=${track.events.length}, volume=${track.getVolume()}");
-        
-        // Debug first few events for each track
-        for (int j = 0; j < track.events.length && j < 3; j++) {
-          final event = track.events[j];
-          debugPrint("[SequencerManager]   Event $j: $event");
-        }
+      if (isPaused && _pausedAtBeat > 0) {
+        // Resume from custom pause
+        _resumeCustomPlayback();
+      } else {
+        // Start fresh custom playback
+        _startCustomPlayback();
       }
-      
-      _startCustomPlayback();
     }
   }
 
+  /// Custom playback system based on working flutter_sequencer_plus example
   void _startCustomPlayback() {
-    debugPrint("🎵 [SequencerManager] Starting CUSTOM playback system");
-    
+    debugPrint("🎵 [SequencerManager] Starting CUSTOM playback system (flutter_sequencer_plus style)...");
     _playbackStartTime = DateTime.now();
     _playbackStartBeat = 0.0;
+    _pausedAtBeat = 0.0;
     _processedEvents.clear();
-    _lastCompletedLoops = 0;
-    position = 0.0;
+    
+    // Update state directly
     isPlaying = true;
+    isPaused = false;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    // Start high-frequency timer for event processing (like working reference app)
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
+    // Start high-frequency timer for event processing (like working example)
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
       _processCustomPlayback();
     });
+    
+    debugPrint("🎵 [SequencerManager] CUSTOM playback started - should hear events at scheduled beats");
   }
-
+  
+  void _pauseCustomPlayback() {
+    debugPrint("🎵 [SequencerManager] Pausing CUSTOM playback...");
+    _playbackTimer?.cancel();
+    _playbackTimer = null;
+    _pausedAtBeat = position;
+    
+    // Update state directly
+    isPlaying = false;
+    isPaused = true;
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+    
+    debugPrint("🎵 [SequencerManager] CUSTOM paused at beat $_pausedAtBeat");
+  }
+  
+  void _resumeCustomPlayback() {
+    debugPrint("🎵 [SequencerManager] Resuming CUSTOM playback from beat $_pausedAtBeat...");
+    _playbackStartTime = DateTime.now();
+    _playbackStartBeat = _pausedAtBeat;
+    
+    // Update state directly
+    isPlaying = true;
+    isPaused = false;
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
+    
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+      _processCustomPlayback();
+    });
+    
+    debugPrint("🎵 [SequencerManager] CUSTOM resumed from beat $_pausedAtBeat");
+  }
+  
   void _processCustomPlayback() {
     if (_playbackStartTime == null) return;
     
-    // Calculate current beat - simple and reliable
+    // Calculate current beat based on elapsed time (like working example)
     final elapsed = DateTime.now().difference(_playbackStartTime!);
     final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
-    var currentBeat = _playbackStartBeat + elapsedBeats;
+    final currentBeat = _playbackStartBeat + elapsedBeats;
     
-    // Simple modulo looping - no complex timing calculations
-    if (isTrackLooping && currentBeat >= stepCount) {
-      final loops = (currentBeat / stepCount).floor();
-      currentBeat = currentBeat % stepCount;
-      
-      // Clear events only once per loop
-      if (loops > _lastCompletedLoops) {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Loop $loops (beat: ${currentBeat.toStringAsFixed(2)})");
+    // Update position directly
+    position = currentBeat;
+    
+    // Check if we've reached the end
+    if (currentBeat >= stepCount) {
+      if (isTrackLooping) {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Looping back to beginning...");
+        _playbackStartTime = DateTime.now();
+        _playbackStartBeat = 0.0;
         _processedEvents.clear();
-        _lastCompletedLoops = loops;
+        position = 0.0;
+      } else {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
+        _stopCustomPlayback();
+        return;
       }
-    } else if (!isTrackLooping && currentBeat >= stepCount) {
-      debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
-      _stopCustomPlayback();
-      return;
     }
     
-    // Update position and process events
-    position = currentBeat;
+    // Process events at current beat (THE CRITICAL PART!)
     _processEventsAtBeat(currentBeat);
   }
-
+  
   void _processEventsAtBeat(double currentBeat) {
     for (final track in tracks) {
       for (final event in track.events) {
@@ -442,7 +478,7 @@ class SequencerManager {
             if (!_processedEvents.contains(eventKey)) {
               debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1}");
               
-              // Send MIDI event directly using NativeBridge (like working reference app)
+              // Send MIDI event directly using NativeBridge (like working example)
               NativeBridge.handleEventsNow(
                 track.id, 
                 [event], 
@@ -457,7 +493,7 @@ class SequencerManager {
       }
     }
   }
-
+  
   void _stopCustomPlayback() {
     debugPrint("🎵 [SequencerManager] Stopping CUSTOM playback...");
     _playbackTimer?.cancel();
@@ -465,14 +501,17 @@ class SequencerManager {
     _playbackStartTime = null;
     _processedEvents.clear();
     
-    // Stop all sustaining notes
+    // CRITICAL FIX: Stop all sustaining notes immediately
     _stopAllNotes();
     
+    // Update state directly
     isPlaying = false;
+    isPaused = false;
     position = 0.0;
+    _pausedAtBeat = 0.0;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
   }
-
+  
   void _stopAllNotes() {
     debugPrint("🛑 [SequencerManager] Stopping all sustaining notes on ${tracks.length} tracks");
     
@@ -483,6 +522,13 @@ class SequencerManager {
         for (int noteNumber = 48; noteNumber <= 84; noteNumber++) {
           track.stopNoteNow(noteNumber: noteNumber);
         }
+        
+        // Stop common drum notes (kick, snare, hi-hat, crash)
+        final drumNotes = [36, 38, 42, 44, 46, 49]; // Kick, snare, closed hi-hat, pedal hi-hat, open hi-hat, crash
+        for (int noteNumber in drumNotes) {
+          track.stopNoteNow(noteNumber: noteNumber);
+        }
+        
         debugPrint("🛑 [SequencerManager] Stopped all notes on track ${track.id}");
       } catch (e) {
         debugPrint("🛑 [SequencerManager] Error stopping notes on track ${track.id}: $e");
@@ -518,34 +564,19 @@ class SequencerManager {
 
   Future<void> handleStop(Sequence sequence) async {
     try {
-      debugPrint('[SequencerManager] handleStop called');
+      debugPrint('[SequencerManager] handleStop called - using CUSTOM stop system');
       
       // Prevent multiple simultaneous stop calls
-      if (!isPlaying && !sequence.getIsPlaying() && _playbackTimer == null) {
+      if (!isPlaying) {
         debugPrint('[SequencerManager] Already stopped, skipping');
         return;
       }
       
       await PerformanceUtils.trackAsyncOperation('handleStop', () async {
-        // CRITICAL: Stop custom playback timer FIRST to prevent audio freezing
-        if (_playbackTimer != null) {
-          debugPrint('[SequencerManager] Stopping custom playback timer');
-          _stopCustomPlayback();
-        }
+        // Use CUSTOM stop system (flutter_sequencer_plus style)
+        _stopCustomPlayback();
         
-        // Stop the sequence quickly without waiting
-        try {
-          if (sequence.getIsPlaying()) {
-            sequence.stop();
-          }
-          isPlaying = false;
-          _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
-        } catch (e) {
-          debugPrint('[SequencerManager] Error stopping sequence: $e');
-        }
-        
-        // Do cleanup in background to avoid UI blocking
-        _performBackgroundCleanup();
+        debugPrint('[SequencerManager] CUSTOM stop completed successfully');
       });
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
@@ -592,13 +623,10 @@ class SequencerManager {
     });
   }
 
-  _handleSetLoop(bool nextIsLooping, Sequence sequence) {
-    if (nextIsLooping) {
-      sequence.setLoop(0, stepCount.toDouble());
-    } else {
-      sequence.unsetLoop();
-    }
+  void _handleSetLoop(bool nextIsLooping, Sequence sequence) {
+    // Custom playback system handles looping internally
     isTrackLooping = nextIsLooping;
+    debugPrint('[SequencerManager] Loop set to: $nextIsLooping');
   }
 
   handleToggleLoop(bool isLooping, Sequence sequence) {
@@ -637,10 +665,11 @@ class SequencerManager {
         debugPrint('[SequencerManager] Invalid tempo: $nextTempo. Must be > 0.');
         return;
     }
-    debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
-    sequence.setTempo(nextTempo);
-    // Update local tempo if SequencerManager keeps its own tempo state that needs to match
-    this.tempo = nextTempo; 
+    if (kDebugMode) {
+      debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
+    }
+    // Custom playback system uses local tempo directly
+    tempo = nextTempo; 
   }
 
   // handleTrackChange(Track nextTrack) {
@@ -755,6 +784,12 @@ class SequencerManager {
     _handleStepCountChange(projectState.stepCount, tracks, sequence);
     handleTempoChange(tempo, sequence);
     _handleSetLoop(projectState.isLooping, sequence);
+    
+    // CRITICAL: Set sequence end beat to ensure playback duration is correct
+    sequence.endBeat = stepCount.toDouble();
+    if (kDebugMode) {
+      debugPrint('[SequencerManager] Set sequence endBeat to: ${sequence.endBeat}');
+    }
 
     _syncTrack(tracks[0]);
     _syncTrack(tracks[1]);
@@ -840,6 +875,11 @@ class SequencerManager {
       _cleanupTimer?.cancel();
       _cleanupTimer = null;
       
+      // Clean up custom playback timer
+      _playbackTimer?.cancel();
+      _playbackTimer = null;
+      _processedEvents.clear();
+      
       if (sequence != null) {
         debugPrint('[SequencerManager] Stopping sequence');
         
@@ -850,37 +890,15 @@ class SequencerManager {
           debugPrint('[SequencerManager] Error in handleStop during dispose: $e');
           // Continue with manual cleanup
         }
-        
-        // Additional safety cleanup - stop all notes across all MIDI channels
-        try {
-          final tracks = this.tracks; // Use stored tracks instead of sequence.getTracks()
-          if (tracks.isNotEmpty) {
-            for (final track in tracks) {
-              try {
-                debugPrint('[SequencerManager] Force-clearing track id: ${track.id}');
-                
-                // Clear events first
-                track.clearEvents();
-                
-                // Only stop notes that were tracked as active on this track
-                final trackActiveNotes = _trackActiveNotes[track.id]?.toList() ?? [];
-                for (final note in trackActiveNotes) {
-                  try {
-                    track.stopNoteNow(noteNumber: note);
-                  } catch (e) {
-                    // Individual note stop failures are not critical during dispose
-                  }
-                }
-              } catch (e) {
-                debugPrint('[SequencerManager] Non-critical error force-clearing track ${track.id}: $e');
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('[SequencerManager] Error during force cleanup: $e');
-        }
-        
-        debugPrint('[SequencerManager] Sequence cleanup complete');
+      }
+      
+      // Dispose AudioService properly
+      try {
+        debugPrint('[SequencerManager] Disposing AudioService');
+        await _audioService.dispose();
+        debugPrint('[SequencerManager] AudioService disposed successfully');
+      } catch (e) {
+        debugPrint('[SequencerManager] Error disposing AudioService: $e');
       }
       
       // Clear all state regardless of previous errors

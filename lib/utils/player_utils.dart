@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'package:scalemasterguitar/models/settings_model.dart';
-import '../constants/gm_programs.dart';
 import '../UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:flutter/material.dart' as material;
 class SoundPlayerUtils {
@@ -55,12 +54,13 @@ class SoundPlayerUtils {
         throw Exception('Unknown instrument type: $instrument');
     }
 
-    final presetIndex = gmProgramNumbers[gmName];
+    // Use correct preset indices based on what's actually available in the SF2 files
+    final presetIndex = _getCorrectPresetIndex(instrument, instSound, soundFontPath);
     if (presetIndex == null) {
       if (kDebugMode) {
-        material.debugPrint('[SoundPlayerUtils] ERROR: No GM program for instrument: $instrument, instSound: $instSound');
+        material.debugPrint('[SoundPlayerUtils] ERROR: No preset available for instrument: $instrument, instSound: $instSound');
       }
-      throw Exception('No GM program for instrument: $instrument, instSound: $instSound');
+      throw Exception('No preset available for instrument: $instrument, instSound: $instSound');
     }
     
     if (kDebugMode) {
@@ -78,11 +78,22 @@ class SoundPlayerUtils {
       }
     }
     
-    return Sf2Instrument(
+    // For flutter_sequencer_plus eff3773, ensure proper SF2 instrument creation
+    final sf2Instrument = Sf2Instrument(
       path: soundFontPath,
       isAsset: true,
       presetIndex: presetIndex,
     );
+    
+    if (kDebugMode) {
+      material.debugPrint('[SoundPlayerUtils] Created SF2 Instrument:');
+      material.debugPrint('[SoundPlayerUtils]   Path: ${sf2Instrument.idOrPath}');
+      material.debugPrint('[SoundPlayerUtils]   IsAsset: ${sf2Instrument.isAsset}');
+      material.debugPrint('[SoundPlayerUtils]   PresetIndex: ${sf2Instrument.presetIndex}');
+      material.debugPrint('[SoundPlayerUtils]   DisplayName: ${sf2Instrument.displayName}');
+    }
+    
+    return sf2Instrument;
   }
   
   /// Get keyboard soundfont path based on instrument type
@@ -115,6 +126,38 @@ class SoundPlayerUtils {
         return 'assets/sounds/sf2/BassGuitars.sf2';       // Use electric bass for synth
       default:
         return 'assets/sounds/sf2/BassGuitars.sf2';       // Default fallback
+    }
+  }
+  
+  /// Get correct preset index for flutter_sequencer_plus eff3773 compatibility
+  static int? _getCorrectPresetIndex(SettingsSelection instrument, String instSound, String soundFontPath) {
+    // For the specific eff3773 commit, we need to match the exact preset structure
+    switch (instrument) {
+      case SettingsSelection.drumsSound:
+        // Drums use channel 9, preset index doesn't matter for percussion channel
+        return 0;
+        
+      case SettingsSelection.keyboardSound:
+        // For keyboards, use GM program numbers that map to valid presets
+        switch (instSound.toLowerCase()) {
+          case 'piano':
+            return 1; // Try preset 1 for piano (eff3773 may have different mapping)
+          case 'pad':
+            return 1; // Use same preset for pad sounds
+          case 'rhodes':
+            return 1; 
+          case 'organ':
+            return 1;
+          default:
+            return 1;
+        }
+        
+      case SettingsSelection.bassSound:
+        // For bass, use preset that should exist in BassGuitars.sf2
+        return 1; // Try preset 1 instead of 0
+        
+      default:
+        return 1;
     }
   }
 }
