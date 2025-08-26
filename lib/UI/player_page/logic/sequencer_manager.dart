@@ -66,6 +66,7 @@ class SequencerManager {
   double _playbackStartBeat = 0.0;
   double _pausedAtBeat = 0.0;
   final Set<String> _processedEvents = {};
+  final Map<String, double> _activeNotes = {}; // Track active notes with their end times
   bool isPaused = false;
 
   // Use native position tracking from flutter_sequencer
@@ -441,42 +442,54 @@ class SequencerManager {
     // Calculate current beat based on elapsed time (like working example)
     final elapsed = DateTime.now().difference(_playbackStartTime!);
     final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
-    final currentBeat = _playbackStartBeat + elapsedBeats;
+    var currentBeat = _playbackStartBeat + elapsedBeats;
     
-    // Update position directly
-    position = currentBeat;
-    
-    // Check if we've reached the end
-    if (currentBeat >= stepCount) {
-      if (isTrackLooping) {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Looping back to beginning...");
-        _playbackStartTime = DateTime.now();
-        _playbackStartBeat = 0.0;
+    // CRITICAL FIX: Seamless loop transition - use modulo instead of time reset
+    if (isTrackLooping && currentBeat >= stepCount) {
+      // Calculate how far past the end we are for seamless transition
+      final overshoot = currentBeat - stepCount;
+      currentBeat = overshoot; // Continue seamlessly from overshoot position
+      
+      // Only clear processed events once per loop cycle
+      if (_playbackStartBeat >= stepCount) {
+        debugPrint("🎵 [SequencerManager] CUSTOM: Seamless loop transition at beat ${currentBeat.toStringAsFixed(3)}");
         _processedEvents.clear();
-        position = 0.0;
-      } else {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
-        _stopCustomPlayback();
-        return;
+        _activeNotes.clear(); // Clear sustaining notes on loop restart
       }
+      
+      // Adjust timing reference for next calculations
+      _playbackStartBeat = 0.0;
+      _playbackStartTime = DateTime.now().subtract(Duration(microseconds: (overshoot * 1000000.0 / (tempo / 60.0)).round()));
+    } else if (!isTrackLooping && currentBeat >= stepCount) {
+      debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
+      _stopCustomPlayback();
+      return;
     }
     
-    // Process events at current beat (THE CRITICAL PART!)
+    // Update position directly
+    position = currentBeat % stepCount;
+    
+    // Process note-off events for expired notes (CRITICAL FIX for sustaining)
+    _processNoteOffEvents(currentBeat);
+    
+    // Process note-on events at current beat
     _processEventsAtBeat(currentBeat);
   }
   
   void _processEventsAtBeat(double currentBeat) {
+    final effectiveBeat = currentBeat % stepCount; // Handle loop wrapping
+    
     for (final track in tracks) {
       for (final event in track.events) {
         if (event is MidiEvent) {
           final eventBeat = event.beat;
           
           // Check if event should trigger now (with timing tolerance)
-          if (eventBeat >= currentBeat - 0.15 && eventBeat <= currentBeat + 0.15) {
+          if (eventBeat >= effectiveBeat - 0.15 && eventBeat <= effectiveBeat + 0.15) {
             final eventKey = '${track.id}-${(eventBeat * 100).round()}-${event.midiData1}-${event.midiData2}';
             
             if (!_processedEvents.contains(eventKey)) {
-              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1}");
+              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1} vel=${event.midiData2}");
               
               // Send MIDI event directly using NativeBridge (like working example)
               NativeBridge.handleEventsNow(
@@ -486,9 +499,54 @@ class SequencerManager {
                 tempo
               );
               
+              // Track active note-on events for automatic note-off (only if it's a note-on)
+              if (event.midiData2 > 0) { // NOTE-ON event
+                double noteDuration;
+                final trackIndex = tracks.indexOf(track);
+                if (trackIndex == 0) {
+                  // Drum track - short hits
+                  noteDuration = 0.5;
+                } else {
+                  // Piano/bass tracks - full beat duration
+                  noteDuration = 1.0;
+                }
+                
+                final noteEndBeat = currentBeat + noteDuration;
+                final noteKey = '${track.id}-${event.midiData1}';
+                _activeNotes[noteKey] = noteEndBeat;
+                debugPrint("🎵 [SequencerManager] Note scheduled to end at beat ${noteEndBeat.toStringAsFixed(3)}");
+              }
+              
               _processedEvents.add(eventKey);
             }
           }
+        }
+      }
+    }
+  }
+  
+  void _processNoteOffEvents(double currentBeat) {
+    final notesToStop = <String>[];
+    
+    _activeNotes.forEach((noteKey, endBeat) {
+      if (currentBeat >= endBeat) {
+        notesToStop.add(noteKey);
+      }
+    });
+    
+    for (final noteKey in notesToStop) {
+      final parts = noteKey.split('-');
+      if (parts.length == 2) {
+        final trackId = int.parse(parts[0]);
+        final noteNumber = int.parse(parts[1]);
+        final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
+        
+        try {
+          debugPrint("🛑 [SequencerManager] NOTE-OFF: track=$trackId note=$noteNumber at beat=${currentBeat.toStringAsFixed(3)}");
+          track.stopNoteNow(noteNumber: noteNumber);
+          _activeNotes.remove(noteKey);
+        } catch (e) {
+          debugPrint("🛑 [SequencerManager] Error stopping note $noteNumber on track $trackId: $e");
         }
       }
     }
@@ -501,8 +559,9 @@ class SequencerManager {
     _playbackStartTime = null;
     _processedEvents.clear();
     
-    // CRITICAL FIX: Stop all sustaining notes immediately
-    _stopAllNotes();
+    // CRITICAL FIX: Stop all active tracked notes immediately
+    _stopAllActiveNotes();
+    _activeNotes.clear();
     
     // Update state directly
     isPlaying = false;
@@ -512,26 +571,38 @@ class SequencerManager {
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
   }
   
-  void _stopAllNotes() {
-    debugPrint("🛑 [SequencerManager] Stopping all sustaining notes on ${tracks.length} tracks");
+  void _stopAllActiveNotes() {
+    debugPrint("🛑 [SequencerManager] Stopping ${_activeNotes.length} active tracked notes");
     
-    // Send note-off events to all tracks for common MIDI notes
-    for (final track in tracks) {
-      try {
-        // Stop common piano notes (C3-C6 range)
-        for (int noteNumber = 48; noteNumber <= 84; noteNumber++) {
-          track.stopNoteNow(noteNumber: noteNumber);
-        }
+    // Stop only the notes we're actively tracking (more efficient and precise)
+    _activeNotes.forEach((noteKey, endBeat) {
+      final parts = noteKey.split('-');
+      if (parts.length == 2) {
+        final trackId = int.parse(parts[0]);
+        final noteNumber = int.parse(parts[1]);
+        final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
         
-        // Stop common drum notes (kick, snare, hi-hat, crash)
-        final drumNotes = [36, 38, 42, 44, 46, 49]; // Kick, snare, closed hi-hat, pedal hi-hat, open hi-hat, crash
-        for (int noteNumber in drumNotes) {
+        try {
           track.stopNoteNow(noteNumber: noteNumber);
+          debugPrint("🛑 [SequencerManager] Stopped tracked note $noteNumber on track $trackId");
+        } catch (e) {
+          debugPrint("🛑 [SequencerManager] Error stopping tracked note $noteNumber: $e");
         }
-        
-        debugPrint("🛑 [SequencerManager] Stopped all notes on track ${track.id}");
-      } catch (e) {
-        debugPrint("🛑 [SequencerManager] Error stopping notes on track ${track.id}: $e");
+      }
+    });
+    
+    // Fallback: stop common sustaining notes if any tracking failed
+    if (_activeNotes.length > 10) { // Only if we had many active notes
+      for (final track in tracks) {
+        try {
+          // Stop common piano notes (C3-C6 range)
+          for (int noteNumber = 48; noteNumber <= 84; noteNumber++) {
+            track.stopNoteNow(noteNumber: noteNumber);
+          }
+          debugPrint("🛑 [SequencerManager] Fallback: stopped piano range on track ${track.id}");
+        } catch (e) {
+          // Ignore individual failures
+        }
       }
     }
   }
@@ -879,6 +950,7 @@ class SequencerManager {
       _playbackTimer?.cancel();
       _playbackTimer = null;
       _processedEvents.clear();
+      _activeNotes.clear();
       
       if (sequence != null) {
         debugPrint('[SequencerManager] Stopping sequence');
