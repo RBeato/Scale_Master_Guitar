@@ -324,7 +324,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         if (prevKeyboardSound != nextKeyboardSound) {
           debugPrint('[PlayerWidget] Keyboard sound changed: $prevKeyboardSound -> $nextKeyboardSound');
           
-          if (!isLoading) {
+          // Only reinitialize if we have a valid sequence and tracks already
+          if (!isLoading && sequence != null && tracks.isNotEmpty) {
             final currentChords = ref.read(selectedChordsProvider);
             if (currentChords.isNotEmpty) {
               debugPrint('[PlayerWidget] Reinitializing sequencer due to keyboard sound change');
@@ -371,12 +372,14 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     // Listener for metronome selection (might also need re-init if drums are added/removed)
     ref.listen<bool>(isMetronomeSelectedProvider, (previous, next) {
       debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: $next');
-      if (previous != next && !isLoading) {
+      if (previous != next && !isLoading && sequence != null && tracks.isNotEmpty) {
          // When metronome changes, we need the current set of chords for re-initialization
          final currentChords = ref.read(selectedChordsProvider);
-         _performFullSequencerReinitialization(newChords: currentChords); 
+         if (currentChords.isNotEmpty) {
+           _performFullSequencerReinitialization(newChords: currentChords); 
+         }
       } else {
-          debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: SKIPPING re-init, isLoading is true or value unchanged.');
+          debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: SKIPPING re-init, isLoading is true, no sequence/tracks, or value unchanged.');
       }
     });
     
@@ -458,46 +461,5 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     }
   }
 
-  // Update sequence with a new chord without showing loading state
-  Future<void> _updateSequenceWithNewChord(List<ChordModel> chords) async {
-    debugPrint('[PlayerWidget] _updateSequenceWithNewChord: updating with ${chords.length} chords');
-    if (sequence == null || tracks.isEmpty) {
-      // If we don't have a valid sequence yet, do a full initialization
-      await _performFullSequencerReinitialization(newChords: chords);
-      return;
-    }
-
-    try {
-      // Stop any current playback
-      final wasPlaying = ref.read(isSequencerPlayingProvider);
-      await sequencerManager.handleStop(sequence!);
-      
-      // Clear existing tracks
-      sequencerManager.clearEverything(tracks, sequence!);
-      
-      // Calculate the required step count based on the chords
-      final calculatedStepCount = chords.fold(0, (prev, chord) {
-        final endPosition = chord.position + chord.duration;
-        return endPosition > prev ? endPosition : prev;
-      });
-
-      // Create a new sequence with the updated step count
-      sequence!.setEndBeat(calculatedStepCount.toDouble());
-      
-      // Re-initialize tracks with the new chords
-      await _initializeAndSetupTicker(chordsToProcess: chords);
-      
-      // Restart playback if it was playing
-      if (wasPlaying) {
-        sequence!.play();
-        ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Error updating sequence with new chord: $e');
-      debugPrint(stackTrace.toString());
-      // Fall back to full reinitialization if update fails
-      await _performFullSequencerReinitialization(newChords: chords);
-    }
-  }
 
 }

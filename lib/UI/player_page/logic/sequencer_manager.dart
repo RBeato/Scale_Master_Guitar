@@ -124,12 +124,21 @@ class SequencerManager {
     _startCleanupTimer();
 
     try {
-      // Create tracks using AudioService method (critical difference from direct sequence.createTracks)
-      debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
-      List<Track> createdTracks = await _audioService.createTracks(instruments);
-      debugPrint('[SequencerManager] AudioService created ${createdTracks.length} tracks successfully');
-      
-      this.tracks = createdTracks;
+      // CRITICAL: Reuse existing tracks if they exist to prevent native crashes
+      if (this.tracks.isNotEmpty && this.tracks.length == instruments.length) {
+        debugPrint('[SequencerManager] Reusing existing ${this.tracks.length} tracks (preventing native crash)');
+        // Clear events from existing tracks instead of creating new ones
+        for (Track track in this.tracks) {
+          track.clearEvents();
+        }
+      } else {
+        // Create tracks using AudioService method only if needed
+        debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
+        List<Track> createdTracks = await _audioService.createTracks(instruments);
+        debugPrint('[SequencerManager] AudioService created ${createdTracks.length} tracks successfully');
+        
+        this.tracks = createdTracks;
+      }
       selectedTrack = this.tracks[0];
 
       for (Track track in this.tracks) {
@@ -448,18 +457,20 @@ class SequencerManager {
     if (isTrackLooping && currentBeat >= stepCount) {
       // Calculate how far past the end we are for seamless transition
       final overshoot = currentBeat - stepCount;
-      currentBeat = overshoot; // Continue seamlessly from overshoot position
       
-      // Only clear processed events once per loop cycle
-      if (_playbackStartBeat >= stepCount) {
-        debugPrint("🎵 [SequencerManager] CUSTOM: Seamless loop transition at beat ${currentBeat.toStringAsFixed(3)}");
-        _processedEvents.clear();
-        _activeNotes.clear(); // Clear sustaining notes on loop restart
-      }
+      // IMPORTANT: Stop all active notes before loop restart to prevent hanging notes
+      debugPrint("🎵 [SequencerManager] CUSTOM: Loop restart - stopping active notes before transition");
+      _stopAllActiveNotes();
+      _activeNotes.clear();
+      
+      // Clear processed events for the new loop cycle
+      debugPrint("🎵 [SequencerManager] CUSTOM: Seamless loop transition at beat ${overshoot.toStringAsFixed(3)}");
+      _processedEvents.clear();
       
       // Adjust timing reference for next calculations
       _playbackStartBeat = 0.0;
       _playbackStartTime = DateTime.now().subtract(Duration(microseconds: (overshoot * 1000000.0 / (tempo / 60.0)).round()));
+      currentBeat = overshoot; // Continue seamlessly from overshoot position
     } else if (!isTrackLooping && currentBeat >= stepCount) {
       debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
       _stopCustomPlayback();
@@ -486,9 +497,11 @@ class SequencerManager {
           
           // Check if event should trigger now (with timing tolerance)
           if (eventBeat >= effectiveBeat - 0.15 && eventBeat <= effectiveBeat + 0.15) {
+            // Use loop-aware key to prevent duplicate events across loops
             final eventKey = '${track.id}-${(eventBeat * 100).round()}-${event.midiData1}-${event.midiData2}';
+            final loopAwareKey = 'loop-${(currentBeat / stepCount).floor()}-$eventKey';
             
-            if (!_processedEvents.contains(eventKey)) {
+            if (!_processedEvents.contains(loopAwareKey)) {
               debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1} vel=${event.midiData2}");
               
               // Send MIDI event directly using NativeBridge (like working example)
@@ -517,7 +530,7 @@ class SequencerManager {
                 debugPrint("🎵 [SequencerManager] Note scheduled to end at beat ${noteEndBeat.toStringAsFixed(3)}");
               }
               
-              _processedEvents.add(eventKey);
+              _processedEvents.add(loopAwareKey);
             }
           }
         }
@@ -554,27 +567,42 @@ class SequencerManager {
   
   void _stopCustomPlayback() {
     debugPrint("🎵 [SequencerManager] Stopping CUSTOM playback...");
+    
+    // Cancel timer first to prevent new events
     _playbackTimer?.cancel();
     _playbackTimer = null;
     _playbackStartTime = null;
     _processedEvents.clear();
     
-    // CRITICAL FIX: Stop all active tracked notes immediately
-    _stopAllActiveNotes();
-    _activeNotes.clear();
-    
-    // Update state directly
+    // Update state immediately to prevent race conditions
     isPlaying = false;
     isPaused = false;
     position = 0.0;
     _pausedAtBeat = 0.0;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+    
+    // CRITICAL FIX: Stop all active tracked notes immediately
+    _stopAllActiveNotes();
+    _activeNotes.clear();
+    
+    // Additional failsafe: Force stop the native sequence as well
+    if (sequence != null) {
+      try {
+        sequence!.stop();
+        debugPrint("🛑 [SequencerManager] Force stopped native sequence");
+      } catch (e) {
+        debugPrint("🛑 [SequencerManager] Error force stopping native sequence: $e");
+      }
+    }
   }
   
   void _stopAllActiveNotes() {
-    debugPrint("🛑 [SequencerManager] Stopping ${_activeNotes.length} active tracked notes");
+    debugPrint("🛑 [SequencerManager] Stopping all active notes from both tracking systems");
     
-    // Stop only the notes we're actively tracking (more efficient and precise)
+    // CRITICAL FIX: Stop notes from BOTH tracking systems
+    
+    // 1. Stop notes from custom playback system (_activeNotes)
+    int customNotesCount = _activeNotes.length;
     _activeNotes.forEach((noteKey, endBeat) {
       final parts = noteKey.split('-');
       if (parts.length == 2) {
@@ -584,24 +612,70 @@ class SequencerManager {
         
         try {
           track.stopNoteNow(noteNumber: noteNumber);
-          debugPrint("🛑 [SequencerManager] Stopped tracked note $noteNumber on track $trackId");
+          debugPrint("🛑 [SequencerManager] Stopped custom tracked note $noteNumber on track $trackId");
         } catch (e) {
-          debugPrint("🛑 [SequencerManager] Error stopping tracked note $noteNumber: $e");
+          debugPrint("🛑 [SequencerManager] Error stopping custom tracked note $noteNumber: $e");
         }
       }
     });
     
-    // Fallback: stop common sustaining notes if any tracking failed
-    if (_activeNotes.length > 10) { // Only if we had many active notes
+    // 2. Stop notes from piano tracking system (_trackActiveNotes) 
+    int pianoNotesCount = 0;
+    _trackActiveNotes.forEach((trackId, noteSet) {
+      pianoNotesCount += noteSet.length;
+      final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
+      
+      // Convert to list to avoid concurrent modification
+      final notesToStop = noteSet.toList();
+      for (final noteNumber in notesToStop) {
+        try {
+          track.stopNoteNow(noteNumber: noteNumber);
+          debugPrint("🛑 [SequencerManager] Stopped piano tracked note $noteNumber on track $trackId");
+        } catch (e) {
+          debugPrint("🛑 [SequencerManager] Error stopping piano tracked note $noteNumber: $e");
+        }
+      }
+      noteSet.clear();
+    });
+    
+    debugPrint("🛑 [SequencerManager] Stopped $customNotesCount custom notes and $pianoNotesCount piano notes");
+    
+    // 3. Send "All Notes Off" MIDI command (CC 123) to each track as emergency stop
+    debugPrint("🛑 [SequencerManager] Sending All Notes Off MIDI command to all tracks");
+    for (final track in tracks) {
+      try {
+        // Send "All Notes Off" control change message (CC 123, value 0)
+        // This should stop all sustaining notes immediately at the native level
+        final allNotesOffEvent = MidiEvent(
+          beat: 0.0,
+          midiStatus: 0xB0, // Control Change on channel 0
+          midiData1: 123,   // All Notes Off controller
+          midiData2: 0      // Value 0
+        );
+        
+        NativeBridge.handleEventsNow(
+          track.id, 
+          [allNotesOffEvent], 
+          GlobalState().sampleRate!, 
+          tempo
+        );
+        debugPrint("🛑 [SequencerManager] Sent All Notes Off to track ${track.id}");
+      } catch (e) {
+        debugPrint("🛑 [SequencerManager] Error sending All Notes Off to track ${track.id}: $e");
+      }
+    }
+    
+    // 4. Fallback: Emergency stop for common sustaining notes if tracking failed
+    if (customNotesCount + pianoNotesCount > 5) {
+      debugPrint("🛑 [SequencerManager] Emergency stop: many notes were active, doing bulk individual stop");
       for (final track in tracks) {
         try {
-          // Stop common piano notes (C3-C6 range)
-          for (int noteNumber = 48; noteNumber <= 84; noteNumber++) {
+          // Stop common piano notes (C3-C6 range) + bass notes (C2-B2)
+          for (int noteNumber = 24; noteNumber <= 96; noteNumber++) {
             track.stopNoteNow(noteNumber: noteNumber);
           }
-          debugPrint("🛑 [SequencerManager] Fallback: stopped piano range on track ${track.id}");
         } catch (e) {
-          // Ignore individual failures
+          // Ignore errors for bulk emergency stop
         }
       }
     }
@@ -616,17 +690,11 @@ class SequencerManager {
       isPlaying = false;
       _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
       
-      // Stop notes only on tracks where they were actually started
-      for (final track in tracks) {
-        final trackActiveNotes = _trackActiveNotes[track.id]?.toList() ?? [];
-        for (final note in trackActiveNotes) {
-          try {
-            track.stopNoteNow(noteNumber: note);
-          } catch (e) {
-            // Ignore individual note stop failures
-          }
-        }
-      }
+      // CRITICAL: Use the same comprehensive stop method
+      _stopAllActiveNotes();
+      
+      // Clear tracking systems
+      _activeNotes.clear();
       _trackActiveNotes.clear();
     } catch (e) {
       debugPrint('[SequencerManager] Error in _stopPlaybackOnly: $e');
@@ -655,44 +723,6 @@ class SequencerManager {
     }
   }
 
-  // Perform cleanup asynchronously to avoid blocking the UI thread
-  void _performBackgroundCleanup() {
-    // Use a microtask to avoid blocking the current execution
-    Future.microtask(() async {
-      try {
-        // Minimal delay for Android audio system to process stop command
-        await Future.delayed(const Duration(milliseconds: 10));
-        
-        // Stop notes only on tracks where they were actually started
-        final tracks = this.tracks; // Use stored tracks instead of sequence.getTracks()
-        
-        for (final track in tracks) {
-          try {
-            // Only stop notes that were actually started on this specific track
-            final trackActiveNotes = _trackActiveNotes[track.id]?.toList() ?? [];
-            for (final note in trackActiveNotes) {
-              try {
-                track.stopNoteNow(noteNumber: note);
-              } catch (e) {
-                // Silently ignore individual note stop failures to avoid spam
-                // debugPrint('[SequencerManager] Note stop error: $e');
-              }
-            }
-            
-            // Clear this track's note tracking
-            _trackActiveNotes[track.id]?.clear();
-          } catch (e) {
-            debugPrint('[SequencerManager] Error cleaning track ${track.id}: $e');
-          }
-        }
-        
-        // Clear all tracked notes as final safety
-        _trackActiveNotes.clear();
-      } catch (e) {
-        debugPrint('[SequencerManager] Background cleanup error: $e');
-      }
-    });
-  }
 
   void _handleSetLoop(bool nextIsLooping, Sequence sequence) {
     // Custom playback system handles looping internally
