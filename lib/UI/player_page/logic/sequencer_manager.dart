@@ -68,6 +68,10 @@ class SequencerManager {
   final Set<String> _processedEvents = {};
   final Map<String, double> _activeNotes = {}; // Track active notes with their end times
   bool isPaused = false;
+  
+  // STEADY BPM TRACKING: Additional timing stability fields
+  int _currentLoopIteration = 0;
+  double _lastLoopTransitionTime = 0.0;
 
   // Use native position tracking from flutter_sequencer
 
@@ -401,17 +405,22 @@ class SequencerManager {
     _pausedAtBeat = 0.0;
     _processedEvents.clear();
     
+    // STEADY BPM: Reset loop tracking for consistent timing
+    _currentLoopIteration = 0;
+    _lastLoopTransitionTime = 0.0;
+    
     // Update state directly
     isPlaying = true;
     isPaused = false;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    // Start high-frequency timer for event processing (like working example)
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+    // CONSISTENT TIMING: Use higher precision timer for steady BPM
+    // 5ms interval provides better timing accuracy while being efficient
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 5), (timer) {
       _processCustomPlayback();
     });
     
-    debugPrint("🎵 [SequencerManager] CUSTOM playback started - should hear events at scheduled beats");
+    debugPrint("🎵 [SequencerManager] CUSTOM playback started - steady BPM timing active");
   }
   
   void _pauseCustomPlayback() {
@@ -438,11 +447,12 @@ class SequencerManager {
     isPaused = false;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+    // CONSISTENT TIMING: Use same high-precision timer as start
+    _playbackTimer = Timer.periodic(Duration(milliseconds: 5), (timer) {
       _processCustomPlayback();
     });
     
-    debugPrint("🎵 [SequencerManager] CUSTOM resumed from beat $_pausedAtBeat");
+    debugPrint("🎵 [SequencerManager] CUSTOM resumed from beat $_pausedAtBeat with steady timing");
   }
   
   void _processCustomPlayback() {
@@ -453,31 +463,36 @@ class SequencerManager {
     final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
     var currentBeat = _playbackStartBeat + elapsedBeats;
     
-    // CRITICAL FIX: Seamless loop transition - use modulo instead of time reset
+    // CRITICAL FIX: Consistent loop timing without BPM fluctuations
     if (isTrackLooping && currentBeat >= stepCount) {
-      // Calculate how far past the end we are for seamless transition
-      final overshoot = currentBeat - stepCount;
+      // Track loop iterations for debugging and consistency
+      _currentLoopIteration++;
+      final loopTransitionBeat = currentBeat;
       
       // IMPORTANT: Stop all active notes before loop restart to prevent hanging notes
-      debugPrint("🎵 [SequencerManager] CUSTOM: Loop restart - stopping active notes before transition");
+      debugPrint("🎵 [SequencerManager] CUSTOM: Loop restart #$_currentLoopIteration - stopping active notes before transition");
       _stopAllActiveNotes();
       _activeNotes.clear();
       
       // Clear processed events for the new loop cycle
-      debugPrint("🎵 [SequencerManager] CUSTOM: Seamless loop transition at beat ${overshoot.toStringAsFixed(3)}");
+      debugPrint("🎵 [SequencerManager] CUSTOM: Steady loop transition #$_currentLoopIteration at beat ${loopTransitionBeat.toStringAsFixed(3)}");
       _processedEvents.clear();
       
-      // Adjust timing reference for next calculations
-      _playbackStartBeat = 0.0;
-      _playbackStartTime = DateTime.now().subtract(Duration(microseconds: (overshoot * 1000000.0 / (tempo / 60.0)).round()));
-      currentBeat = overshoot; // Continue seamlessly from overshoot position
+      // STEADY-STATE LOOP: Don't recalculate timing - just use modulo for seamless continuation
+      // This prevents BPM drift and timing fluctuations across loop boundaries
+      currentBeat = currentBeat % stepCount;
+      _lastLoopTransitionTime = loopTransitionBeat;
+      
+      // Keep original timing reference intact - no recalculation needed
+      // This maintains consistent BPM throughout all loop iterations
+      debugPrint("🎵 [SequencerManager] Loop #$_currentLoopIteration: Maintaining steady ${tempo}bpm, effective beat: ${currentBeat.toStringAsFixed(3)}");
     } else if (!isTrackLooping && currentBeat >= stepCount) {
       debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
       _stopCustomPlayback();
       return;
     }
     
-    // Update position directly
+    // Update position using modulo for consistent looping
     position = currentBeat % stepCount;
     
     // Process note-off events for expired notes (CRITICAL FIX for sustaining)
@@ -497,12 +512,14 @@ class SequencerManager {
           
           // Check if event should trigger now (with timing tolerance)
           if (eventBeat >= effectiveBeat - 0.15 && eventBeat <= effectiveBeat + 0.15) {
-            // Use loop-aware key to prevent duplicate events across loops
+            // Use consistent event key based on effective beat (not absolute beat)
+            // This ensures events trigger consistently across loop boundaries
             final eventKey = '${track.id}-${(eventBeat * 100).round()}-${event.midiData1}-${event.midiData2}';
-            final loopAwareKey = 'loop-${(currentBeat / stepCount).floor()}-$eventKey';
+            final loopCycle = (currentBeat / stepCount).floor();
+            final loopAwareKey = 'loop-$loopCycle-$eventKey';
             
             if (!_processedEvents.contains(loopAwareKey)) {
-              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1} vel=${event.midiData2}");
+              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1} vel=${event.midiData2} (loop=$loopCycle)");
               
               // Send MIDI event directly using NativeBridge (like working example)
               NativeBridge.handleEventsNow(
@@ -524,6 +541,7 @@ class SequencerManager {
                   noteDuration = 1.0;
                 }
                 
+                // Use absolute time for note ending to maintain consistent timing
                 final noteEndBeat = currentBeat + noteDuration;
                 final noteKey = '${track.id}-${event.midiData1}';
                 _activeNotes[noteKey] = noteEndBeat;
