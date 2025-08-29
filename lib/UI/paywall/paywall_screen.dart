@@ -13,6 +13,30 @@ class PaywallScreen extends ConsumerStatefulWidget {
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isLoading = false;
   String? _errorMessage;
+  String _priceText = 'Unlock Premium';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPricing();
+  }
+
+  Future<void> _loadPricing() async {
+    try {
+      final offering = await PurchaseApi.fetchPremiumOffering();
+      if (offering != null && offering.availablePackages.isNotEmpty) {
+        final package = offering.availablePackages.first;
+        if (mounted) {
+          setState(() {
+            _priceText = 'Unlock Premium for ${package.storeProduct.priceString}';
+          });
+        }
+      }
+    } catch (e) {
+      // Keep default text if pricing fails to load
+      debugPrint('Failed to load pricing: $e');
+    }
+  }
 
   Future<void> _handlePurchase() async {
     setState(() {
@@ -22,12 +46,32 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
     try {
       final offering = await PurchaseApi.fetchPremiumOffering();
-      if (offering == null || offering.availablePackages.isEmpty) {
-        throw Exception('No offerings available');
+      if (offering == null) {
+        // Check if billing is unavailable (testing environment)
+        if (PurchaseApi.isBillingUnavailable) {
+          setState(() {
+            _errorMessage = 'In-app purchases are not available in this testing environment. Premium features work on real devices with Google Play Store.';
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'Premium offering not available. Please check your internet connection and try again.';
+          });
+        }
+        return;
+      }
+      
+      if (offering.availablePackages.isEmpty) {
+        setState(() {
+          _errorMessage = 'No purchase packages available. The premium offering may not be configured correctly.';
+        });
+        return;
       }
 
-      // Get the first available package (you might want to show multiple options)
+      // Get the first available package and update price display
       final package = offering.availablePackages.first;
+      setState(() {
+        _priceText = 'Unlock Premium for ${package.storeProduct.priceString}';
+      });
       
       final isPurchased = await PurchaseApi.purchasePackage(package);
       
@@ -37,16 +81,22 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         // Update the UI to show success
         if (mounted) {
           Navigator.of(context).pop(); // Close paywall
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Premium features unlocked!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       } else {
         setState(() {
-          _errorMessage = 'Purchase was not completed';
+          _errorMessage = 'Purchase was cancelled or could not be completed. Please try again.';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to complete purchase: ${e.toString()}';
+          _errorMessage = 'Purchase failed: ${e.toString().replaceAll('Exception: ', '')}';
         });
       }
     } finally {
@@ -146,7 +196,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.blue,
-                disabledBackgroundColor: Colors.blue.withOpacity(0.5),
+                disabledBackgroundColor: Colors.blue.withValues(alpha: 0.5),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -157,9 +207,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text(
-                      'Unlock Premium for \$6.99',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                  : Text(
+                      _priceText,
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
             ),
             const SizedBox(height: 12),
@@ -167,6 +217,22 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               onPressed: _isLoading ? null : _handleRestore,
               child: const Text('Restore Purchase'),
             ),
+            // Show skip button if billing is unavailable (testing environment)
+            if (PurchaseApi.isBillingUnavailable) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Premium purchases work on real devices with Google Play Store'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                },
+                child: const Text('Skip (Testing Mode)', style: TextStyle(color: Colors.grey)),
+              ),
+            ],
             const SizedBox(height: 24),
           ],
         ),

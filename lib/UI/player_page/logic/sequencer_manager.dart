@@ -16,6 +16,7 @@ import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/performance_utils.dart';
 import 'dart:async';
+import 'dart:io';
 import 'audio_service.dart';
 // Custom playback system imports (based on working guitar_progression_generator)
 import 'package:flutter_sequencer/models/events.dart';
@@ -56,6 +57,9 @@ class SequencerManager {
   // Track-specific note tracking to prevent voice management issues
   final Map<int, Set<int>> _trackActiveNotes = {};
   Timer? _cleanupTimer;
+  
+  // Android optimization: Track last processed beat to prevent duplicates
+  double? _lastProcessedBeat;
   
   // Mutex for thread-safe note operations
   bool _noteOperationInProgress = false;
@@ -406,8 +410,13 @@ class SequencerManager {
     isPaused = false;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    // Start high-frequency timer for event processing (like working example)
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+    // Platform-optimized timer frequency
+    // Android needs slightly lower frequency to prevent audio glitches
+    final timerInterval = Platform.isAndroid 
+        ? const Duration(milliseconds: 15) // Android: 15ms for smoother performance
+        : const Duration(milliseconds: 10); // iOS: 10ms for precision
+    
+    _playbackTimer = Timer.periodic(timerInterval, (timer) {
       _processCustomPlayback();
     });
     
@@ -438,7 +447,12 @@ class SequencerManager {
     isPaused = false;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
     
-    _playbackTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
+    // Platform-optimized timer frequency for resume
+    final timerInterval = Platform.isAndroid 
+        ? const Duration(milliseconds: 15) // Android: 15ms for smoother performance
+        : const Duration(milliseconds: 10); // iOS: 10ms for precision
+    
+    _playbackTimer = Timer.periodic(timerInterval, (timer) {
       _processCustomPlayback();
     });
     
@@ -448,10 +462,19 @@ class SequencerManager {
   void _processCustomPlayback() {
     if (_playbackStartTime == null) return;
     
-    // Calculate current beat based on elapsed time (like working example)
+    // Calculate current beat based on elapsed time
     final elapsed = DateTime.now().difference(_playbackStartTime!);
     final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
     var currentBeat = _playbackStartBeat + elapsedBeats;
+    
+    // Android optimization: Skip processing if we're too close to last processed beat
+    // This prevents duplicate events on slower Android devices
+    if (Platform.isAndroid && _lastProcessedBeat != null) {
+      if ((currentBeat - _lastProcessedBeat!).abs() < 0.01) {
+        return; // Skip this tick, too close to last processed beat
+      }
+    }
+    _lastProcessedBeat = currentBeat;
     
     // CRITICAL FIX: Seamless loop transition - use modulo instead of time reset
     if (isTrackLooping && currentBeat >= stepCount) {
@@ -568,7 +591,18 @@ class SequencerManager {
   void _stopCustomPlayback() {
     debugPrint("🎵 [SequencerManager] Stopping CUSTOM playback...");
     
-    // Cancel timer first to prevent new events
+    // ANDROID FIX: Stop native sequence FIRST to immediately halt audio
+    // This prevents the frozen/hanging sound issue on Android
+    if (sequence != null) {
+      try {
+        sequence!.stop();
+        debugPrint("🛑 [SequencerManager] Force stopped native sequence FIRST");
+      } catch (e) {
+        debugPrint("🛑 [SequencerManager] Error force stopping native sequence: $e");
+      }
+    }
+    
+    // Cancel timer to prevent new events
     _playbackTimer?.cancel();
     _playbackTimer = null;
     _playbackStartTime = null;
@@ -581,26 +615,41 @@ class SequencerManager {
     _pausedAtBeat = 0.0;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
     
-    // CRITICAL FIX: Stop all active tracked notes immediately
+    // Stop all active tracked notes immediately
     _stopAllActiveNotes();
     _activeNotes.clear();
-    
-    // Additional failsafe: Force stop the native sequence as well
-    if (sequence != null) {
-      try {
-        sequence!.stop();
-        debugPrint("🛑 [SequencerManager] Force stopped native sequence");
-      } catch (e) {
-        debugPrint("🛑 [SequencerManager] Error force stopping native sequence: $e");
-      }
-    }
+    _trackActiveNotes.clear();
   }
   
   void _stopAllActiveNotes() {
     debugPrint("🛑 [SequencerManager] Stopping all active notes from both tracking systems");
     
-    // CRITICAL FIX: Stop notes from BOTH tracking systems
+    // ANDROID OPTIMIZATION: Stop all notes aggressively
+    // On Android, we need to be more thorough to prevent hanging notes
+    debugPrint("🛑 [SequencerManager] Stopping all notes aggressively for Android");
     
+    // First, try to stop all possible notes on all tracks
+    if (Platform.isAndroid) {
+      for (final track in tracks) {
+        try {
+          // Stop common note ranges that might be playing
+          // Piano/Bass range: 24-96 (C1 to C7)
+          // Drums: 35-81 (common drum kit range)
+          for (int note = 24; note < 97; note++) {
+            try {
+              track.stopNoteNow(noteNumber: note);
+            } catch (_) {
+              // Silently continue - not all notes are playing
+            }
+          }
+          debugPrint("🛑 [SequencerManager] Aggressive stop sent to track ${track.id}");
+        } catch (e) {
+          debugPrint("🛑 [SequencerManager] Error in aggressive stop: $e");
+        }
+      }
+    }
+    
+    // Then stop individual notes for cleanup
     // 1. Stop notes from custom playback system (_activeNotes)
     int customNotesCount = _activeNotes.length;
     _activeNotes.forEach((noteKey, endBeat) {
@@ -612,9 +661,8 @@ class SequencerManager {
         
         try {
           track.stopNoteNow(noteNumber: noteNumber);
-          debugPrint("🛑 [SequencerManager] Stopped custom tracked note $noteNumber on track $trackId");
         } catch (e) {
-          debugPrint("🛑 [SequencerManager] Error stopping custom tracked note $noteNumber: $e");
+          // Silently continue - All Notes Off should have handled it
         }
       }
     });
@@ -706,17 +754,22 @@ class SequencerManager {
       debugPrint('[SequencerManager] handleStop called - using CUSTOM stop system');
       
       // Prevent multiple simultaneous stop calls
-      if (!isPlaying) {
+      if (!isPlaying && !isPaused) {
         debugPrint('[SequencerManager] Already stopped, skipping');
         return;
       }
       
-      await PerformanceUtils.trackAsyncOperation('handleStop', () async {
-        // Use CUSTOM stop system (flutter_sequencer_plus style)
-        _stopCustomPlayback();
-        
-        debugPrint('[SequencerManager] CUSTOM stop completed successfully');
-      });
+      // ANDROID FIX: Don't use async operation tracking for stop
+      // This needs to be immediate to prevent audio hanging
+      _stopCustomPlayback();
+      
+      // Platform-specific cleanup
+      if (Platform.isAndroid) {
+        // Android: Give audio engine time to flush buffers
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      
+      debugPrint('[SequencerManager] CUSTOM stop completed successfully');
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
       // Don't rethrow to prevent crashes, just log the error

@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
+// Removed flutter_native_splash import to eliminate duplicate splash screens
+// import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/utils/debug_overlay.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
@@ -89,9 +90,9 @@ void main() async {
         return true;
       };
       
-      // Use already initialized widgets binding
-      WidgetsBinding widgetsBinding = WidgetsBinding.instance;
-      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+      // Initialize widgets binding
+      WidgetsFlutterBinding.ensureInitialized();
+      // Removed all FlutterNativeSplash calls to eliminate duplicate splash screens
       
       // Configure audio session early for flutter_sequencer compatibility
       try {
@@ -189,7 +190,7 @@ void main() async {
       await AdService().initialize();
     }
 
-    FlutterNativeSplash.remove();
+    // Removed all FlutterNativeSplash calls to eliminate duplicate splash screens
     
     // Set preferred orientations
     await SystemChrome.setPreferredOrientations([

@@ -15,20 +15,8 @@ class HomePage extends ConsumerWidget {
     final isPremium = entitlement.isPremium; // Use the proper check for premium status
 
     if (isPremium) {
-      // If premium, go to selection page
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const SelectionPage(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
-      });
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      // If premium, go directly to selection page
+      return const SelectionPage();
     } else {
       // If not premium, show paywall
       return const PaywallScreen();

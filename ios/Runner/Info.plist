@@ -71,7 +71,6 @@
 		<array>
 			<string>armv7</string>
 		</array>
-
 		<key>UIRequiresPersistentWiFi</key>
 		<false/>
 		<key>BGTaskSchedulerPermittedIdentifiers</key>
@@ -116,7 +115,6 @@
 				<string>AllowAirPlay</string>
 			</array>
 		</dict>
-
 		<!-- Local Network Permissions for Flutter Debugging -->
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>This app uses the local network for Flutter debugging tools</string>
@@ -125,7 +123,6 @@
 			<string>_dartobservatory._tcp</string>
 			<string>_dartdevtools._tcp</string>
 		</array>
-
 		<!-- AdMob Configuration -->
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-9144129652522769~9563228856</string>
@@ -144,7 +141,6 @@
 				<string>YCLNXRL5PG.skadnetwork</string>
 			</dict>
 		</array>
-
 		<!-- App Transport Security Settings -->
 		<key>NSAppTransportSecurity</key>
 		<dict>

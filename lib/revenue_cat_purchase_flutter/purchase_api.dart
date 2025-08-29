@@ -7,6 +7,10 @@ class PurchaseApi {
   static const String _premiumOfferingId = 'premium';
   static const String _premiumSubEntitlementId = 'premium_subscription';
   static const String _premiumOneTimeEntitlementId = 'premium_lifetime';
+  
+  static bool _billingUnavailable = false;
+
+  static bool get isBillingUnavailable => _billingUnavailable;
 
   static Future<void> init(String apiKey) async {
     await Purchases.setLogLevel(LogLevel.debug);
@@ -62,9 +66,36 @@ class PurchaseApi {
   static Future<Offering?> fetchPremiumOffering() async {
     try {
       final offerings = await Purchases.getOfferings();
-      return offerings.all[_premiumOfferingId];
+      
+      // Debug: Print all available offerings
+      debugPrint('Available offerings: ${offerings.all.keys.toList()}');
+      debugPrint('Current offering: ${offerings.current?.identifier}');
+      
+      // Try to get premium offering
+      var premiumOffering = offerings.all[_premiumOfferingId];
+      
+      // If premium not found, try current offering or first available
+      if (premiumOffering == null && offerings.current != null) {
+        debugPrint('Premium offering not found, using current offering: ${offerings.current!.identifier}');
+        premiumOffering = offerings.current;
+      }
+      
+      // If still null, try the first available offering
+      if (premiumOffering == null && offerings.all.isNotEmpty) {
+        final firstKey = offerings.all.keys.first;
+        debugPrint('Using first available offering: $firstKey');
+        premiumOffering = offerings.all[firstKey];
+      }
+      
+      return premiumOffering;
     } on PlatformException catch (e) {
       debugPrint('Error fetching premium offering: ${e.message}');
+      // Check if this is a billing unavailable error (common in Google Play testing)
+      if (e.message?.contains('BILLING_UNAVAILABLE') == true || 
+          e.message?.contains('billing API version') == true) {
+        _billingUnavailable = true;
+        debugPrint('Billing unavailable - this may be a testing environment');
+      }
       return null;
     }
   }
@@ -72,7 +103,10 @@ class PurchaseApi {
   static Future<bool> purchasePackage(Package package) async {
     try {
       final purchaserInfo = await Purchases.purchasePackage(package);
-      return purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
+      // Check for any premium entitlement
+      return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.message}');
       return false;
@@ -82,7 +116,10 @@ class PurchaseApi {
   static Future<bool> restorePurchases() async {
     try {
       final restoredInfo = await Purchases.restorePurchases();
-      return restoredInfo.entitlements.active.containsKey(_premiumOfferingId);
+      // Check for any premium entitlement
+      return restoredInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
+             restoredInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
+             restoredInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
       debugPrint('Error restoring purchases: ${e.message}');
       return false;

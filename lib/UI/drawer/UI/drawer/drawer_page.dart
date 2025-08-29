@@ -130,7 +130,7 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'v1.0.13',
+                'v1.0.0+16',
                 style: TextStyle(
                   color: Colors.white60,
                   fontSize: 10,

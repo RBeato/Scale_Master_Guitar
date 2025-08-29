@@ -27,21 +27,21 @@ class Constants {
   ];
 
   static const Map<String, Map<String, String>> soundPath = {
-    // All instrument types now use FluidR3_GM.sf2 for consistency and completeness.
+    // Map to specific SF2 files for better sound quality
     'drums': {
-      'Electronic': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Acoustic': "assets/sounds/sf2/FluidR3_GM.sf2"
+      'Electronic': "assets/sounds/sf2/808-Drums.sf2",
+      'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
     },
     'keys': {
-      'Piano': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Rhodes': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Organ': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Pad': "assets/sounds/sf2/FluidR3_GM.sf2"
+      'Piano': "assets/sounds/sf2/j_piano.sf2",
+      'Rhodes': "assets/sounds/sf2/rhodes.sf2",
+      'Organ': "assets/sounds/sf2/korg.sf2",
+      'Pad': "assets/sounds/sf2/korg.sf2"
     },
     'bass': {
-      'Double Bass': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Electric': "assets/sounds/sf2/FluidR3_GM.sf2",
-      'Synth': "assets/sounds/sf2/FluidR3_GM.sf2"
+      'Double Bass': "assets/sounds/sf2/VSCO2_Acoustic_Bass.sf2",
+      'Electric': "assets/sounds/sf2/BassGuitars.sf2",
+      'Synth': "assets/sounds/sf2/acoustic_bass.sf2"
     },
   };
 

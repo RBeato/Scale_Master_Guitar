@@ -5,7 +5,7 @@ description: "A comprehensive guitar scale learning and practice application"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+16
+version: 1.0.0+17
 
 environment:
   sdk: ">=2.19.0-146.2.beta <3.0.0"
@@ -51,10 +51,13 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.14.3
   flutter_lints: ^6.0.0
-flutter_icons:
-  image_path: "assets/images/smg_icon.png"
+flutter_launcher_icons:
+  image_path: "assets/images/smguitar_512.png"
   android: true
   ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#1c1c1c"
+  adaptive_icon_foreground: "assets/images/smguitar_512.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -92,16 +95,24 @@ flutter_native_splash:
 
   # The image parameter allows you to specify an image used in the splash screen.  It must be a
   # png file and should be sized for 4x pixel density.
-  image: assets/images/splash_logo.png
+  image: assets/images/smguitar_splash_150px.png
+  
+  # Set image to be centered, no circular crop, and much smaller (33% of current size)
+  android_gravity: center
+  ios_content_mode: center
+  
+  # Using much smaller image file (57px = 1/3 of 170px for iOS)
 
   # The branding property allows you to specify an image used as branding in the splash screen.
   # It must be a png file. It is supported for Android, iOS and the Web.  For Android 12,
   # see the Android 12 section below.
-  #branding: assets/dart.png
+  # Removed branding to avoid duplicate images showing
+  # branding: assets/images/smguitar_splash_100px.png
 
   # To position the branding image at the bottom of the screen you can use bottom, bottomRight,
   # and bottomLeft. The default values is bottom if not specified or specified something else.
-  #branding_mode: bottom
+  # Set branding to center for better logo placement
+  # branding_mode: center
 
   # The color_dark, background_image_dark, image_dark, branding_dark are parameters that set the background
   # and image when the device is in dark mode. If they are not specified, the app will use the
@@ -119,12 +130,10 @@ flutter_native_splash:
   android_12:
     # The image parameter sets the splash screen icon image.  If this parameter is not specified,
     # the app's launcher icon will be used instead.
-    # Please note that the splash screen will be clipped to a circle on the center of the screen.
-    # App icon with an icon background: This should be 960×960 pixels, and fit within a circle
-    # 640 pixels in diameter.
-    # App icon without an icon background: This should be 1152×1152 pixels, and fit within a circle
-    # 768 pixels in diameter.
-    image: assets/images/splash_logo.png
+    # IMPORTANT: Disable Android 12+ image to prevent circular cropping
+    # The branding parameter will be used instead for non-circular display
+    # Commented out to avoid circular avatar behavior
+    # image: assets/images/smguitar_tiny_splash.png
 
     # Splash screen background color.
     color: "#000000" #"#42a5f5"
@@ -146,7 +155,7 @@ flutter_native_splash:
   # The android, ios and web parameters can be used to disable generating a splash screen on a given
   # platform.
   #android: false
-  #ios: false
+  ios: false  # Disable native splash on iOS to prevent double splash screens
   #web: false
 
   # Platform specific images can be specified with the following parameters, which will override
