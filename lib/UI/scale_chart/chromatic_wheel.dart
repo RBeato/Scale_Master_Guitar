@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/music_constants.dart';
 import '../chromatic_wheel/provider/top_note_provider.dart';
+import '../fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class ChromaticWheel extends ConsumerStatefulWidget {
   const ChromaticWheel({super.key});
@@ -27,6 +28,29 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
     });
   }
 
+  /// Converts a note to the preferred sharp or flat notation
+  String _convertNoteToPreferredNotation(String rawNote) {
+    final sharpFlatPreference = ref.read(sharpFlatSelectionProvider);
+    
+    // If no preference is set, default to sharps
+    if (sharpFlatPreference == null) {
+      if (rawNote.contains('/')) {
+        return rawNote.split('/')[0]; // Return sharp version
+      }
+      return rawNote;
+    }
+    
+    // Handle compound notes like 'C♯/D♭'
+    if (rawNote.contains('/')) {
+      final parts = rawNote.split('/');
+      return sharpFlatPreference == FretboardSharpFlat.sharps 
+          ? parts[0]  // Return sharp version (first part)
+          : parts[1]; // Return flat version (second part)
+    }
+    
+    return rawNote;
+  }
+
   String getTopNote() {
     double topPositionAngle = math.pi / 2; // 90 degrees in radians
     double adjustedRotation =
@@ -35,13 +59,18 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
 
     int noteIndex =
         ((adjustedRotation / (2 * math.pi / numStops)) % numStops).floor();
-    var result = MusicConstants.notesWithFlatsAndSharps[
+    var rawNote = MusicConstants.notesWithFlatsAndSharps[
         ((noteIndex + numStops / 2) % numStops).toInt()];
-    return result;
+        
+    // Convert to user's preferred notation (sharp or flat)
+    return _convertNoteToPreferredNotation(rawNote);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the sharp/flat preference to rebuild when it changes
+    ref.watch(sharpFlatSelectionProvider);
+    
     // debugPrint("Top note function: ${getTopNote()}");
 
     return GestureDetector(

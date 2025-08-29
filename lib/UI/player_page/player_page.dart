@@ -21,7 +21,6 @@ import '../scale_selection_dropdowns/provider/mode_dropdown_value_provider.dart'
 import '../fretboard/provider/beat_counter_provider.dart';
 import '../home_page/selection_page.dart';
 import '../../services/feature_restriction_service.dart';
-import '../../UI/common/upgrade_prompt.dart';
 
 class PlayerPage extends ConsumerWidget {
   final ProgressionModel? initialProgression;
@@ -235,17 +234,13 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
               builder: (context, ref, child) {
                 final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
                 
+                // Only show library button to premium users
+                if (!canSaveProgressions) {
+                  return const SizedBox.shrink(); // Hide button for free users
+                }
+                
                 return IconButton(
                   onPressed: () async {
-                    if (!canSaveProgressions) {
-                      UpgradePrompt.showUpgradeAlert(
-                        context,
-                        title: 'Premium Feature',
-                        message: FeatureRestrictionService.getProgressionSaveRestrictionMessage(),
-                      );
-                      return;
-                    }
-                    
                     // Stop any current playback before navigating to library
                     final sequencerManager = ref.read(sequencerManagerProvider);
                     final isCurrentlyPlaying = ref.read(isSequencerPlayingProvider);
@@ -271,31 +266,9 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                       );
                     }
                   },
-                  icon: Stack(
-                    children: [
-                      Icon(
-                        Icons.library_music, 
-                        color: canSaveProgressions ? Colors.white : Colors.grey[600]
-                      ),
-                      if (!canSaveProgressions)
-                        Positioned(
-                          top: -2,
-                          right: -2,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: const BoxDecoration(
-                              color: Colors.orange,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.star,
-                              color: Colors.white,
-                              size: 8,
-                            ),
-                          ),
-                        ),
-                    ],
+                  icon: const Icon(
+                    Icons.library_music, 
+                    color: Colors.white,
                   ),
                 );
               },

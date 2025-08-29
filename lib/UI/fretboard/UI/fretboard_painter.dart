@@ -2,20 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/fretboard_notes.dart';
 import '../../../models/chord_scale_model.dart';
+import '../../fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class FretboardPainter extends CustomPainter {
   final int stringCount;
   final int fretCount;
   final ChordScaleFingeringsModel fingeringsModel;
+  final FretboardSharpFlat? sharpFlatPreference;
 
   FretboardPainter({
     required this.stringCount,
     required this.fretCount,
     required this.fingeringsModel,
+    this.sharpFlatPreference,
   });
 
   static TextStyle textStyle =
       const TextStyle(fontSize: 10.0, color: Colors.white);
+
+  /// Gets the note name based on user preference (sharps vs flats)
+  String _getNoteNameWithPreference(int string, int fret) {
+    // If user has a preference, use it
+    if (sharpFlatPreference != null) {
+      return sharpFlatPreference == FretboardSharpFlat.sharps
+          ? fretboardNotesNamesSharps[string - 1][fret]
+          : fretboardNotesNamesFlats[string - 1][fret];
+    }
+    
+    // Fall back to scale-based logic (original behavior)
+    return fingeringsModel.scaleModel!.scaleNotesNames
+            .contains(fretboardNotesNamesSharps[string - 1][fret])
+        ? fretboardNotesNamesSharps[string - 1][fret]
+        : fretboardNotesNamesFlats[string - 1][fret];
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -94,7 +113,7 @@ class FretboardPainter extends CustomPainter {
           String labelText =
               fingeringsModel.scaleModel!.settings!.showScaleDegrees == true
                   ? ''
-                  : fretboardNotesNamesSharps[string][fret];
+                  : _getNoteNameWithPreference(string + 1, fret); // +1 because this context uses 0-based string indexing
 
           textPainter.text = TextSpan(text: labelText, style: textStyle);
           textPainter.layout();
@@ -144,11 +163,8 @@ class FretboardPainter extends CustomPainter {
         canvas.drawCircle(Offset(x + fretWidth / 2, y), dotRadius, dotColor);
         // Use x + fretWidth / 2 for centerX
 
-        //Convert notes to flats where where necessary based on the chords names
-        var noteName = fingeringsModel.scaleModel!.scaleNotesNames
-                .contains(fretboardNotesNamesSharps[string - 1][fret])
-            ? fretboardNotesNamesSharps[string - 1][fret]
-            : fretboardNotesNamesFlats[string - 1][fret];
+        //Get note name based on user preference (sharps vs flats)
+        var noteName = _getNoteNameWithPreference(string, fret);
 
         //Create text label for dots
         String labelText =

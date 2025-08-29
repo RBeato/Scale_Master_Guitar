@@ -4,7 +4,6 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
-import 'package:scalemasterguitar/UI/common/upgrade_prompt.dart';
 
 class DrawerGeneralSwitch extends ConsumerWidget {
   const DrawerGeneralSwitch({
@@ -60,13 +59,7 @@ class DrawerGeneralSwitch extends ConsumerWidget {
         trailing: Switch(
           value: switchValue,
           onChanged: isFeatureRestricted
-              ? (value) {
-                  UpgradePrompt.showUpgradeAlert(
-                    context,
-                    title: 'Premium Feature',
-                    message: 'Upgrade to Premium to access this feature',
-                  );
-                }
+              ? null // Disable the switch for restricted features
               : (value) async {
                   await ref
                       .read(settingsStateNotifierProvider.notifier)

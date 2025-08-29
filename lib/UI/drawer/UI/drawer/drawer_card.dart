@@ -4,7 +4,6 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
-import 'package:scalemasterguitar/UI/common/upgrade_prompt.dart';
 
 class DrawerCard extends ConsumerWidget {
   final String title;
@@ -59,17 +58,7 @@ class DrawerCard extends ConsumerWidget {
               ),
           ],
         ),
-        trailing: GestureDetector(
-          onTap: isFeatureRestricted
-              ? () {
-                  UpgradePrompt.showUpgradeAlert(
-                    context,
-                    title: 'Premium Feature',
-                    message: 'Upgrade to Premium to customize instrument sounds',
-                  );
-                }
-              : null,
-          child: DropdownButton<String>(
+        trailing: DropdownButton<String>(
               dropdownColor: Colors.grey[900],
               value: savedValue,
               style: TextStyle(
@@ -106,7 +95,6 @@ class DrawerCard extends ConsumerWidget {
                   ),
                 );
               }).toList(),
-              ),
         ),
         children: <Widget>[
           Align(

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/scales/scales_data_v2.dart';
-import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import '../../services/feature_restriction_service.dart';
-import '../common/upgrade_prompt.dart';
+import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import '../../UI/common/upgrade_prompt.dart';
 import 'provider/mode_dropdown_value_provider.dart';
 import 'provider/scale_dropdown_value_provider.dart';
 
@@ -25,16 +25,48 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
     final selectedMode = ref.watch(modeDropdownValueProvider);
     final entitlement = ref.watch(revenueCatProvider);
     
-    // Get scales available to current user
+    // Show all scales but indicate which ones require premium
     final allScales = Scales.data.keys.toList();
-    final availableScales = ref.watch(availableScalesProvider(allScales));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ConstrainedBox(
+          // Premium feature indication for scales  
+          if (!FeatureRestrictionService.canAccessScale('Harmonic Minor', entitlement)) // Check if restricted scales exist
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.star,
+                      size: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Premium scales available - Upgrade to unlock all scales',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width *
                       0.4, // Adjust the max width as needed
@@ -58,7 +90,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                     ref.read(modeDropdownValueProvider.notifier).state =
                         Scales.data[newValue].keys.first as String;
                   },
-                  items: availableScales
+                  items: allScales
                       .map<DropdownMenuItem<String>>((String value) {
                     final isRestricted = !FeatureRestrictionService.canAccessScale(value, entitlement);
                     return DropdownMenuItem<String>(
@@ -70,13 +102,13 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                               value,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: isRestricted ? Colors.white70.withValues(alpha: 0.5) : Colors.white70,
+                                color: isRestricted ? Colors.white70.withValues(alpha: 0.7) : Colors.white70,
                               ),
                             ),
                           ),
                           if (isRestricted)
                             Container(
-                              margin: const EdgeInsets.only(right: 8),
+                              margin: const EdgeInsets.only(left: 8),
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
                                 color: Colors.orange,
@@ -96,39 +128,41 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.white70)),
                 )),
-          ),
-          const SizedBox(width: 20), // Adjust the width as needed
-          Expanded(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width *
-                    0.4, // Adjust the max width as needed
               ),
-              child: DropdownButtonFormField<String>(
-                isExpanded: true, // Make the dropdown button expanded
-                dropdownColor: Colors.grey[800],
-                value: selectedMode,
-                onChanged: (newValue) {
-                  ref
-                      .read(modeDropdownValueProvider.notifier)
-                      .update((state) => newValue!);
-                },
-                items: Scales.data[selectedScale].keys
-                    .map<DropdownMenuItem<String>>((dynamic value) {
-                  String key = value.toString();
-                  // debugPrint(key);
-                  return DropdownMenuItem<String>(
-                    value: key,
-                    child: Text(key,
+              const SizedBox(width: 20), // Adjust the width as needed
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width *
+                        0.4, // Adjust the max width as needed
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true, // Make the dropdown button expanded
+                    dropdownColor: Colors.grey[800],
+                    value: selectedMode,
+                    onChanged: (newValue) {
+                      ref
+                          .read(modeDropdownValueProvider.notifier)
+                          .update((state) => newValue!);
+                    },
+                    items: Scales.data[selectedScale].keys
+                        .map<DropdownMenuItem<String>>((dynamic value) {
+                      String key = value.toString();
+                      // debugPrint(key);
+                      return DropdownMenuItem<String>(
+                        value: key,
+                        child: Text(key,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70)),
+                      );
+                    }).toList(),
+                    hint: const Text('Select Mode',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white70)),
-                  );
-                }).toList(),
-                hint: const Text('Select Mode',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white70)),
+                        style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

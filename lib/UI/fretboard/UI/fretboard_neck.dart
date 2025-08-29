@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard/UI/fretboard_painter.dart';
 import '../provider/fingerings_provider.dart';
+import '../../fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class Fretboard extends ConsumerWidget {
   Fretboard({super.key});
@@ -13,6 +14,7 @@ class Fretboard extends ConsumerWidget {
     int stringCount = 6;
     int fretCount = 24;
     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
+    final sharpFlatPreference = ref.watch(sharpFlatSelectionProvider);
 
     return SizedBox(
       height: 200,
@@ -31,6 +33,7 @@ class Fretboard extends ConsumerWidget {
                   stringCount: stringCount,
                   fretCount: fretCount,
                   fingeringsModel: data!,
+                  sharpFlatPreference: sharpFlatPreference,
                 ),
                 child: SizedBox(
                   width: fretCount.toDouble() * 36,

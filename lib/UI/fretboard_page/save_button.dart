@@ -108,18 +108,17 @@ class SaveImageButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entitlement = ref.watch(revenueCatProvider);
+    final canDownload = FeatureRestrictionService.canDownloadFretboard(entitlement);
+
+    // Only show download button to premium users who can actually use it
+    if (!canDownload) {
+      return const SizedBox.shrink(); // Hide button for free users
+    }
 
     return Center(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: !FeatureRestrictionService.canDownloadFretboard(entitlement)
-            ? () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(FeatureRestrictionService.getFretboardDownloadRestrictionMessage())),
-                );
-              }
-            : () => _requestStoragePermission(context),
+        onTap: () => _requestStoragePermission(context),
         child: RotatedBox(
           quarterTurns: 1,
           child: Container(

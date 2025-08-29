@@ -12,6 +12,20 @@ class WheelPainter extends CustomPainter {
   WheelPainter(
       this.rotation, this.chromaticNotes, this.scaleIntervals, this.topNote);
 
+  /// Checks if a raw note name (like "A♯/B♭") matches the topNote (like "A♯" or "B♭")
+  bool _noteMatchesTopNote(String rawNoteName, String topNote) {
+    // Direct match (for natural notes like "C", "D", etc.)
+    if (rawNoteName == topNote) return true;
+    
+    // Check compound notes (like "A♯/B♭")
+    if (rawNoteName.contains('/')) {
+      final parts = rawNoteName.split('/');
+      return parts[0] == topNote || parts[1] == topNote;
+    }
+    
+    return false;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     Offset center = Offset(size.width / 2, size.height / 2);
@@ -103,12 +117,14 @@ class WheelPainter extends CustomPainter {
       //   //   containerPosition.dx - 10, // Centering the text inside the container
       //   //   containerPosition.dy - 10,
       //   // );
+      // Get the raw note name and check if it matches topNote
+      String rawNoteName = MusicConstants.notesWithFlatsAndSharps[i];
+      bool isSelectedNote = _noteMatchesTopNote(rawNoteName, topNote);
+      
       textPainter.text = TextSpan(
-        text: MusicConstants.notesWithFlatsAndSharps[i],
+        text: rawNoteName,
         style: TextStyle(
-            color: MusicConstants.notesWithFlatsAndSharps[i] == topNote
-                ? Colors.orangeAccent
-                : Colors.white,
+            color: isSelectedNote ? Colors.orangeAccent : Colors.white,
             fontSize: containerFontSize),
       );
       textPainter.layout();

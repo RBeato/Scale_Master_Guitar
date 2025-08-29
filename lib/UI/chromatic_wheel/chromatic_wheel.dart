@@ -8,6 +8,7 @@ import 'package:scalemasterguitar/models/scale_model.dart';
 import 'package:scalemasterguitar/constants/music_constants.dart';
 import '../../constants/scales/scales_data_v2.dart';
 import 'provider/top_note_provider.dart';
+import '../fretboard_page/provider/sharp_flat_selection_provider.dart';
 
 class ChromaticWheel extends ConsumerStatefulWidget {
   const ChromaticWheel(this.scaleModel, {super.key});
@@ -201,6 +202,29 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     debugPrint('[WheelSnapDebug] _animateSnap: after forward(), controller.isAnimating = ${_snapController.isAnimating}');
   }
 
+  /// Converts a note to the preferred sharp or flat notation
+  String _convertNoteToPreferredNotation(String rawNote) {
+    final sharpFlatPreference = ref.read(sharpFlatSelectionProvider);
+    
+    // If no preference is set, default to sharps
+    if (sharpFlatPreference == null) {
+      if (rawNote.contains('/')) {
+        return rawNote.split('/')[0]; // Return sharp version
+      }
+      return rawNote;
+    }
+    
+    // Handle compound notes like 'C♯/D♭'
+    if (rawNote.contains('/')) {
+      final parts = rawNote.split('/');
+      return sharpFlatPreference == FretboardSharpFlat.sharps 
+          ? parts[0]  // Return sharp version (first part)
+          : parts[1]; // Return flat version (second part)
+    }
+    
+    return rawNote;
+  }
+
   String getTopNote() {
     // Get the current rotation from the provider to ensure consistency
     final currentRotation = _snapController.isAnimating 
@@ -223,13 +247,8 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
 
     String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
     
-    // Convert compound note names like 'C♯/D♭' to simple notes
-    // Use the sharp version for consistency
-    if (rawNote.contains('/')) {
-      return rawNote.split('/')[0]; // Take the first part (sharp version)
-    }
-    
-    return rawNote;
+    // Convert to user's preferred notation (sharp or flat)
+    return _convertNoteToPreferredNotation(rawNote);
   }
 
   String _calculateTopNoteForRotation(double rotation) {
@@ -245,19 +264,17 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
     debugPrint('[TopNote] Raw note from wheel: $rawNote at index $noteIndex');
     
-    // Convert compound note names like 'C♯/D♭' to simple notes
-    // Use the sharp version for consistency
-    if (rawNote.contains('/')) {
-      String simpleNote = rawNote.split('/')[0]; // Take the first part (sharp version)
-      debugPrint('[TopNote] Converted $rawNote to $simpleNote');
-      return simpleNote;
-    }
-    
-    return rawNote;
+    // Convert to user's preferred notation (sharp or flat)
+    String convertedNote = _convertNoteToPreferredNotation(rawNote);
+    debugPrint('[TopNote] Converted $rawNote to $convertedNote');
+    return convertedNote;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the sharp/flat preference to rebuild when it changes
+    ref.watch(sharpFlatSelectionProvider);
+    
     String topNote = getTopNote();
     return GestureDetector(
       onPanStart: (details) {
