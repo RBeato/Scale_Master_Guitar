@@ -109,7 +109,26 @@ class PurchaseApi {
              purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.message}');
-      return false;
+      
+      // Handle specific purchase errors
+      if (e.code == 'PURCHASE_CANCELLED') {
+        debugPrint('Purchase was cancelled by user');
+        return false;
+      } else if (e.code == 'PURCHASE_NOT_ALLOWED') {
+        debugPrint('Purchase not allowed - possibly in TestFlight Sandbox');
+        throw PlatformException(
+          code: 'PURCHASE_NOT_ALLOWED',
+          message: 'Purchase not allowed in this environment. Please ensure you have accepted the Paid Apps Agreement in App Store Connect.',
+        );
+      } else if (e.code == 'STORE_PROBLEM') {
+        debugPrint('Store problem - possibly using sandbox environment');
+        throw PlatformException(
+          code: 'STORE_PROBLEM',
+          message: 'Store connection issue. If testing, ensure you are using a TestFlight build with a valid sandbox account.',
+        );
+      }
+      
+      rethrow;
     }
   }
 

@@ -51,16 +51,9 @@
 		<string>This app needs access to your photo library to save and load scale diagrams and chord charts.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>This app needs access to the microphone for audio playback.</string>
-		<key>NSBluetoothAlwaysUsageDescription</key>
-		<string>This app needs Bluetooth access for MIDI devices.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>audio</string>
-			<string>fetch</string>
-			<string>processing</string>
-			<string>bluetooth-central</string>
-			<string>bluetooth-peripheral</string>
-			<string>remote-notification</string>
 		</array>
 		<key>NSAppTransportSecurity</key>
 		<dict>

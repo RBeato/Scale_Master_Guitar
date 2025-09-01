@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
@@ -103,6 +104,21 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         }
       } else {
         _showError('Purchase failed. Please try again.');
+      }
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        debugPrint('PlatformException during purchase: ${e.code} - ${e.message}');
+      }
+      
+      // Handle specific error codes
+      if (e.code == 'PURCHASE_NOT_ALLOWED') {
+        _showError('Purchase not allowed. Please ensure the Paid Apps Agreement is accepted in App Store Connect.');
+      } else if (e.code == 'STORE_PROBLEM') {
+        _showError('Store connection issue. If testing, use TestFlight with a valid sandbox account.');
+      } else if (e.code == 'PURCHASE_CANCELLED') {
+        // User cancelled, no error message needed
+      } else {
+        _showError('Purchase failed: ${e.message ?? "Unknown error"}');
       }
     } catch (e) {
       if (kDebugMode) {

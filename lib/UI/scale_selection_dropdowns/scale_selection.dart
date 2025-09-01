@@ -28,14 +28,16 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
     // Show all scales but indicate which ones require premium
     final allScales = Scales.data.keys.toList();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(
-        children: [
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Premium feature indication for scales  
           if (!FeatureRestrictionService.canAccessScale('Harmonic Minor', entitlement)) // Check if restricted scales exist
             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.only(bottom: 4.0),
               child: Row(
                 children: [
                   Container(
@@ -46,17 +48,17 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                     ),
                     child: const Icon(
                       Icons.star,
-                      size: 12,
+                      size: 10,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   const Expanded(
                     child: Text(
                       'Premium scales available - Upgrade to unlock all scales',
                       style: TextStyle(
                         color: Colors.white54,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
@@ -164,7 +166,8 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
               ),
             ],
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

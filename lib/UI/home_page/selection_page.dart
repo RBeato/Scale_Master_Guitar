@@ -48,9 +48,11 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Expanded(flex: 1, child: ScaleSelector()),
+            const SizedBox(
+              height: 80,
+              child: ScaleSelector(),
+            ),
             const Expanded(
-              flex: 8,
               child: WheelAndPianoColumn(),
             ),
             const SizedBox(height: 20),

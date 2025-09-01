@@ -5,6 +5,7 @@ import 'package:flutter_sequencer/global_state.dart';
 import 'package:flutter_sequencer/models/instrument.dart';
 import 'dart:async';
 import 'dart:io';
+import 'sequencer_state_manager.dart';
 
 class AudioService {
   static final AudioService _instance = AudioService._internal();
@@ -16,6 +17,9 @@ class AudioService {
   bool _isInitializing = false;
   bool _isDisposing = false;
   final List<Function> _onInitializedCallbacks = [];
+  
+  // State manager for better lifecycle control
+  final _stateManager = SequencerStateManager();
   
   // Lifecycle management
   static AudioService? _previousInstance;
@@ -38,11 +42,13 @@ class AudioService {
   }) async {
     debugPrint('[AudioService] Initialize called - tempo: $tempo, endBeat: $endBeat, forceReinitialize: $forceReinitialize');
     
-    // For iOS TestFlight, add a pre-initialization delay to ensure system readiness
-    if (Platform.isIOS && !kDebugMode) {
-      debugPrint('[AudioService] iOS release mode detected - adding pre-initialization delay');
-      await Future.delayed(const Duration(seconds: 3));
-    }
+    // Use state manager to handle initialization
+    return await _stateManager.executeOperation('initialize', () async {
+      // For iOS TestFlight, add a pre-initialization delay to ensure system readiness
+      if (Platform.isIOS && !kDebugMode) {
+        debugPrint('[AudioService] iOS release mode detected - adding pre-initialization delay');
+        await Future.delayed(const Duration(seconds: 3));
+      }
     
     if (_isInitialized && !forceReinitialize) {
       debugPrint('[AudioService] Already initialized');
@@ -75,34 +81,38 @@ class AudioService {
       }
     }
     
-    _isInitializing = true;
-    debugPrint('[AudioService] Starting initialization with tempo: $tempo, endBeat: $endBeat');
-    
-    try {
-      // Set up audio engine
-      await _setupAudioEngine();
+      _isInitializing = true;
+      await _stateManager.updateState(SequencerState.initializing);
+      debugPrint('[AudioService] Starting initialization with tempo: $tempo, endBeat: $endBeat');
       
-      // Create sequence with retry logic
-      _sequence = await _createSequenceWithRetry(tempo, endBeat);
-      
-      _isInitialized = true;
-      debugPrint('[AudioService] Initialization successful');
-      
-      // Notify all waiting callbacks
-      for (final callback in _onInitializedCallbacks) {
-        callback();
+      try {
+        // Set up audio engine
+        await _setupAudioEngine();
+        
+        // Create sequence with retry logic
+        _sequence = await _createSequenceWithRetry(tempo, endBeat);
+        
+        _isInitialized = true;
+        await _stateManager.updateState(SequencerState.ready);
+        debugPrint('[AudioService] Initialization successful');
+        
+        // Notify all waiting callbacks
+        for (final callback in _onInitializedCallbacks) {
+          callback();
+        }
+        _onInitializedCallbacks.clear();
+        
+      } catch (e, stackTrace) {
+        debugPrint('[AudioService] Initialization failed: $e');
+        debugPrint('[AudioService] Stack trace: $stackTrace');
+        _isInitialized = false;
+        _sequence = null;
+        await _stateManager.updateState(SequencerState.error, error: e.toString());
+        rethrow;
+      } finally {
+        _isInitializing = false;
       }
-      _onInitializedCallbacks.clear();
-      
-    } catch (e, stackTrace) {
-      debugPrint('[AudioService] Initialization failed: $e');
-      debugPrint('[AudioService] Stack trace: $stackTrace');
-      _isInitialized = false;
-      _sequence = null;
-      rethrow;
-    } finally {
-      _isInitializing = false;
-    }
+    });
   }
   
   /// Set up the audio engine with platform-specific configurations
@@ -317,13 +327,17 @@ class AudioService {
       return;
     }
     
-    _isDisposing = true;
-    debugPrint('[AudioService] Starting disposal process');
-    
-    await _forceDispose();
-    
-    _lastDisposalTime = DateTime.now();
-    _isDisposing = false;
+    return await _stateManager.executeOperation('dispose', () async {
+      _isDisposing = true;
+      await _stateManager.updateState(SequencerState.disposing);
+      debugPrint('[AudioService] Starting disposal process');
+      
+      await _forceDispose();
+      
+      _lastDisposalTime = DateTime.now();
+      _isDisposing = false;
+      await _stateManager.updateState(SequencerState.uninitialized);
+    });
   }
   
   /// Force disposal for cleanup (internal use)
@@ -361,11 +375,16 @@ class AudioService {
   Future<void> reset() async {
     debugPrint('[AudioService] Resetting audio service');
     
-    // Store current instance as previous for proper cleanup
-    _previousInstance = AudioService._instance;
-    
-    await dispose();
-    await Future.delayed(const Duration(milliseconds: 500)); // Extended delay for reset
+    return await _stateManager.executeOperation('reset', () async {
+      // Store current instance as previous for proper cleanup
+      _previousInstance = AudioService._instance;
+      
+      await dispose();
+      await Future.delayed(const Duration(milliseconds: 500)); // Extended delay for reset
+      
+      // Reset state manager
+      _stateManager.reset();
+    });
   }
   
   /// Create a new instance with proper cleanup of previous one
