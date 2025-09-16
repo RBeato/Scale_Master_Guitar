@@ -95,7 +95,7 @@ class SequencerManager {
   Timer? _playbackTimer;
   final Set<String> _processedEvents = {};
   bool isPaused = false;
-
+  
   // Loop boundary detection (simplified from working example)
   double? _lastProcessedBeat;
   int _loopCycle = 0;
@@ -431,7 +431,7 @@ class SequencerManager {
     position = 0.0;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
 
-    // Set sequence position to 0 and start native playback
+    // Set sequence position to 0 and start native playbook
     sequence.setBeat(0.0);
     sequence.play();
 
@@ -446,7 +446,7 @@ class SequencerManager {
   }
 
   // Removed pause/resume methods since we use immediate stop/start
-  
+
   /// Simple playback processing from working example
   void _processPlayback(Sequence sequence) {
     if (!isPlaying) return;
