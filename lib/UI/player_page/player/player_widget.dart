@@ -97,7 +97,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: Calculated stepCount = $calculatedStepCount for ${chordsToProcess.length} chords');
 
     tempo = ref.read(metronomeTempoProvider);
-    sequence = Sequence(tempo: tempo, endBeat: calculatedStepCount.toDouble());
+    // Don't create sequence here - let SequencerManager handle it via AudioService
 
     // Get current settings from provider instead of using static widget.settings
     final currentSettingsState = ref.read(settingsStateNotifierProvider);
@@ -116,25 +116,26 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     }
     
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: calling sequencerManager.initialize');
-    // Update the tracks reference to ensure we're using the correct tracks
+    // SequencerManager will create the sequence via AudioService
     final newTracks = await sequencerManager.initialize(
-      tracks: tracks, 
-      sequence: sequence!, 
-      playAllInstruments: true, 
+      tracks: tracks,
+      // Don't pass sequence - let SequencerManager create it via AudioService
+      playAllInstruments: true,
       instruments: instruments,
-      isPlaying: ref.read(isSequencerPlayingProvider), 
-      stepCount: calculatedStepCount, 
+      isPlaying: ref.read(isSequencerPlayingProvider),
+      stepCount: calculatedStepCount,
       trackVolumes: trackVolumes,
       trackStepSequencerStates: trackStepSequencerStates,
       selectedChords: chordsToProcess, // Use passed chordsToProcess
-      isLoading: isLoading, 
+      isLoading: isLoading,
       isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
       isScaleTonicSelected: currentSettings.isTonicUniversalBassNote,
-      tempo: tempo, 
+      tempo: tempo,
     );
-    
-    // CRITICAL: Update the widget's tracks reference to use the new tracks
+
+    // CRITICAL: Update both tracks and sequence from SequencerManager
     tracks = newTracks;
+    sequence = sequencerManager.sequence; // Get the sequence created by AudioService
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: sequencerManager.initialize complete, tracks.length = ${tracks.length}');
     
     // Debug track information
@@ -158,7 +159,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         return;
       }
 
-      // Use custom playback system position
+      // Update position from sequence and get current state
+      sequencerManager.updatePosition();
       final double currentPluginBeat = sequencerManager.position;
       final bool currentPluginIsPlaying = sequencerManager.isPlaying;
 
@@ -216,8 +218,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     if (!mounted) return;
     
     // Only show loading state if we're not just adding chords (i.e., initial load)
-    final bool isInitializing = sequence == null || tracks.isEmpty;
-    debugPrint('[PlayerWidget] isInitializing: $isInitializing, sequence: ${sequence != null}, tracks.length: ${tracks.length}');
+    final bool isInitializing = sequencerManager.sequence == null || tracks.isEmpty;
+    debugPrint('[PlayerWidget] isInitializing: $isInitializing, sequence: ${sequencerManager.sequence != null}, tracks.length: ${tracks.length}');
     
     if (isInitializing) {
       setState(() {
@@ -225,9 +227,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       });
     }
 
-    if (sequence != null) {
+    if (sequencerManager.sequence != null) {
       debugPrint('[PlayerWidget] Stopping existing sequence');
-      await sequencerManager.handleStop(sequence!); 
+      await sequencerManager.handleStop(sequencerManager.sequence!);
     }
     if (ticker != null && ticker!.isActive) {
       debugPrint('[PlayerWidget] Disposing ticker in _performFullSequencerReinitialization');
@@ -275,10 +277,10 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       
       // Don't dispose sequencer manager during widget disposal
       // Just stop any active playback synchronously
-      if (sequence != null) {
+      if (sequencerManager.sequence != null) {
         try {
           // Use synchronous stop to avoid async issues in dispose
-          sequence!.stop();
+          sequencerManager.sequence!.stop();
           ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
         } catch (e) {
           debugPrint('[PlayerWidget] Error stopping sequence: $e');
@@ -325,7 +327,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
           debugPrint('[PlayerWidget] Keyboard sound changed: $prevKeyboardSound -> $nextKeyboardSound');
           
           // Only reinitialize if we have a valid sequence and tracks already
-          if (!isLoading && sequence != null && tracks.isNotEmpty) {
+          if (!isLoading && sequencerManager.sequence != null && tracks.isNotEmpty) {
             final currentChords = ref.read(selectedChordsProvider);
             if (currentChords.isNotEmpty) {
               debugPrint('[PlayerWidget] Reinitializing sequencer due to keyboard sound change');
@@ -372,7 +374,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     // Listener for metronome selection (might also need re-init if drums are added/removed)
     ref.listen<bool>(isMetronomeSelectedProvider, (previous, next) {
       debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: $next');
-      if (previous != next && !isLoading && sequence != null && tracks.isNotEmpty) {
+      if (previous != next && !isLoading && sequencerManager.sequence != null && tracks.isNotEmpty) {
          // When metronome changes, we need the current set of chords for re-initialization
          final currentChords = ref.read(selectedChordsProvider);
          if (currentChords.isNotEmpty) {
@@ -386,9 +388,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     // Listener for tempo changes (more lightweight update)
     ref.listen<double>(metronomeTempoProvider, (previous, next) {
         debugPrint('[PlayerWidget] metronomeTempoProvider listener: $next');
-        if (previous != next && sequence != null) {
+        if (previous != next && sequencerManager.sequence != null) {
             tempo = next; // Update local tempo state if needed by anything else
-            sequencerManager.handleTempoChange(next, sequence!); // Tell SM to update plugin
+            sequencerManager.handleTempoChange(next, sequencerManager.sequence!); // Tell SM to update plugin
         }
     });
 
@@ -404,9 +406,9 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         if (!isLoading) {
             debouncing_utils.Debouncer.handleButtonPress(() {
                 // Stop playback if sequence is currently playing
-                if (sequence != null && sequencerManager.isPlaying) {
+                if (sequencerManager.sequence != null && sequencerManager.isPlaying) {
                   debugPrint('[PlayerWidget] Stopping playback before clearing tracks');
-                  sequencerManager.handleTogglePlayStop(sequence!);
+                  sequencerManager.handleTogglePlayStop(sequencerManager.sequence!);
                 }
                 
                 // setState(() { isLoading = true; }); // isLoading set by _performFullSequencerReinitialization
@@ -419,7 +421,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       },
       handleTogglePlayStop: () {
         debugPrint('[PlayerWidget] handleTogglePlayStop UI action');
-        debugPrint('[PlayerWidget] sequence != null: ${sequence != null}');
+        debugPrint('[PlayerWidget] sequencerManager.sequence != null: ${sequencerManager.sequence != null}');
         debugPrint('[PlayerWidget] !isLoading: ${!isLoading}');
         debugPrint('[PlayerWidget] tracks.length: ${tracks.length}');
         
@@ -427,12 +429,13 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         bool hasEventsLoaded = tracks.isNotEmpty && tracks.any((track) => 
           track.events.isNotEmpty);
         
-        if (sequence != null && !isLoading && hasEventsLoaded) {
+        // Use the sequence from sequencerManager (created by AudioService)
+        if (sequencerManager.sequence != null && !isLoading && hasEventsLoaded) {
             debugPrint('[PlayerWidget] Calling sequencerManager.handleTogglePlayStop');
             // Remove debouncing to prevent double-press issues
-            sequencerManager.handleTogglePlayStop(sequence!);
+            sequencerManager.handleTogglePlayStop(sequencerManager.sequence!);
         } else {
-            debugPrint('[PlayerWidget] Cannot play: sequence=${sequence != null}, isLoading=$isLoading, tracks=${tracks.length}, hasEvents=$hasEventsLoaded');
+            debugPrint('[PlayerWidget] Cannot play: sequencerManagerSequence=${sequencerManager.sequence != null}, isLoading=$isLoading, tracks=${tracks.length}, hasEvents=$hasEventsLoaded');
         }
       },
     );
@@ -444,8 +447,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   void handlePianoKeyDown(String noteName) {
     final String widgetContext = 'PlayerWidget.handlePianoKeyDown';
     debugPrint('[$widgetContext] Received KEY DOWN for note: $noteName');
-    if (sequence != null && tracks.isNotEmpty && !isLoading) {
-      sequencerManager.playPianoNote(noteName, tracks, sequence!); 
+    if (sequencerManager.sequence != null && tracks.isNotEmpty && !isLoading) {
+      sequencerManager.playPianoNote(noteName, tracks, sequencerManager.sequence!); 
     } else {
       debugPrint('[$widgetContext] Sequence/tracks issue or isLoading, cannot play note.');
     }
@@ -454,8 +457,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   void handlePianoKeyUp(String noteName) {
     final String widgetContext = 'PlayerWidget.handlePianoKeyUp';
     debugPrint('[$widgetContext] Received KEY UP for note: $noteName');
-    if (sequence != null && tracks.isNotEmpty && !isLoading) {
-      sequencerManager.stopPianoNote(noteName, tracks, sequence!); 
+    if (sequencerManager.sequence != null && tracks.isNotEmpty && !isLoading) {
+      sequencerManager.stopPianoNote(noteName, tracks, sequencerManager.sequence!); 
     } else {
       debugPrint('[$widgetContext] Sequence/tracks issue or isLoading, cannot stop note.');
     }

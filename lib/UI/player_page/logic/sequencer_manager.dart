@@ -14,11 +14,10 @@ import '../provider/bass_note_index_provider.dart';
 import '../provider/is_playing_provider.dart';
 import '../provider/selected_chords_provider.dart';
 import 'package:collection/collection.dart';
-import '../../../utils/performance_utils.dart';
 import 'dart:async';
 import 'dart:io';
 import 'audio_service.dart';
-// Custom playback system imports (based on working guitar_progression_generator)
+// Sequencer imports (based on working examples)
 import 'package:flutter_sequencer/models/events.dart';
 import 'package:flutter_sequencer/native_bridge.dart';
 import 'package:flutter_sequencer/global_state.dart';
@@ -58,26 +57,52 @@ class SequencerManager {
   final Map<int, Set<int>> _trackActiveNotes = {};
   Timer? _cleanupTimer;
   
-  // Android optimization: Track last processed beat to prevent duplicates
-  double? _lastProcessedBeat;
-  
   // Mutex for thread-safe note operations
   bool _noteOperationInProgress = false;
 
-  // Custom playback system (based on working flutter_sequencer_plus example)
+  // Platform scheduling: iOS=Dart; Android=native (from working example)
+  bool get _useNativeScheduling => Platform.isIOS
+      ? GlobalState().iosNativeSchedulingEnabled
+      : true;
+
+  /// Update position from sequence (for ticker updates)
+  void updatePosition() {
+    if (sequence != null) {
+      try {
+        final currentBeat = sequence!.getBeat();
+        final sequenceIsPlaying = sequence!.getIsPlaying();
+
+        // Update position and playing state
+        position = currentBeat;
+
+        if (isPlaying != sequenceIsPlaying) {
+          isPlaying = sequenceIsPlaying;
+          _ref.read(isSequencerPlayingProvider.notifier).update((state) => sequenceIsPlaying);
+
+          if (sequenceIsPlaying) {
+            debugPrint("[SequencerManager] updatePosition: Sequence started playing at beat $currentBeat");
+          } else {
+            debugPrint("[SequencerManager] updatePosition: Sequence stopped at beat $currentBeat");
+          }
+        }
+      } catch (e) {
+        // Ignore position read errors during playback
+      }
+    }
+  }
+
+  // Simple playback system (based on working flutter_sequencer_plus example)
   Timer? _playbackTimer;
-  DateTime? _playbackStartTime;
-  double _playbackStartBeat = 0.0;
-  double _pausedAtBeat = 0.0;
   final Set<String> _processedEvents = {};
-  final Map<String, double> _activeNotes = {}; // Track active notes with their end times
   bool isPaused = false;
 
-  // Use native position tracking from flutter_sequencer
+  // Loop boundary detection (simplified from working example)
+  double? _lastProcessedBeat;
+  int _loopCycle = 0;
 
   Future<List<Track>> initialize({
     required List<Track> tracks,
-    required Sequence sequence,
+    Sequence? sequence, // Make optional since AudioService will create it
     playAllInstruments,
     isPlaying,
     stepCount,
@@ -92,12 +117,13 @@ class SequencerManager {
     tempo,
     required List<Instrument> instruments,
   }) async {
-    this.sequence = sequence;
-    if (isPlaying) {
-      handleStop(sequence);
+    if (isPlaying && this.sequence != null) {
+      handleStop(this.sequence!);
     }
 
-    clearEverything(tracks, sequence);
+    if (sequence != null) {
+      clearEverything(tracks, sequence);
+    }
 
     this.playAllInstruments = playAllInstruments;
     this.tempo = tempo;
@@ -175,7 +201,7 @@ class SequencerManager {
 
       // Load project state
       debugPrint('[SequencerManager] About to load project state');
-      loadProjectState(project!, this.tracks, sequence);
+      loadProjectState(project!, this.tracks, this.sequence!);
       
       // Debug tracks after loading project state
       debugPrint('[SequencerManager] After loadProjectState - checking track events:');
@@ -377,248 +403,148 @@ class SequencerManager {
   }
 
   Future<void> handleTogglePlayStop(Sequence sequence) async {
-    debugPrint("[SequencerManager] CUSTOM: Toggle play/stop - current playing: $isPlaying");
-    
+    debugPrint("[SequencerManager] Toggle play/stop - current playing: $isPlaying");
+
     if (isPlaying) {
-      // Use CUSTOM pause system (flutter_sequencer_plus style)
-      debugPrint("[SequencerManager] CUSTOM: Using custom pause system");
-      _pauseCustomPlayback();
+      // STOP completely (not pause) for immediate audio cutoff
+      debugPrint("[SequencerManager] Stopping sequence completely...");
+      _stopPlayback(sequence);
     } else {
-      // Use CUSTOM playback system (flutter_sequencer_plus style)
-      debugPrint("[SequencerManager] CUSTOM: Using custom playback system");
-      
-      if (isPaused && _pausedAtBeat > 0) {
-        // Resume from custom pause
-        _resumeCustomPlayback();
-      } else {
-        // Start fresh custom playback
-        _startCustomPlayback();
-      }
+      // Start fresh playback (always from beginning)
+      debugPrint("[SequencerManager] Starting fresh playback...");
+      _startPlayback(sequence);
     }
   }
 
-  /// Custom playback system based on working flutter_sequencer_plus example
-  void _startCustomPlayback() {
-    debugPrint("🎵 [SequencerManager] Starting CUSTOM playback system (flutter_sequencer_plus style)...");
-    _playbackStartTime = DateTime.now();
-    _playbackStartBeat = 0.0;
-    _pausedAtBeat = 0.0;
+  /// Simple playback system based on working flutter_sequencer_plus example
+  void _startPlayback(Sequence sequence) {
+    debugPrint("[SequencerManager] Starting playback...");
+
+    // Reset state like working example
     _processedEvents.clear();
-    
-    // Update state directly
+    _loopCycle = 0;
+    _lastProcessedBeat = null;
+
+    // Update state
     isPlaying = true;
     isPaused = false;
+    position = 0.0;
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
-    
-    // Platform-optimized timer frequency
-    // Android needs slightly lower frequency to prevent audio glitches
-    final timerInterval = Platform.isAndroid 
-        ? const Duration(milliseconds: 15) // Android: 15ms for smoother performance
-        : const Duration(milliseconds: 10); // iOS: 10ms for precision
-    
-    _playbackTimer = Timer.periodic(timerInterval, (timer) {
-      _processCustomPlayback();
-    });
-    
-    debugPrint("🎵 [SequencerManager] CUSTOM playback started - should hear events at scheduled beats");
+
+    // Set sequence position to 0 and start native playback
+    sequence.setBeat(0.0);
+    sequence.play();
+
+    // Start simple timer for iOS Dart scheduling (like working example)
+    if (!_useNativeScheduling) {
+      _playbackTimer = Timer.periodic(const Duration(milliseconds: 1), (timer) {
+        _processPlayback(sequence);
+      });
+    }
+
+    debugPrint("[SequencerManager] Playback started");
   }
+
+  // Removed pause/resume methods since we use immediate stop/start
   
-  void _pauseCustomPlayback() {
-    debugPrint("🎵 [SequencerManager] Pausing CUSTOM playback...");
-    _playbackTimer?.cancel();
-    _playbackTimer = null;
-    _pausedAtBeat = position;
-    
-    // Update state directly
-    isPlaying = false;
-    isPaused = true;
-    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
-    
-    debugPrint("🎵 [SequencerManager] CUSTOM paused at beat $_pausedAtBeat");
-  }
-  
-  void _resumeCustomPlayback() {
-    debugPrint("🎵 [SequencerManager] Resuming CUSTOM playback from beat $_pausedAtBeat...");
-    _playbackStartTime = DateTime.now();
-    _playbackStartBeat = _pausedAtBeat;
-    
-    // Update state directly
-    isPlaying = true;
-    isPaused = false;
-    _ref.read(isSequencerPlayingProvider.notifier).update((state) => true);
-    
-    // Platform-optimized timer frequency for resume
-    final timerInterval = Platform.isAndroid 
-        ? const Duration(milliseconds: 15) // Android: 15ms for smoother performance
-        : const Duration(milliseconds: 10); // iOS: 10ms for precision
-    
-    _playbackTimer = Timer.periodic(timerInterval, (timer) {
-      _processCustomPlayback();
-    });
-    
-    debugPrint("🎵 [SequencerManager] CUSTOM resumed from beat $_pausedAtBeat");
-  }
-  
-  void _processCustomPlayback() {
-    if (_playbackStartTime == null) return;
-    
-    // Calculate current beat based on elapsed time
-    final elapsed = DateTime.now().difference(_playbackStartTime!);
-    final elapsedBeats = (elapsed.inMicroseconds / 1000000.0) * (tempo / 60.0);
-    var currentBeat = _playbackStartBeat + elapsedBeats;
-    
-    // Android optimization: Skip processing if we're too close to last processed beat
-    // This prevents duplicate events on slower Android devices
-    if (Platform.isAndroid && _lastProcessedBeat != null) {
-      if ((currentBeat - _lastProcessedBeat!).abs() < 0.01) {
-        return; // Skip this tick, too close to last processed beat
+  /// Simple playback processing from working example
+  void _processPlayback(Sequence sequence) {
+    if (!isPlaying) return;
+
+    // Get position from native sequence (like working example)
+    final currentBeat = sequence.getBeat();
+
+    // Update position
+    position = currentBeat;
+
+    // Simple loop boundary detection (from working example)
+    if (isTrackLooping && _lastProcessedBeat != null) {
+      // Detect loop wrap (simplified from working example)
+      if (_lastProcessedBeat! > 0.1 && currentBeat < (_lastProcessedBeat! - 0.5)) {
+        _loopCycle++;
+        _processedEvents.clear(); // Allow events to retrigger
+        debugPrint("[SequencerManager] Loop wrap detected - cycle $_loopCycle");
       }
     }
     _lastProcessedBeat = currentBeat;
-    
-    // CRITICAL FIX: Seamless loop transition - use modulo instead of time reset
-    if (isTrackLooping && currentBeat >= stepCount) {
-      // Calculate how far past the end we are for seamless transition
-      final overshoot = currentBeat - stepCount;
-      
-      // IMPORTANT: Stop all active notes before loop restart to prevent hanging notes
-      debugPrint("🎵 [SequencerManager] CUSTOM: Loop restart - stopping active notes before transition");
-      _stopAllActiveNotes();
-      _activeNotes.clear();
-      
-      // Clear processed events for the new loop cycle
-      debugPrint("🎵 [SequencerManager] CUSTOM: Seamless loop transition at beat ${overshoot.toStringAsFixed(3)}");
-      _processedEvents.clear();
-      
-      // Adjust timing reference for next calculations
-      _playbackStartBeat = 0.0;
-      _playbackStartTime = DateTime.now().subtract(Duration(microseconds: (overshoot * 1000000.0 / (tempo / 60.0)).round()));
-      currentBeat = overshoot; // Continue seamlessly from overshoot position
-    } else if (!isTrackLooping && currentBeat >= stepCount) {
-      debugPrint("🎵 [SequencerManager] CUSTOM: Stopping playback (reached end)...");
-      _stopCustomPlayback();
-      return;
+
+    // Process events for iOS Dart scheduling (from working example)
+    if (!_useNativeScheduling) {
+      _processEventsAtBeat(currentBeat);
     }
-    
-    // Update position directly
-    position = currentBeat % stepCount;
-    
-    // Process note-off events for expired notes (CRITICAL FIX for sustaining)
-    _processNoteOffEvents(currentBeat);
-    
-    // Process note-on events at current beat
-    _processEventsAtBeat(currentBeat);
+
+    // Stop if reached end (non-looping)
+    if (!isTrackLooping && currentBeat >= stepCount) {
+      debugPrint("[SequencerManager] Reached end - stopping");
+      _stopPlayback(sequence);
+    }
   }
   
+  /// Simple event processing from working example (iOS Dart scheduling)
   void _processEventsAtBeat(double currentBeat) {
-    final effectiveBeat = currentBeat % stepCount; // Handle loop wrapping
-    
     for (final track in tracks) {
       for (final event in track.events) {
         if (event is MidiEvent) {
-          final eventBeat = event.beat;
-          
-          // Check if event should trigger now (with timing tolerance)
-          if (eventBeat >= effectiveBeat - 0.15 && eventBeat <= effectiveBeat + 0.15) {
-            // Use loop-aware key to prevent duplicate events across loops
-            final eventKey = '${track.id}-${(eventBeat * 100).round()}-${event.midiData1}-${event.midiData2}';
-            final loopAwareKey = 'loop-${(currentBeat / stepCount).floor()}-$eventKey';
-            
-            if (!_processedEvents.contains(loopAwareKey)) {
-              debugPrint("🎵 [SequencerManager] CUSTOM: TRIGGERING EVENT: track=${track.id} beat=$eventBeat note=${event.midiData1} vel=${event.midiData2}");
-              
-              // Send MIDI event directly using NativeBridge (like working example)
+          // Simple timing check (from working example)
+          if ((currentBeat - event.beat).abs() < 0.1) {
+            final eventKey = '${track.id}-$_loopCycle-${event.beat}-${event.midiData1}';
+
+            if (!_processedEvents.contains(eventKey)) {
+              // Send event using NativeBridge (from working example)
               NativeBridge.handleEventsNow(
-                track.id, 
-                [event], 
-                GlobalState().sampleRate!, 
-                tempo
+                track.id,
+                [event],
+                GlobalState().sampleRate!,
+                tempo,
               );
-              
-              // Track active note-on events for automatic note-off (only if it's a note-on)
-              if (event.midiData2 > 0) { // NOTE-ON event
-                double noteDuration;
-                final trackIndex = tracks.indexOf(track);
-                if (trackIndex == 0) {
-                  // Drum track - short hits
-                  noteDuration = 0.5;
-                } else {
-                  // Piano/bass tracks - full beat duration
-                  noteDuration = 1.0;
-                }
-                
-                final noteEndBeat = currentBeat + noteDuration;
-                final noteKey = '${track.id}-${event.midiData1}';
-                _activeNotes[noteKey] = noteEndBeat;
-                debugPrint("🎵 [SequencerManager] Note scheduled to end at beat ${noteEndBeat.toStringAsFixed(3)}");
-              }
-              
-              _processedEvents.add(loopAwareKey);
+              _processedEvents.add(eventKey);
             }
           }
         }
       }
     }
   }
-  
-  void _processNoteOffEvents(double currentBeat) {
-    final notesToStop = <String>[];
-    
-    _activeNotes.forEach((noteKey, endBeat) {
-      if (currentBeat >= endBeat) {
-        notesToStop.add(noteKey);
-      }
-    });
-    
-    for (final noteKey in notesToStop) {
-      final parts = noteKey.split('-');
-      if (parts.length == 2) {
-        final trackId = int.parse(parts[0]);
-        final noteNumber = int.parse(parts[1]);
-        final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
-        
-        try {
-          debugPrint("🛑 [SequencerManager] NOTE-OFF: track=$trackId note=$noteNumber at beat=${currentBeat.toStringAsFixed(3)}");
-          track.stopNoteNow(noteNumber: noteNumber);
-          _activeNotes.remove(noteKey);
-        } catch (e) {
-          debugPrint("🛑 [SequencerManager] Error stopping note $noteNumber on track $trackId: $e");
-        }
-      }
-    }
-  }
-  
-  void _stopCustomPlayback() {
-    debugPrint("🎵 [SequencerManager] Stopping CUSTOM playback...");
-    
-    // ANDROID FIX: Stop native sequence FIRST to immediately halt audio
-    // This prevents the frozen/hanging sound issue on Android
-    if (sequence != null) {
-      try {
-        sequence!.stop();
-        debugPrint("🛑 [SequencerManager] Force stopped native sequence FIRST");
-      } catch (e) {
-        debugPrint("🛑 [SequencerManager] Error force stopping native sequence: $e");
-      }
-    }
-    
-    // Cancel timer to prevent new events
+
+  /// Immediate stop method for responsive UI
+  void _stopPlayback(Sequence sequence) {
+    debugPrint("[SequencerManager] Stopping playback immediately...");
+
+    // STEP 1: Stop timers immediately
     _playbackTimer?.cancel();
     _playbackTimer = null;
-    _playbackStartTime = null;
-    _processedEvents.clear();
-    
-    // Update state immediately to prevent race conditions
+
+    // STEP 2: Stop sequence immediately
+    sequence.stop();
+    sequence.setBeat(0.0); // Reset to beginning
+
+    // STEP 3: Send aggressive note-offs immediately (prevent audio hanging)
+    try {
+      for (final track in tracks) {
+        // Stop all possible notes immediately for complete silence
+        for (int note = 21; note <= 108; note++) { // Full piano range
+          try {
+            track.stopNoteNow(noteNumber: note);
+          } catch (_) {
+            // Ignore individual failures - not all notes are active
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("[SequencerManager] Error stopping notes: $e");
+    }
+
+    // STEP 4: Update state immediately
     isPlaying = false;
     isPaused = false;
     position = 0.0;
-    _pausedAtBeat = 0.0;
-    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
-    
-    // Stop all active tracked notes immediately
-    _stopAllActiveNotes();
-    _activeNotes.clear();
+    _loopCycle = 0;
+    _processedEvents.clear();
     _trackActiveNotes.clear();
+
+    // STEP 5: Update UI state
+    _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+
+    debugPrint("[SequencerManager] Playback stopped immediately");
   }
   
   void _stopAllActiveNotes() {
@@ -650,22 +576,8 @@ class SequencerManager {
     }
     
     // Then stop individual notes for cleanup
-    // 1. Stop notes from custom playback system (_activeNotes)
-    int customNotesCount = _activeNotes.length;
-    _activeNotes.forEach((noteKey, endBeat) {
-      final parts = noteKey.split('-');
-      if (parts.length == 2) {
-        final trackId = int.parse(parts[0]);
-        final noteNumber = int.parse(parts[1]);
-        final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
-        
-        try {
-          track.stopNoteNow(noteNumber: noteNumber);
-        } catch (e) {
-          // Silently continue - All Notes Off should have handled it
-        }
-      }
-    });
+    // 1. Stop notes from custom playback system - simplified
+    int customNotesCount = 0; // Not tracked anymore in simplified system
     
     // 2. Stop notes from piano tracking system (_trackActiveNotes) 
     int pianoNotesCount = 0;
@@ -742,7 +654,6 @@ class SequencerManager {
       _stopAllActiveNotes();
       
       // Clear tracking systems
-      _activeNotes.clear();
       _trackActiveNotes.clear();
     } catch (e) {
       debugPrint('[SequencerManager] Error in _stopPlaybackOnly: $e');
@@ -751,25 +662,18 @@ class SequencerManager {
 
   Future<void> handleStop(Sequence sequence) async {
     try {
-      debugPrint('[SequencerManager] handleStop called - using CUSTOM stop system');
-      
+      debugPrint('[SequencerManager] handleStop called');
+
       // Prevent multiple simultaneous stop calls
       if (!isPlaying && !isPaused) {
         debugPrint('[SequencerManager] Already stopped, skipping');
         return;
       }
-      
-      // ANDROID FIX: Don't use async operation tracking for stop
-      // This needs to be immediate to prevent audio hanging
-      _stopCustomPlayback();
-      
-      // Platform-specific cleanup
-      if (Platform.isAndroid) {
-        // Android: Give audio engine time to flush buffers
-        await Future.delayed(const Duration(milliseconds: 50));
-      }
-      
-      debugPrint('[SequencerManager] CUSTOM stop completed successfully');
+
+      // Use simple stop method
+      _stopPlayback(sequence);
+
+      debugPrint('[SequencerManager] Stop completed successfully');
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
       // Don't rethrow to prevent crashes, just log the error
@@ -778,18 +682,26 @@ class SequencerManager {
 
 
   void _handleSetLoop(bool nextIsLooping, Sequence sequence) {
-    // Custom playback system handles looping internally
+    // Set native looping like working examples
+    if (nextIsLooping) {
+      sequence.setLoop(0, stepCount.toDouble());
+      debugPrint('[SequencerManager] Native looping enabled: 0 to $stepCount beats');
+    } else {
+      sequence.unsetLoop();
+      debugPrint('[SequencerManager] Native looping disabled');
+    }
+
     isTrackLooping = nextIsLooping;
     debugPrint('[SequencerManager] Loop set to: $nextIsLooping');
   }
 
-  handleToggleLoop(bool isLooping, Sequence sequence) {
+  void handleToggleLoop(bool isLooping, Sequence sequence) {
     final nextIsLooping = !isLooping;
 
     _handleSetLoop(nextIsLooping, sequence);
   }
 
-  _handleStepCountChange(
+  void _handleStepCountChange(
       int nextStepCount, List<Track> tracks, Sequence sequence) {
     if (nextStepCount < 1) return;
 
@@ -1033,7 +945,6 @@ class SequencerManager {
       _playbackTimer?.cancel();
       _playbackTimer = null;
       _processedEvents.clear();
-      _activeNotes.clear();
       
       if (sequence != null) {
         debugPrint('[SequencerManager] Stopping sequence');
@@ -1062,6 +973,7 @@ class SequencerManager {
         trackVolumes.clear();
         _trackActiveNotes.clear();
         _lastChords.clear();
+        _processedEvents.clear();
       } catch (e) {
         debugPrint('[SequencerManager] Error clearing state: $e');
       }
