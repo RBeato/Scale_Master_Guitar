@@ -108,27 +108,66 @@ class PurchaseApi {
              purchaserInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
     } on PlatformException catch (e) {
-      debugPrint('Error purchasing package: ${e.message}');
-      
-      // Handle specific purchase errors
-      if (e.code == 'PURCHASE_CANCELLED') {
-        debugPrint('Purchase was cancelled by user');
-        return false;
-      } else if (e.code == 'PURCHASE_NOT_ALLOWED') {
-        debugPrint('Purchase not allowed - possibly in TestFlight Sandbox');
-        throw PlatformException(
-          code: 'PURCHASE_NOT_ALLOWED',
-          message: 'Purchase not allowed in this environment. Please ensure you have accepted the Paid Apps Agreement in App Store Connect.',
-        );
-      } else if (e.code == 'STORE_PROBLEM') {
-        debugPrint('Store problem - possibly using sandbox environment');
-        throw PlatformException(
-          code: 'STORE_PROBLEM',
-          message: 'Store connection issue. If testing, ensure you are using a TestFlight build with a valid sandbox account.',
-        );
+      debugPrint('Error purchasing package: ${e.code} - ${e.message}');
+
+      // Handle specific purchase errors with improved messaging
+      switch (e.code) {
+        case 'PURCHASE_CANCELLED':
+        case 'PURCHASES_ERROR_PURCHASE_CANCELLED':
+          debugPrint('Purchase was cancelled by user');
+          return false;
+
+        case 'PURCHASE_NOT_ALLOWED':
+        case 'PURCHASES_ERROR_PURCHASE_NOT_ALLOWED':
+          debugPrint('Purchase not allowed - App Store configuration issue');
+          throw PlatformException(
+            code: 'PURCHASE_NOT_ALLOWED',
+            message: 'Purchases are not allowed on this device. Please check your App Store settings and ensure you have a valid payment method.',
+          );
+
+        case 'STORE_PROBLEM':
+        case 'PURCHASES_ERROR_STORE_PROBLEM':
+          debugPrint('Store problem - StoreKit configuration or connectivity issue');
+          throw PlatformException(
+            code: 'STORE_PROBLEM',
+            message: 'Unable to connect to the App Store. Please check your internet connection and try again later.',
+          );
+
+        case 'PURCHASES_ERROR_PAYMENT_PENDING':
+          debugPrint('Payment is pending approval');
+          throw PlatformException(
+            code: 'PAYMENT_PENDING',
+            message: 'Your payment is pending approval. You will receive access once the payment is processed.',
+          );
+
+        case 'PURCHASES_ERROR_INVALID_CREDENTIALS':
+        case 'PURCHASES_ERROR_NETWORK_ERROR':
+          debugPrint('Network or authentication error');
+          throw PlatformException(
+            code: 'NETWORK_ERROR',
+            message: 'Network error occurred. Please check your internet connection and try again.',
+          );
+
+        case 'PURCHASES_ERROR_RECEIPT_ALREADY_IN_USE':
+          debugPrint('Receipt already in use');
+          throw PlatformException(
+            code: 'RECEIPT_IN_USE',
+            message: 'This purchase has already been used. Try restoring your purchases instead.',
+          );
+
+        default:
+          debugPrint('Unknown purchase error: ${e.code}');
+          throw PlatformException(
+            code: e.code,
+            message: e.message ?? 'An unexpected error occurred during purchase. Please try again.',
+          );
       }
-      
-      rethrow;
+    } catch (e) {
+      debugPrint('Unexpected error during purchase: $e');
+      throw PlatformException(
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred. Please try again.',
+      );
     }
   }
 

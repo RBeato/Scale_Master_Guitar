@@ -109,22 +109,45 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
       if (kDebugMode) {
         debugPrint('PlatformException during purchase: ${e.code} - ${e.message}');
       }
-      
-      // Handle specific error codes
-      if (e.code == 'PURCHASE_NOT_ALLOWED') {
-        _showError('Purchase not allowed. Please ensure the Paid Apps Agreement is accepted in App Store Connect.');
-      } else if (e.code == 'STORE_PROBLEM') {
-        _showError('Store connection issue. If testing, use TestFlight with a valid sandbox account.');
-      } else if (e.code == 'PURCHASE_CANCELLED') {
-        // User cancelled, no error message needed
-      } else {
-        _showError('Purchase failed: ${e.message ?? "Unknown error"}');
+
+      // Handle specific error codes with user-friendly messages
+      switch (e.code) {
+        case 'PURCHASE_CANCELLED':
+        case 'PURCHASES_ERROR_PURCHASE_CANCELLED':
+          // User cancelled, no error message needed
+          break;
+
+        case 'PURCHASE_NOT_ALLOWED':
+        case 'PURCHASES_ERROR_PURCHASE_NOT_ALLOWED':
+          _showError('Purchases are not allowed on this device. Please check your App Store settings.');
+          break;
+
+        case 'STORE_PROBLEM':
+        case 'PURCHASES_ERROR_STORE_PROBLEM':
+          _showError('Unable to connect to the App Store. Please check your internet connection and try again.');
+          break;
+
+        case 'PAYMENT_PENDING':
+          _showError('Your payment is pending approval. You will receive access once processed.');
+          break;
+
+        case 'NETWORK_ERROR':
+          _showError('Network error. Please check your internet connection and try again.');
+          break;
+
+        case 'RECEIPT_IN_USE':
+          _showError('This purchase has already been used. Try restoring your purchases instead.');
+          break;
+
+        default:
+          _showError(e.message ?? 'Purchase failed. Please try again.');
+          break;
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error making purchase: $e');
       }
-      _showError('An error occurred during purchase');
+      _showError('An unexpected error occurred during purchase. Please try again.');
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
