@@ -133,6 +133,8 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       tempo: tempo,
     );
 
+    debugPrint('[PlayerWidget] Settings.isTonicUniversalBassNote: ${currentSettings.isTonicUniversalBassNote}');
+
     // CRITICAL: Update both tracks and sequence from SequencerManager
     tracks = newTracks;
     sequence = sequencerManager.sequence; // Get the sequence created by AudioService

@@ -129,6 +129,7 @@ class SequencerManager {
     this.playAllInstruments = playAllInstruments;
     this.tempo = tempo;
     tonicAsUniversalBassNote = isScaleTonicSelected;
+    debugPrint('[SequencerManager] isScaleTonicSelected (tonicAsUniversalBassNote): $isScaleTonicSelected');
     this.isMetronomeSelected = isMetronomeSelected;
 
     // Initialize audio service with proper lifecycle management - based on working guitar_progression_generator

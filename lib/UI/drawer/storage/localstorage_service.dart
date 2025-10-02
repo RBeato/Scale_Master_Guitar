@@ -56,6 +56,17 @@ class LocalStorageService {
   Future<Settings> _loadSettingsFromDisk() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
 
+    // Migration: Reset tonicUniversalBassNote to false if this is an old installation
+    // Version 1.0.20+28 changed the default from true to false
+    const String migrationKey = 'migration_v1.0.20+28_bass_note';
+    final bool hasMigrated = preferences.getBool(migrationKey) ?? false;
+
+    if (!hasMigrated) {
+      debugPrint('[LocalStorageService] Running migration: resetting tonicUniversalBassNote to false');
+      await preferences.setBool(SettingsSelection.tonicUniversalBassNote.toString(), false);
+      await preferences.setBool(migrationKey, true);
+    }
+
     bool showScaleDegrees =
         preferences.getBool(SettingsSelection.scaleDegrees.toString()) ?? false;
     bool isSingleColor =
@@ -63,6 +74,8 @@ class LocalStorageService {
     bool isTonicUniversalBassNote = preferences
             .getBool(SettingsSelection.tonicUniversalBassNote.toString()) ??
         false;
+
+    debugPrint('[LocalStorageService] Loaded isTonicUniversalBassNote from disk: $isTonicUniversalBassNote');
     String keyboardSound =
         preferences.getString(SettingsSelection.keyboardSound.toString()) ??
             'Piano';
