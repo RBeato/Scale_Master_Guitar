@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/utils/audio_state_manager.dart';
 
 class EnhancedPaywallPage extends ConsumerStatefulWidget {
   const EnhancedPaywallPage({super.key});
@@ -99,9 +100,16 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
       if (success) {
         // Update the provider state
         await ref.read(revenueCatProvider.notifier).updatePurchaseStatus();
+
+        // Safe navigation after successful purchase
+        AudioStateManager().setPaywallNavigation(true);
         if (mounted) {
           Navigator.of(context).pop(true);
         }
+
+        Future.delayed(const Duration(milliseconds: 500), () {
+          AudioStateManager().reset();
+        });
       } else {
         _showError('Purchase failed. Please try again.');
       }
@@ -159,9 +167,16 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
     setState(() => isLoading = true);
     try {
       await ref.read(revenueCatProvider.notifier).restorePurchases();
+
+      // Safe navigation after restore
+      AudioStateManager().setPaywallNavigation(true);
       if (mounted) {
         Navigator.of(context).pop(true);
       }
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        AudioStateManager().reset();
+      });
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error restoring purchases: $e');
@@ -184,16 +199,56 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) {
+          // Safe cleanup when back navigation occurs
+          debugPrint('[Paywall] Back navigation detected - performing safe cleanup');
+          AudioStateManager().setPaywallNavigation(true);
+          // Reset after a delay to allow navigation to complete
+          Future.delayed(const Duration(milliseconds: 500), () {
+            AudioStateManager().reset();
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () async {
+              // Safe navigation to prevent audio disposal issues
+              try {
+                debugPrint('[Paywall] Close button pressed - safe navigation');
+                AudioStateManager().setPaywallNavigation(true);
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+
+                // Reset after a delay to allow navigation to complete
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  AudioStateManager().reset();
+                });
+              } catch (e) {
+                debugPrint('[Paywall] Error during navigation: $e');
+                AudioStateManager().setPaywallNavigation(true);
+
+                // Force close if normal navigation fails
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  AudioStateManager().reset();
+                });
+              }
+            },
+          ),
         ),
-      ),
       body: Stack(
         children: [
           SafeArea(
@@ -267,6 +322,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
             ),
         ],
       ),
+    ),
     );
   }
 

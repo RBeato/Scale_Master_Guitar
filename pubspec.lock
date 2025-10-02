@@ -251,7 +251,7 @@ packages:
     description:
       path: "."
       ref: "fix/ios-loop-boundary-single-dispatch"
-      resolved-ref: "81a260b5887700e7e7f9cc85122d6969e40fd8f9"
+      resolved-ref: "81898fac147c1358621f43e994e27cb6fd103ebc"
       url: "https://github.com/RBeato/flutter_sequencer_plus.git"
     source: git
     version: "1.0.0+1"
