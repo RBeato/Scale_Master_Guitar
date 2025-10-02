@@ -36,8 +36,9 @@ class SequencerManager {
   Sequence? sequence;
   List _lastChords = [];
   // final List _lastExtensions = [];
-  bool _lastTonicAsUniversalBassNote = true;
-  bool tonicAsUniversalBassNote = true;
+  // Default to false to match Settings model default - plays each chord's root note as bass
+  bool _lastTonicAsUniversalBassNote = false;
+  bool tonicAsUniversalBassNote = false;
   bool _lastMetronomeSelected = false;
   bool isMetronomeSelected = false;
   Map<int, double> trackVolumes = {};
