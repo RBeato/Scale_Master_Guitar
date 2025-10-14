@@ -33,7 +33,7 @@ class Constants {
       'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
     },
     'keys': {
-      'Piano': "assets/sounds/sf2/j_piano.sf2",
+      'Piano': "assets/sounds/sf2/korg.sf2",
       'Rhodes': "assets/sounds/sf2/rhodes.sf2",
       'Organ': "assets/sounds/sf2/korg.sf2",
       'Pad': "assets/sounds/sf2/korg.sf2"

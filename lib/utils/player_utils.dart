@@ -100,15 +100,15 @@ class SoundPlayerUtils {
   static String _getKeyboardSoundfontPath(String instrumentSound) {
     switch (instrumentSound.toLowerCase()) {
       case 'piano':
-        return 'assets/sounds/sf2/j_piano.sf2';       // Proven to work on iOS TestFlight
+        return 'assets/sounds/sf2/korg.sf2';          // Korg Triton - better quality (6.9MB)
       case 'rhodes':
         return 'assets/sounds/sf2/rhodes.sf2';        // Dedicated Rhodes SF2
       case 'organ':
         return 'assets/sounds/sf2/korg.sf2';          // Dedicated Korg SF2
       case 'pad':
-        return 'assets/sounds/sf2/j_piano.sf2';       // Use piano for pad sounds
+        return 'assets/sounds/sf2/korg.sf2';          // Use Korg for pad sounds
       default:
-        return 'assets/sounds/sf2/j_piano.sf2';       // Default fallback
+        return 'assets/sounds/sf2/korg.sf2';          // Default fallback - Korg Triton
     }
   }
   

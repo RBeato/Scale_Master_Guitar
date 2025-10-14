@@ -125,7 +125,7 @@ class AudioService {
     try {
       final minimalInstruments = [
         Sf2Instrument(
-          path: 'assets/sounds/sf2/j_piano.sf2',
+          path: 'assets/sounds/sf2/korg.sf2',
           isAsset: true,
           presetIndex: 0,
         ),

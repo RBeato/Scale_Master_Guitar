@@ -54,6 +54,11 @@ android {
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         multiDexEnabled true
+
+        ndk {
+            // Support for 16 KB page sizes (required by Nov 1, 2025)
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
     }
 
     signingConfigs {

@@ -34,10 +34,10 @@ class Constants {
       'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
     },
     'keys': {
-      'Piano': "assets/sounds/sf2/j_piano.sf2",        // Proven to work on iOS TestFlight
+      'Piano': "assets/sounds/sf2/korg.sf2",           // Korg Triton - better quality (6.9MB)
       'Rhodes': "assets/sounds/sf2/rhodes.sf2",         // Dedicated Rhodes SF2
       'Organ': "assets/sounds/sf2/korg.sf2",           // Dedicated Korg SF2
-      'Pad': "assets/sounds/sf2/j_piano.sf2"           // Use piano for pad sounds
+      'Pad': "assets/sounds/sf2/korg.sf2"              // Use Korg for pad sounds
     },
     'bass': {
       'Double Bass': "assets/sounds/sf2/acoustic_bass.sf2",    // Dedicated acoustic bass
