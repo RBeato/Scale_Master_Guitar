@@ -28,9 +28,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
               child: Column(
                 children: <Widget>[
@@ -53,6 +53,7 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
             ),
           ),
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Show upgrade button for free users
               if (!entitlement.isPremium)
