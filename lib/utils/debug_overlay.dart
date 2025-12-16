@@ -134,54 +134,65 @@ class _DebugOverlayState extends State<DebugOverlay> {
             top: MediaQuery.of(context).padding.top + 60,
             left: 20,
             right: 20,
+            bottom: 100,
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Debug Information',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const Divider(color: Colors.white30),
-                  ..._debugInfo.entries.map((entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            '${entry.key}:',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            entry.value,
-                            style: TextStyle(
-                              color: entry.value.contains('Error') || entry.value.contains('Not found') || entry.value.contains('Failed') 
-                                  ? Colors.red 
-                                  : Colors.green,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Debug Information',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const Divider(color: Colors.white30),
+                    ..._debugInfo.entries.map((entry) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${entry.key}:',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              entry.value,
+                              style: TextStyle(
+                                color: entry.value.contains('Error') || entry.value.contains('Not found') || entry.value.contains('Failed')
+                                    ? Colors.red
+                                    : Colors.green,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.visible,
+                              softWrap: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )).toList(),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _testAudio,
+                        child: const Text('Test Audio Playback'),
+                      ),
                     ),
-                  )).toList(),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _testAudio,
-                      child: const Text('Test Audio Playback'),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

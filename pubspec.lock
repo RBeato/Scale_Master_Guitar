@@ -250,8 +250,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "fix/ios-loop-boundary-single-dispatch"
-      resolved-ref: "81898fac147c1358621f43e994e27cb6fd103ebc"
+      ref: "performance/parallel-track-loading"
+      resolved-ref: "2c8216b463e5344f17e2c1f0a589611f2fd4ebc9"
       url: "https://github.com/RBeato/flutter_sequencer_plus.git"
     source: git
     version: "1.0.0+1"
