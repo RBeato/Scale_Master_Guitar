@@ -20,6 +20,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:upgrader/upgrader.dart';
 
 //TODO: fix performance. Avoid unnecessary rebuilds. Test overall performance
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
@@ -265,13 +266,27 @@ class _MyAppState extends ConsumerState<MyApp> {
           brightness: Brightness.dark,
         ),
       ),
-      home: ScaffoldMessenger(
-        key: scaffoldMessengerKey,
-        child: showDebugOverlay
-            ? DebugOverlay(
-                child: const HomePage(title: 'Scale Master Guitar')
-              )
-            : const HomePage(title: 'Scale Master Guitar'),
+      home: UpgradeAlert(
+        upgrader: Upgrader(
+          // Only check for updates in release mode (production)
+          debugDisplayAlways: false,
+          debugDisplayOnce: false,
+          debugLogging: kDebugMode,
+          // Customize dialog messages
+          messages: UpgraderMessages(
+            code: 'en',
+          ),
+          // Check frequency - remind user every 3 days
+          durationUntilAlertAgain: const Duration(days: 3),
+        ),
+        child: ScaffoldMessenger(
+          key: scaffoldMessengerKey,
+          child: showDebugOverlay
+              ? DebugOverlay(
+                  child: const HomePage(title: 'Scale Master Guitar')
+                )
+              : const HomePage(title: 'Scale Master Guitar'),
+        ),
       ),
     );
   }
