@@ -9,6 +9,8 @@ import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
+import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
@@ -28,13 +30,27 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            children: <Widget>[
-              const GeneralOptions(),
-              // Testing switch only visible in debug mode
-              if (kDebugMode) _buildTestingSection(),
-              const SoundsDropdownColumn(),
-            ],
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: <Widget>[
+                  const GeneralOptions(),
+                  // Testing switch only visible in debug mode
+                  if (kDebugMode) _buildTestingSection(),
+                  const SoundsDropdownColumn(),
+
+                  const SizedBox(height: 20),
+
+                  // Cross-promotion section
+                  const OtherAppsPromoWidget(
+                    currentAppId: 'scale_master_guitar',
+                    accentColor: Color(0xFF4CAF50),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
           Column(
             children: [
@@ -107,6 +123,51 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                 const BannerAdWidget(),
               
               const SizedBox(height: 20),
+
+              // Contact & Feedback button
+              Card(
+                color: Colors.green.withValues(alpha: 0.1),
+                child: ListTile(
+                  leading: const Icon(Icons.email, color: Colors.green),
+                  title: const Text(
+                    'Contact & Feedback',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text('Report bugs or suggest features'),
+                  onTap: () async {
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: 'rb.soundz@hotmail.com',
+                      query: 'subject=SMGuitar - Feedback',
+                    );
+
+                    try {
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(emailUri);
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Could not open email app'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+
               InkWell(
                 highlightColor: cardColor,
                 child: GestureDetector(
