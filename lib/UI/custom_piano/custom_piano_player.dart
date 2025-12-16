@@ -28,29 +28,46 @@ class CustomPianoSoundController extends ConsumerStatefulWidget {
 
 class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     with TickerProviderStateMixin {
+  static int _instanceCounter = 0;
+  late final int _instanceId;
+
   Map<int, StepSequencerState> trackStepSequencerStates = {};
   List<Track> tracks = [];
   Map<int, double> trackVolumes = {};
   Track? selectedTrack;
   Ticker? ticker;
-  late SequencerManager sequencerManager;
+  SequencerManager? sequencerManager;
   double tempo = Constants.INITIAL_TEMPO;
   double position = 0.0;
-  late bool isPlaying;
-  late Sequence sequence;
+  bool isPlaying = false;
+  Sequence? sequence;
   Map<String, dynamic> sequencer = {};
-  late bool isLoading;
+  bool isLoading = true;
   String? _lastKeyboardSound; // Track the last keyboard sound setting
-  
+
   // Use AudioService singleton for proper audio lifecycle management
   AudioService get _audioService => AudioService();
+
+  CustomPianoState() {
+    _instanceId = ++_instanceCounter;
+  }
 
   @override
   void initState() {
     super.initState();
-    sequencerManager = ref.read(sequencerManagerProvider);
+    debugPrint('[CustomPianoPlayer#$_instanceId] initState called');
     _lastKeyboardSound = widget.scaleModel?.settings?.keyboardSound;
-    initializeSequencer();
+    // Initialize sequencerManager immediately, but initialize async parts after frame
+    sequencerManager = ref.read(sequencerManagerProvider);
+    // Schedule async initialization after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        debugPrint('[CustomPianoPlayer#$_instanceId] PostFrameCallback executing, starting initializeSequencer');
+        initializeSequencer();
+      } else {
+        debugPrint('[CustomPianoPlayer#$_instanceId] PostFrameCallback skipped - widget not mounted');
+      }
+    });
   }
 
   @override
@@ -75,24 +92,29 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   }
 
   Future<void> initializeSequencer() async {
-    if (!mounted) return;
-    
+    debugPrint('[CustomPianoPlayer#$_instanceId] initializeSequencer START - mounted: $mounted, sequencerManager: ${sequencerManager != null}');
+
+    if (!mounted || sequencerManager == null) {
+      debugPrint('[CustomPianoPlayer#$_instanceId] initializeSequencer ABORTED - not mounted or no sequencerManager');
+      return;
+    }
+
     // Stop and cleanup existing sequencer first to prevent iOS resource conflicts
     try {
       ticker?.stop();
       ticker?.dispose();
       ticker = null;
-      
-      if (tracks.isNotEmpty) {
-        debugPrint('[CustomPianoPlayer] Cleaning up ${tracks.length} existing tracks before reinitializing');
+
+      if (tracks.isNotEmpty && sequence != null) {
+        debugPrint('[CustomPianoPlayer#$_instanceId] Cleaning up ${tracks.length} existing tracks before reinitializing');
         // Stop any active notes and clear tracks
-        await sequencerManager.handleStop(sequence);
+        await sequencerManager!.handleStop(sequence!);
         tracks.clear();
       }
     } catch (e) {
-      debugPrint('[CustomPianoPlayer] Error during cleanup: $e');
+      debugPrint('[CustomPianoPlayer#$_instanceId] Error during cleanup: $e');
     }
-    
+
     setState(() {
       isLoading = true;
     });
@@ -115,11 +137,11 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
       sequence = Sequence(tempo: tempo, endBeat: stepCount);
     }
     
-    debugPrint('[CustomPianoPlayer] Initializing sequencer with keyboard sound: ${widget.scaleModel!.settings!.keyboardSound}');
-    
-    tracks = await sequencerManager.initialize(
+    debugPrint('[CustomPianoPlayer#$_instanceId] Initializing sequencer with keyboard sound: ${widget.scaleModel!.settings!.keyboardSound}');
+
+    final newTracks = await sequencerManager!.initialize(
         tracks: tracks,
-        sequence: sequence,
+        sequence: sequence!,
         playAllInstruments: false,
         instruments: SoundPlayerUtils.getInstruments(
             widget.scaleModel!.settings!,
@@ -135,13 +157,34 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
         isScaleTonicSelected:
             widget.scaleModel!.settings!.isTonicUniversalBassNote,
         tempo: ref.read(metronomeTempoProvider));
-    if (!mounted) return;
+
+    if (!mounted) {
+      debugPrint('[CustomPianoPlayer#$_instanceId] Widget unmounted after sequencerManager.initialize, aborting');
+      return;
+    }
+
+    debugPrint('[CustomPianoPlayer#$_instanceId] SequencerManager.initialize returned ${newTracks.length} tracks');
+
+    // Update state with new tracks
+    setState(() {
+      tracks = newTracks;
+    });
+
+    debugPrint('[CustomPianoPlayer#$_instanceId] Tracks updated in state: ${tracks.length} tracks available for piano');
+
+    // Verify tracks in state
+    if (tracks.isEmpty) {
+      debugPrint('[CustomPianoPlayer#$_instanceId] ⚠️ WARNING: tracks list is EMPTY after setState!');
+    } else {
+      debugPrint('[CustomPianoPlayer#$_instanceId] ✅ SUCCESS: ${tracks.length} tracks now ready for piano playback');
+    }
+
     ticker = createTicker((Duration elapsed) {
-      if (!mounted) return;
+      if (!mounted || sequence == null) return;
       setState(() {
         tempo = 120;
-        position = sequence.getBeat();
-        isPlaying = sequence.getIsPlaying();
+        position = sequence!.getBeat();
+        isPlaying = sequence!.getIsPlaying();
         ref.read(currentBeatProvider.notifier).update((state) => position.toInt());
         // Removed excessive volume polling - volumes are set once and don't change frequently
         isLoading = false;
@@ -152,43 +195,43 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     setState(() {
       isLoading = false;
     });
+
+    debugPrint('[CustomPianoPlayer#$_instanceId] initializeSequencer COMPLETE - tracks.length: ${tracks.length}, isLoading: $isLoading');
   }
 
   @override
   void dispose() {
-    debugPrint('[CustomPianoPlayer] Disposing: stopping sequencer and cleaning up tracks');
+    debugPrint('[CustomPianoPlayer#$_instanceId] Disposing: stopping sequencer and cleaning up tracks');
     try {
       ticker?.stop();
       ticker?.dispose();
-      if (sequence != null) {
-        sequencerManager.handleStop(sequence);
+      if (sequence != null && sequencerManager != null) {
+        sequencerManager!.handleStop(sequence!);
       }
       tracks.clear();
     } catch (e, st) {
-      debugPrint('[CustomPianoPlayer] Error during dispose: $e\n$st');
+      debugPrint('[CustomPianoPlayer#$_instanceId] Error during dispose: $e\n$st');
     }
     super.dispose();
   }
 
   void handlePianoKeyDown(String noteName) {
-    final String widgetContext = 'CustomPianoState.handlePianoKeyDown';
-    debugPrint('[$widgetContext] Received KEY DOWN for note: $noteName');
-    // Ensure sequence and tracks are initialized and not empty
-    if (sequence != null && tracks.isNotEmpty) {
-      sequencerManager.playPianoNote(noteName, tracks, sequence);
+    debugPrint('[CustomPianoPlayer#$_instanceId.handlePianoKeyDown] Received KEY DOWN for note: $noteName');
+    // Ensure sequencerManager, sequence and tracks are initialized and not empty
+    if (sequencerManager != null && sequence != null && tracks.isNotEmpty) {
+      sequencerManager!.playPianoNote(noteName, tracks, sequence!);
     } else {
-      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot play note.');
+      debugPrint('[CustomPianoPlayer#$_instanceId.handlePianoKeyDown] NOT READY. Manager: ${sequencerManager != null}, Sequence: ${sequence != null}, Tracks: ${tracks.length}');
     }
   }
 
   void handlePianoKeyUp(String noteName) {
-    final String widgetContext = 'CustomPianoState.handlePianoKeyUp';
-    debugPrint('[$widgetContext] Received KEY UP for note: $noteName');
-    // Ensure sequence and tracks are initialized and not empty
-    if (sequence != null && tracks.isNotEmpty) {
-      sequencerManager.stopPianoNote(noteName, tracks, sequence);
+    debugPrint('[CustomPianoPlayer#$_instanceId.handlePianoKeyUp] Received KEY UP for note: $noteName');
+    // Ensure sequencerManager, sequence and tracks are initialized and not empty
+    if (sequencerManager != null && sequence != null && tracks.isNotEmpty) {
+      sequencerManager!.stopPianoNote(noteName, tracks, sequence!);
     } else {
-      debugPrint('[$widgetContext] Sequence is null or tracks are empty, cannot stop note.');
+      debugPrint('[CustomPianoPlayer#$_instanceId.handlePianoKeyUp] NOT READY. Manager: ${sequencerManager != null}, Sequence: ${sequence != null}, Tracks: ${tracks.length}');
     }
   }
 

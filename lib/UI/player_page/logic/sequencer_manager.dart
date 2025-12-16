@@ -216,7 +216,8 @@ class SequencerManager {
       debugPrint(stackTrace.toString());
       // Handle the error as needed
     }
-    return this.tracks;
+    // Return a copy of tracks to prevent external modifications from affecting internal state
+    return List<Track>.from(this.tracks);
   }
 
   Future<ProjectState>? _createProject({
