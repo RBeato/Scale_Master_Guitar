@@ -100,7 +100,7 @@ class SoundPlayerUtils {
   static String _getKeyboardSoundfontPath(String instrumentSound) {
     switch (instrumentSound.toLowerCase()) {
       case 'piano':
-        return 'assets/sounds/sf2/roland_piano.sf2';          // Roland Piano (6.2MB)
+        return 'assets/sounds/sf2/yamaha_piano.sf2';          // Yamaha Piano (1.1MB) - iOS TestFlight compatible
       case 'rhodes':
         return 'assets/sounds/sf2/rhodes.sf2';                // Dedicated Rhodes SF2
       case 'organ':
@@ -158,8 +158,8 @@ class SoundPlayerUtils {
           case 'piano':
             presetIndex = 0; // Use preset 0 (SF2 files are 0-indexed)
             if (kDebugMode) {
-              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Piano: returning preset 0 from roland_piano.sf2');
-              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using dedicated Roland Piano SF2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Piano: returning preset 0 from yamaha_piano.sf2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using Yamaha Piano SF2 (iOS TestFlight compatible)');
             }
             return presetIndex;
           case 'pad':
