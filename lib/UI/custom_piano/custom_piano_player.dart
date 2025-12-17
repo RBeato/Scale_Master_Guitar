@@ -44,6 +44,7 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   Map<String, dynamic> sequencer = {};
   bool isLoading = true;
   String? _lastKeyboardSound; // Track the last keyboard sound setting
+  bool _isInstrumentChange = false; // Flag to indicate if we're reinitializing due to instrument change
 
   // Use AudioService singleton for proper audio lifecycle management
   AudioService get _audioService => AudioService();
@@ -73,15 +74,16 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
   @override
   void didUpdateWidget(CustomPianoSoundController oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Check if the keyboard sound has changed between widget updates
     final oldKeyboardSound = oldWidget.scaleModel?.settings?.keyboardSound;
     final newKeyboardSound = widget.scaleModel?.settings?.keyboardSound;
-    
+
     if (oldKeyboardSound != newKeyboardSound) {
-      debugPrint('[CustomPianoPlayer] Keyboard sound changed in didUpdateWidget: $oldKeyboardSound → $newKeyboardSound');
+      debugPrint('[CustomPianoPlayer#$_instanceId] 🎵 Keyboard sound changed in didUpdateWidget: $oldKeyboardSound → $newKeyboardSound');
       _lastKeyboardSound = newKeyboardSound;
-      
+      _isInstrumentChange = true; // Set flag to force track recreation
+
       // Reinitialize sequencer with new instrument
       Future.microtask(() {
         if (mounted) {
@@ -138,6 +140,9 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     }
     
     debugPrint('[CustomPianoPlayer#$_instanceId] Initializing sequencer with keyboard sound: ${widget.scaleModel!.settings!.keyboardSound}');
+    if (_isInstrumentChange) {
+      debugPrint('[CustomPianoPlayer#$_instanceId] ⚠️  This is an INSTRUMENT CHANGE - will force track recreation');
+    }
 
     final newTracks = await sequencerManager!.initialize(
         tracks: tracks,
@@ -156,7 +161,11 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
         isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
         isScaleTonicSelected:
             widget.scaleModel!.settings!.isTonicUniversalBassNote,
-        tempo: ref.read(metronomeTempoProvider));
+        tempo: ref.read(metronomeTempoProvider),
+        forceRecreateTracksForInstrumentChange: _isInstrumentChange); // Pass the flag!
+
+    // Reset the flag after initialization
+    _isInstrumentChange = false;
 
     if (!mounted) {
       debugPrint('[CustomPianoPlayer#$_instanceId] Widget unmounted after sequencerManager.initialize, aborting');

@@ -117,6 +117,7 @@ class SequencerManager {
     beatCounter,
     tempo,
     required List<Instrument> instruments,
+    bool forceRecreateTracksForInstrumentChange = false, // Flag to force track recreation when instrument changes
   }) async {
     if (isPlaying && this.sequence != null) {
       handleStop(this.sequence!);
@@ -134,15 +135,15 @@ class SequencerManager {
 
     // Initialize audio service with proper lifecycle management - based on working guitar_progression_generator
     debugPrint('[SequencerManager] Initializing AudioService...');
-    
+
     try {
       // Initialize AudioService with sequence parameters
       await _audioService.initialize(
-        tempo: tempo, 
+        tempo: tempo,
         endBeat: stepCount.toDouble(),
         forceReinitialize: false,
       );
-      
+
       // Get the properly initialized sequence from AudioService
       this.sequence = _audioService.sequence!;
       debugPrint('[SequencerManager] AudioService initialized successfully');
@@ -157,39 +158,75 @@ class SequencerManager {
 
     try {
       // CRITICAL: Reuse existing tracks if they exist to prevent native crashes
-      if (this.tracks.isNotEmpty && this.tracks.length == instruments.length) {
+      // UNLESS forceRecreateTracksForInstrumentChange is true (when instrument changed in settings)
+      final shouldReuseExistingTracks = this.tracks.isNotEmpty &&
+                                        this.tracks.length == instruments.length &&
+                                        !forceRecreateTracksForInstrumentChange;
+
+      if (shouldReuseExistingTracks) {
         debugPrint('[SequencerManager] Reusing existing ${this.tracks.length} tracks (preventing native crash)');
         // Clear events from existing tracks instead of creating new ones
         for (Track track in this.tracks) {
           track.clearEvents();
         }
       } else {
-        // Create tracks using AudioService method only if needed
-        debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
+        // Create tracks using AudioService method when:
+        // 1. No existing tracks, OR
+        // 2. Track count mismatch, OR
+        // 3. Instrument change detected (forceRecreateTracksForInstrumentChange=true)
+        if (forceRecreateTracksForInstrumentChange) {
+          debugPrint('[SequencerManager] 🔄 INSTRUMENT CHANGE DETECTED: Force recreating ${instruments.length} tracks with new instruments...');
+        } else {
+          debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
+        }
+
         List<Track> createdTracks = await _audioService.createTracks(instruments);
         debugPrint('[SequencerManager] AudioService created ${createdTracks.length} tracks successfully');
-        
+
         this.tracks = createdTracks;
       }
       selectedTrack = this.tracks[0];
 
-      for (Track track in this.tracks) {
-        trackVolumes[track.id] = 0.8; // Set audible volume for all tracks
+      if (kDebugMode) {
+        debugPrint('[SequencerManager] 🎼 TRACK ASSIGNMENT DEBUG:');
+        debugPrint('[SequencerManager]   Total tracks created: ${this.tracks.length}');
+        debugPrint('[SequencerManager]   Expected: 3 tracks (onlyKeys=true: all piano, or Drums/Piano/Bass)');
+      }
+
+      for (int i = 0; i < this.tracks.length; i++) {
+        Track track = this.tracks[i];
+        trackVolumes[track.id] = 0.6; // Reduced from 0.8 to 0.6 to prevent distortion at high phone volumes
         trackStepSequencerStates[track.id] = StepSequencerState();
-        
+
         // Ensure track volume is properly set
-        track.changeVolumeNow(volume: 0.8);
+        track.changeVolumeNow(volume: 0.6); // 60% volume to prevent clipping/distortion
+
         if (kDebugMode) {
-          debugPrint('[SequencerManager] Track ${track.id} volume set to: ${trackVolumes[track.id]}');
-        }
-        
-        // Debug instrument info for piano sound quality issues
-        debugPrint('[SequencerManager] Track ${track.id} instrument info:');
-        try {
-          // These are hypothetical methods - actual methods may vary
-          debugPrint('[SequencerManager] Track ${track.id} instrument type: ${track.runtimeType}');
-        } catch (e) {
-          debugPrint('[SequencerManager] Could not get instrument info: $e');
+          debugPrint('[SequencerManager] 📍 Track $i Details:');
+          debugPrint('[SequencerManager]   Track ID: ${track.id}');
+          debugPrint('[SequencerManager]   Volume: ${trackVolumes[track.id]}');
+          debugPrint('[SequencerManager]   Type: ${track.runtimeType}');
+
+          // Identify which track this is
+          if (i == 0) {
+            debugPrint('[SequencerManager]   Role: DRUMS (or Piano if onlyKeys=true)');
+          } else if (i == 1) {
+            debugPrint('[SequencerManager]   Role: 🎹 PIANO/KEYBOARD (THIS IS THE MAIN TRACK!)');
+          } else if (i == 2) {
+            debugPrint('[SequencerManager]   Role: BASS (or Piano if onlyKeys=true)');
+          }
+
+          // Try to get instrument info if available
+          try {
+            debugPrint('[SequencerManager]   Instrument: ${instruments[i].runtimeType}');
+            if (instruments[i] is Sf2Instrument) {
+              final sf2 = instruments[i] as Sf2Instrument;
+              debugPrint('[SequencerManager]   SF2 Path: ${sf2.idOrPath}');
+              debugPrint('[SequencerManager]   SF2 Preset: ${sf2.presetIndex}');
+            }
+          } catch (e) {
+            debugPrint('[SequencerManager]   Could not get instrument info: $e');
+          }
         }
       }
 
@@ -244,7 +281,7 @@ class SequencerManager {
       for (var note in chord.chordNotesInversionWithIndexes!) {
         final midiValue = MusicConstants.midiValues[note];
         if (midiValue != null) {
-          project.pianoState.setVelocity(chord.position, midiValue, 0.95);
+          project.pianoState.setVelocity(chord.position, midiValue, 0.75); // Reduced from 0.95 to 0.75 to prevent distortion
           debugPrint("  Added piano note: $note (MIDI: $midiValue)");
         } else {
           debugPrint("  ERROR: No MIDI value found for note: $note");
@@ -277,7 +314,7 @@ class SequencerManager {
       debugPrint("  MIDI Value: $bassMidiValue");
 
       project.bassState.setVelocity(
-          chord.position, bassMidiValue, 0.99); // Increase velocity if needed
+          chord.position, bassMidiValue, 0.75); // Reduced from 0.99 to 0.75 to prevent distortion
 
       // Verify if the note was added successfully
       double? addedVelocity =
@@ -315,20 +352,28 @@ class SequencerManager {
   Future<void> playPianoNote(String note, List<Track> tracks, Sequence sequence) async {
     final String method = 'SequencerManager.playPianoNote';
     final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
-    
+
     // Prevent concurrent note operations
     if (_noteOperationInProgress) {
       debugPrint('[$method] Note operation already in progress. Skipping $note.');
       return;
     }
-    
+
     // Ensure tracks list is not empty and has the piano track at the expected index
     if (tracks.length <= 1) {
-      debugPrint('[$method] Tracks list too short or piano track not available (length: ${tracks.length}). Cannot play note $note.');
+      debugPrint('[$method] ❌ Tracks list too short or piano track not available (length: ${tracks.length}). Cannot play note $note.');
       return;
     }
     final pianoTrack = tracks[1]; // Assuming piano is always track 1
     final trackId = pianoTrack.id;
+
+    if (kDebugMode) {
+      debugPrint('[$method] 🎹 PLAYING NOTE DEBUG:');
+      debugPrint('[$method]   Note: $note → MIDI: $midiValue');
+      debugPrint('[$method]   Using track index: 1 (Piano track)');
+      debugPrint('[$method]   Track ID: $trackId');
+      debugPrint('[$method]   Total tracks: ${tracks.length}');
+    }
 
     _noteOperationInProgress = true;
     try {
@@ -343,7 +388,7 @@ class SequencerManager {
       }
       
       final Stopwatch stopwatch = Stopwatch()..start();
-      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.85);
+      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.7); // Reduced from 0.85 to 0.7 to prevent distortion
       stopwatch.stop();
       
       // Only add to tracking AFTER successful start

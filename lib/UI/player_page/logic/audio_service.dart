@@ -80,7 +80,19 @@ class AudioService {
       throw Exception('AudioService not initialized');
     }
 
-    debugPrint('[AudioService] Creating ${instruments.length} tracks');
+    if (kDebugMode) {
+      debugPrint('[AudioService] 🎵 CREATE TRACKS DEBUG:');
+      debugPrint('[AudioService]   Number of instruments: ${instruments.length}');
+      for (int i = 0; i < instruments.length; i++) {
+        debugPrint('[AudioService]   Instrument $i: ${instruments[i].runtimeType}');
+        if (instruments[i] is Sf2Instrument) {
+          final sf2 = instruments[i] as Sf2Instrument;
+          debugPrint('[AudioService]     SF2 Path: ${sf2.idOrPath}');
+          debugPrint('[AudioService]     Preset Index: ${sf2.presetIndex}');
+          debugPrint('[AudioService]     Is Asset: ${sf2.isAsset}');
+        }
+      }
+    }
 
     // Check if we're in TestFlight/Release mode for enhanced error handling
     final isTestFlight = Platform.isIOS && kReleaseMode;
@@ -88,14 +100,23 @@ class AudioService {
     if (!isTestFlight) {
       // Development/Debug mode - use simple approach
       try {
+        debugPrint('[AudioService] Calling sequence.createTracks()...');
         final tracks = await _sequence!.createTracks(instruments);
+
         if (tracks.isEmpty) {
+          debugPrint('[AudioService] ❌ ERROR: No tracks created - instrument loading failed');
           throw Exception('No tracks created - instrument loading failed');
         }
-        debugPrint('[AudioService] Created ${tracks.length} tracks successfully');
+
+        if (kDebugMode) {
+          debugPrint('[AudioService] ✅ Created ${tracks.length} tracks successfully:');
+          for (int i = 0; i < tracks.length; i++) {
+            debugPrint('[AudioService]   Track $i: ID=${tracks[i].id}, Type=${tracks[i].runtimeType}');
+          }
+        }
         return tracks;
       } catch (e, stackTrace) {
-        debugPrint('[AudioService] Track creation failed: $e');
+        debugPrint('[AudioService] ❌ Track creation failed: $e');
         debugPrint('[AudioService] Stack trace: $stackTrace');
         rethrow;
       }

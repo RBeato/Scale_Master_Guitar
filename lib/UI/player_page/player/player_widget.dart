@@ -51,10 +51,13 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
   Sequence? sequence;
   Map<String, dynamic> sequencer = {};
   bool isLoading = false;
-  
+
   // Add debouncer for performance optimization
   late Debouncer _chordChangeDebouncer;
   // final Set<String> _uiActivePianoNotes = {}; // No longer needed for sustain logic
+
+  // Track instrument changes to force track recreation
+  bool _isInstrumentChange = false;
 
   @override
   void initState() {
@@ -116,6 +119,10 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
     }
     
     debugPrint('[PlayerWidget] _initializeAndSetupTicker: calling sequencerManager.initialize');
+    if (_isInstrumentChange) {
+      debugPrint('[PlayerWidget] ⚠️  This is an INSTRUMENT CHANGE - will force track recreation');
+    }
+
     // SequencerManager will create the sequence via AudioService
     final newTracks = await sequencerManager.initialize(
       tracks: tracks,
@@ -131,7 +138,11 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       isMetronomeSelected: ref.read(isMetronomeSelectedProvider),
       isScaleTonicSelected: currentSettings.isTonicUniversalBassNote,
       tempo: tempo,
+      forceRecreateTracksForInstrumentChange: _isInstrumentChange, // Pass the flag!
     );
+
+    // Reset the flag after initialization
+    _isInstrumentChange = false;
 
     debugPrint('[PlayerWidget] Settings.isTonicUniversalBassNote: ${currentSettings.isTonicUniversalBassNote}');
 
@@ -324,10 +335,11 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       if (previous is SettingsLoaded && next is SettingsLoaded) {
         final prevKeyboardSound = previous.settings.keyboardSound;
         final nextKeyboardSound = next.settings.keyboardSound;
-        
+
         if (prevKeyboardSound != nextKeyboardSound) {
-          debugPrint('[PlayerWidget] Keyboard sound changed: $prevKeyboardSound -> $nextKeyboardSound');
-          
+          debugPrint('[PlayerWidget] 🎵 Keyboard sound changed: $prevKeyboardSound -> $nextKeyboardSound');
+          _isInstrumentChange = true; // Set flag to force track recreation
+
           // Only reinitialize if we have a valid sequence and tracks already
           if (!isLoading && sequencerManager.sequence != null && tracks.isNotEmpty) {
             final currentChords = ref.read(selectedChordsProvider);

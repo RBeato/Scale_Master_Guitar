@@ -100,15 +100,15 @@ class SoundPlayerUtils {
   static String _getKeyboardSoundfontPath(String instrumentSound) {
     switch (instrumentSound.toLowerCase()) {
       case 'piano':
-        return 'assets/sounds/sf2/korg.sf2';          // Korg Triton - better quality (6.9MB)
+        return 'assets/sounds/sf2/roland_piano.sf2';          // Roland Piano (6.2MB)
       case 'rhodes':
-        return 'assets/sounds/sf2/rhodes.sf2';        // Dedicated Rhodes SF2
+        return 'assets/sounds/sf2/rhodes.sf2';                // Dedicated Rhodes SF2
       case 'organ':
-        return 'assets/sounds/sf2/korg.sf2';          // Dedicated Korg SF2
+        return 'assets/sounds/sf2/dance_organ.sf2';           // Dance Organ (542KB)
       case 'pad':
-        return 'assets/sounds/sf2/korg.sf2';          // Use Korg for pad sounds
+        return 'assets/sounds/sf2/korg.sf2';                  // Korg Triton for pad sounds (6.9MB)
       default:
-        return 'assets/sounds/sf2/korg.sf2';          // Default fallback - Korg Triton
+        return 'assets/sounds/sf2/korg.sf2';                  // Default fallback - Korg Triton
     }
   }
   
@@ -132,32 +132,79 @@ class SoundPlayerUtils {
   /// Get correct preset index for flutter_sequencer_plus eff3773 compatibility
   static int? _getCorrectPresetIndex(SettingsSelection instrument, String instSound, String soundFontPath) {
     // For the specific eff3773 commit, we need to match the exact preset structure
+
+    if (kDebugMode) {
+      material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex] 🔍 CALLED');
+      material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   Instrument: $instrument');
+      material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   InstSound: $instSound');
+      material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   SoundFontPath: $soundFontPath');
+    }
+
+    int? presetIndex;
+
     switch (instrument) {
       case SettingsSelection.drumsSound:
         // Drums use channel 9, preset index doesn't matter for percussion channel
-        return 0;
-        
+        presetIndex = 0;
+        if (kDebugMode) {
+          material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Drums: returning preset 0');
+        }
+        return presetIndex;
+
       case SettingsSelection.keyboardSound:
-        // For keyboards, use GM program numbers that map to valid presets
+        // For keyboards, SF2 files have presets starting at index 0
+        // The logs show: "SF2 Loaded successfully: 1 presets available" means preset 0 is the only valid preset
         switch (instSound.toLowerCase()) {
           case 'piano':
-            return 1; // Try preset 1 for piano (eff3773 may have different mapping)
+            presetIndex = 0; // Use preset 0 (SF2 files are 0-indexed)
+            if (kDebugMode) {
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Piano: returning preset 0 from roland_piano.sf2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using dedicated Roland Piano SF2');
+            }
+            return presetIndex;
           case 'pad':
-            return 1; // Use same preset for pad sounds
+            presetIndex = 0; // Use preset 0
+            if (kDebugMode) {
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Pad: returning preset 0 from korg.sf2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using Korg Triton for pad sounds');
+            }
+            return presetIndex;
           case 'rhodes':
-            return 1; 
+            presetIndex = 0; // Use preset 0
+            if (kDebugMode) {
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Rhodes: returning preset 0 from rhodes.sf2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using dedicated Rhodes SF2');
+            }
+            return presetIndex;
           case 'organ':
-            return 1;
+            presetIndex = 0; // Use preset 0
+            if (kDebugMode) {
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Organ: returning preset 0 from dance_organ.sf2');
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   ✅ Using dedicated Dance Organ SF2');
+            }
+            return presetIndex;
           default:
-            return 1;
+            presetIndex = 0; // Use preset 0
+            if (kDebugMode) {
+              material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Unknown keyboard: defaulting to preset 0');
+            }
+            return presetIndex;
         }
-        
+
       case SettingsSelection.bassSound:
-        // For bass, use preset that should exist in BassGuitars.sf2
-        return 1; // Try preset 1 instead of 0
-        
+        // For bass, SF2 files have presets starting at index 0
+        presetIndex = 0; // Fixed: Use preset 0 (SF2 files are 0-indexed)
+        if (kDebugMode) {
+          material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Bass: returning preset 0');
+        }
+        return presetIndex;
+
       default:
-        return 1;
+        presetIndex = 0; // Fixed: Use preset 0 as default
+        if (kDebugMode) {
+          material.debugPrint('[SoundPlayerUtils._getCorrectPresetIndex]   → Unknown instrument: defaulting to preset 0');
+        }
+        return presetIndex;
     }
   }
 }
