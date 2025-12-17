@@ -168,6 +168,15 @@ class SequencerManager {
         // Clear events from existing tracks instead of creating new ones
         for (Track track in this.tracks) {
           track.clearEvents();
+
+          // CRITICAL FIX: Reset track state in native layer to ensure instruments work properly
+          // This fixes the "no audio from instruments" issue when returning from homepage after changing key
+          try {
+            NativeBridge.resetTrack(track.id);
+            debugPrint('[SequencerManager] Reset track ${track.id} in native layer');
+          } catch (e) {
+            debugPrint('[SequencerManager] Warning: Could not reset track ${track.id}: $e');
+          }
         }
       } else {
         // Create tracks using AudioService method when:
