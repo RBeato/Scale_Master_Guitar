@@ -23,8 +23,11 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
 
     return ScreenWithBannerAd(
       appBar: AppBar(
-        title: const Text("Scale Master Guitar",
-            style: TextStyle(color: Colors.orange)),
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text("Scale Master Guitar",
+              style: TextStyle(color: Colors.orange)),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
