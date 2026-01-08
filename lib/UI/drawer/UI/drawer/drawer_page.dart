@@ -11,6 +11,10 @@ import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:io';
 import 'chord_options_cards.dart';
 
 class DrawerPage extends ConsumerStatefulWidget {
@@ -125,47 +129,17 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               
               const SizedBox(height: 20),
 
-              // Contact & Feedback button
+              // Contact & Feedback button with User ID sharing
               Card(
                 color: Colors.green.withValues(alpha: 0.1),
                 child: ListTile(
-                  leading: const Icon(Icons.email, color: Colors.green),
+                  leading: const Icon(Icons.support_agent, color: Colors.green),
                   title: const Text(
-                    'Contact & Feedback',
+                    'Get Support',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
-                  subtitle: const Text('Report bugs or suggest features'),
-                  onTap: () async {
-                    final Uri emailUri = Uri(
-                      scheme: 'mailto',
-                      path: 'rb.soundz@hotmail.com',
-                      query: 'subject=SMGuitar - Feedback',
-                    );
-
-                    try {
-                      if (await canLaunchUrl(emailUri)) {
-                        await launchUrl(emailUri);
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Could not open email app'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: ${e.toString()}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  subtitle: const Text('Share User ID for support or premium access'),
+                  onTap: () => _showSupportDialog(context),
                 ),
               ),
 
@@ -293,6 +267,176 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
         return 'Premium Subscriber';
       case Entitlement.premiumOneTime:
         return 'Premium Lifetime';
+    }
+  }
+
+  /// Show support dialog with User ID sharing
+  Future<void> _showSupportDialog(BuildContext context) async {
+    try {
+      // Get RevenueCat User ID
+      final customerInfo = await Purchases.getCustomerInfo();
+      final userId = customerInfo.originalAppUserId;
+
+      if (!context.mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.support_agent, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Get Support'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Need help or want premium access?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Share your User ID with us to get support or request premium features.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your User ID:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          userId,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'How to use:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '1. Tap "Share User ID" below\n'
+                          '2. Send via email/WhatsApp\n'
+                          '3. We\'ll grant you access',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.email, color: Colors.grey.shade600, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'rb.soundz@hotmail.com',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Close'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final packageInfo = await PackageInfo.fromPlatform();
+                  final deviceInfo = Platform.isIOS ? 'iOS' : 'Android';
+
+                  await Share.share(
+                    'Hi! I need support for SMGuitar.\n\n'
+                    'My User ID: $userId\n'
+                    'Device: $deviceInfo\n'
+                    'App Version: ${packageInfo.version}\n\n'
+                    'Please contact me at: rb.soundz@hotmail.com',
+                    subject: 'SMGuitar - Support Request',
+                  );
+                },
+                icon: const Icon(Icons.share),
+                label: const Text('Share User ID'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to get User ID: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

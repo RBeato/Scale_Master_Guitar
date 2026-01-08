@@ -248,9 +248,9 @@ class OtherAppsPromoWidget extends StatelessWidget {
           const Color(0xFF9EFF00),
           const Color(0xFF7ACC00),
         ],
-        iosUrl: 'https://apps.apple.com/app/ear-n-play/id[PENDING]',
-        androidUrl: 'https://play.google.com/store/apps/details?id=com.rbsoundz.ear_n_play',
-        isComingSoon: true, // Not yet on stores
+        iosUrl: 'https://apps.apple.com/app/ear-n-play/id6744890738',
+        androidUrl: 'https://play.google.com/store/apps/details?id=com.romeubeato.ear_trainer',
+        isComingSoon: false,
       ),
       AppInfo(
         id: 'scale_master_guitar',
