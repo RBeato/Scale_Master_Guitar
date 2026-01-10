@@ -248,8 +248,8 @@ class OtherAppsPromoWidget extends StatelessWidget {
           const Color(0xFF9EFF00),
           const Color(0xFF7ACC00),
         ],
-        iosUrl: 'https://apps.apple.com/app/ear-n-play/id6744890738',
-        androidUrl: 'https://play.google.com/store/apps/details?id=com.romeubeato.ear_trainer',
+        iosUrl: 'https://apps.apple.com/pt/app/earnplay/id6749683780',
+        androidUrl: 'https://play.google.com/store/apps/details?id=com.romeubeato.ear_trainer&hl=en',
         isComingSoon: false,
       ),
       AppInfo(
