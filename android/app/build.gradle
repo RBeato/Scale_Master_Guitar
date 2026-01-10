@@ -84,3 +84,18 @@ android {
 flutter {
     source = "../.."
 }
+
+// Add packaging options to ensure proper 16 KB page alignment
+android {
+    packagingOptions {
+        // Ensure native libraries (.so files) are properly aligned for 16 KB page sizes
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        // The 16 KB page alignment is automatically handled by the build system
+        // when native libraries are compiled with the correct linker flags
+        resources {
+            excludes += ['/META-INF/{AL2.0,LGPL2.1}']
+        }
+    }
+}
