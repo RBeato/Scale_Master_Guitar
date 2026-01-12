@@ -6,29 +6,42 @@ import '../provider/is_metronome_selected.dart';
 import '../provider/is_playing_provider.dart';
 import 'metrome_custom_painter.dart';
 
-class MetronomeButton extends ConsumerWidget {
-  bool _isOn = false;
-
-  MetronomeButton({super.key});
+class MetronomeButton extends ConsumerStatefulWidget {
+  const MetronomeButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    _isOn = ref.watch(isMetronomeSelectedProvider);
+  ConsumerState<MetronomeButton> createState() => _MetronomeButtonState();
+}
+
+class _MetronomeButtonState extends ConsumerState<MetronomeButton> {
+  DateTime? _lastPressTime;
+  static const _throttleDuration = Duration(milliseconds: 500);
+
+  @override
+  Widget build(BuildContext context) {
+    final isOn = ref.watch(isMetronomeSelectedProvider);
+
     return IconButton(
         icon: MetronomeIcon(
-          isOn: _isOn,
+          isOn: isOn,
           size: 32.0,
         ),
-        color: _isOn ? Colors.greenAccent : Colors.white70,
+        color: isOn ? Colors.greenAccent : Colors.white70,
         onPressed: () {
-          Debouncer.handleButtonPress(() {
-            ref
-                .read(isSequencerPlayingProvider.notifier)
-                .update((state) => false);
-            ref
-                .read(isMetronomeSelectedProvider.notifier)
-                .update((state) => !_isOn);
-          });
+          final now = DateTime.now();
+
+          // Throttle button presses
+          if (_lastPressTime != null &&
+              now.difference(_lastPressTime!) < _throttleDuration) {
+            return;
+          }
+
+          _lastPressTime = now;
+
+          // Toggle metronome without stopping playback
+          ref
+              .read(isMetronomeSelectedProvider.notifier)
+              .update((state) => !state);
         });
   }
 }

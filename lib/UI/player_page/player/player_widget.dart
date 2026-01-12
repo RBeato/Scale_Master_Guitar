@@ -385,17 +385,13 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
       }
     });
 
-    // Listener for metronome selection (might also need re-init if drums are added/removed)
+    // Listener for metronome selection - requires reinitialization for reliable results
     ref.listen<bool>(isMetronomeSelectedProvider, (previous, next) {
-      debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: $next');
       if (previous != next && !isLoading && sequencerManager.sequence != null && tracks.isNotEmpty) {
-         // When metronome changes, we need the current set of chords for re-initialization
          final currentChords = ref.read(selectedChordsProvider);
          if (currentChords.isNotEmpty) {
-           _performFullSequencerReinitialization(newChords: currentChords); 
+           _performFullSequencerReinitialization(newChords: currentChords);
          }
-      } else {
-          debugPrint('[PlayerWidget] isMetronomeSelectedProvider listener: SKIPPING re-init, isLoading is true, no sequence/tracks, or value unchanged.');
       }
     });
     

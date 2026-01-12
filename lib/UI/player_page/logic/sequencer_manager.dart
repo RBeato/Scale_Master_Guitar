@@ -776,7 +776,6 @@ class SequencerManager {
     }
   }
 
-
   void _handleSetLoop(bool nextIsLooping, Sequence sequence) {
     // Set native looping like working examples
     if (nextIsLooping) {
