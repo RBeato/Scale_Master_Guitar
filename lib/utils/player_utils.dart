@@ -41,14 +41,14 @@ class SoundPlayerUtils {
         soundFontPath = _getBassSoundfontPath(instSound);
         break;
       case SettingsSelection.drumsSound:
-        // For drums, we use the dedicated drum SoundFont
-        // and channel 9 (drums channel in MIDI)
-        soundFontPath = "assets/sounds/sf2/DrumsSlavo.sf2";
-        // For drum channel, preset doesn't matter as much since it's percussion
+        // For drums, we use a drum SoundFont based on user settings
+        // The MIDI channel is set to 9 (drum channel) in sequencer_manager._syncTrack
+        // MIDI note 44 = Hi-hat closed
+        soundFontPath = _getDrumSoundfontPath(instSound);
         return Sf2Instrument(
           path: soundFontPath,
           isAsset: true,
-          presetIndex: 0, // Standard drum kit
+          presetIndex: 0, // Use preset 0 - drum kits are typically at index 0
         );
       default:
         throw Exception('Unknown instrument type: $instrument');
@@ -100,7 +100,7 @@ class SoundPlayerUtils {
   static String _getKeyboardSoundfontPath(String instrumentSound) {
     switch (instrumentSound.toLowerCase()) {
       case 'piano':
-        return 'assets/sounds/sf2/j_piano.sf2';               // J Piano (5.9MB)
+        return 'assets/sounds/sf2/yamaha_piano.sf2';          // Yamaha Piano - better dynamics
       case 'rhodes':
         return 'assets/sounds/sf2/rhodes.sf2';                // Dedicated Rhodes SF2
       case 'organ':
@@ -126,6 +126,18 @@ class SoundPlayerUtils {
         return 'assets/sounds/sf2/BassGuitars.sf2';       // Use electric bass for synth
       default:
         return 'assets/sounds/sf2/BassGuitars.sf2';       // Default fallback
+    }
+  }
+
+  /// Get drum soundfont path based on drum type
+  static String _getDrumSoundfontPath(String drumSound) {
+    switch (drumSound.toLowerCase()) {
+      case 'acoustic':
+        return 'assets/sounds/sf2/DrumsSlavo.sf2';        // Acoustic drums
+      case 'electronic':
+        return 'assets/sounds/sf2/808-Drums.sf2';         // Electronic 808 drums
+      default:
+        return 'assets/sounds/sf2/DrumsSlavo.sf2';        // Default fallback - acoustic
     }
   }
   

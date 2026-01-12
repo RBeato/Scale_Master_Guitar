@@ -157,20 +157,44 @@ class SequencerManager {
     _startCleanupTimer();
 
     try {
-      // CRITICAL: Reuse existing tracks if they exist to prevent native crashes
-      // UNLESS forceRecreateTracksForInstrumentChange is true (when instrument changed in settings)
-      final shouldReuseExistingTracks = this.tracks.isNotEmpty &&
-                                        this.tracks.length == instruments.length &&
-                                        !forceRecreateTracksForInstrumentChange;
+      // Check if we need to recreate tracks due to instrument changes
+      // We need to recreate tracks when instruments change because tracks retain their SF2 files
+      bool needsRecreation = this.tracks.isEmpty ||
+                            this.tracks.length != instruments.length ||
+                            forceRecreateTracksForInstrumentChange;
+
+      if (!needsRecreation) {
+        // Check if instruments have actually changed by comparing SF2 paths
+        for (int i = 0; i < this.tracks.length; i++) {
+          final currentInstrument = this.tracks[i].instrument;
+          final newInstrument = instruments[i];
+
+          if (currentInstrument.idOrPath != newInstrument.idOrPath ||
+              currentInstrument.presetIndex != newInstrument.presetIndex) {
+            debugPrint('[SequencerManager] Instrument change detected: track $i changed from ${currentInstrument.idOrPath} to ${newInstrument.idOrPath}');
+            needsRecreation = true;
+            break;
+          }
+        }
+      }
+
+      final shouldReuseExistingTracks = !needsRecreation;
 
       if (shouldReuseExistingTracks) {
         debugPrint('[SequencerManager] Reusing existing ${this.tracks.length} tracks (preventing native crash)');
-        // Clear events from existing tracks instead of creating new ones
+        // Stop all notes and clear events from existing tracks
         for (Track track in this.tracks) {
+          // Stop all possible notes to prevent sustaining
+          for (int note = 0; note <= 127; note++) {
+            try {
+              track.stopNoteNow(noteNumber: note);
+            } catch (_) {
+              // Ignore errors - not all notes are active
+            }
+          }
           track.clearEvents();
 
-          // CRITICAL FIX: Reset track state in native layer to ensure instruments work properly
-          // This fixes the "no audio from instruments" issue when returning from homepage after changing key
+          // Reset track state in native layer
           try {
             NativeBridge.resetTrack(track.id);
             debugPrint('[SequencerManager] Reset track ${track.id} in native layer');
@@ -179,14 +203,29 @@ class SequencerManager {
           }
         }
       } else {
-        // Create tracks using AudioService method when:
-        // 1. No existing tracks, OR
-        // 2. Track count mismatch, OR
-        // 3. Instrument change detected (forceRecreateTracksForInstrumentChange=true)
+        // Recreate tracks when instruments have changed
         if (forceRecreateTracksForInstrumentChange) {
           debugPrint('[SequencerManager] 🔄 INSTRUMENT CHANGE DETECTED: Force recreating ${instruments.length} tracks with new instruments...');
         } else {
           debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
+        }
+
+        // Stop and clear old tracks before creating new ones
+        if (this.tracks.isNotEmpty) {
+          debugPrint('[SequencerManager] Stopping old tracks before recreation...');
+          for (Track track in this.tracks) {
+            try {
+              // Stop all notes
+              for (int note = 0; note <= 127; note++) {
+                try {
+                  track.stopNoteNow(noteNumber: note);
+                } catch (_) {}
+              }
+              track.clearEvents();
+            } catch (e) {
+              debugPrint('[SequencerManager] Warning: Could not clear track ${track.id}: $e');
+            }
+          }
         }
 
         List<Track> createdTracks = await _audioService.createTracks(instruments);
@@ -352,7 +391,7 @@ class SequencerManager {
 
     if (isMetronomeSelected && playAllInstruments) {
       for (int i = 0; i < nBeats; i++) {
-        project.drumState.setVelocity(i, 44, 0.59);
+        project.drumState.setVelocity(i, 44, 0.59); // Hi-hat (Pedal Hi-Hat in GM)
       }
     }
     return project;

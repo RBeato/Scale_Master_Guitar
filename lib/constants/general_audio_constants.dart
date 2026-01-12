@@ -30,7 +30,7 @@ class Constants {
   static const Map<String, Map<String, String>> soundPath = {
     // Updated to use working SF2 files from guitar_progression_generator pattern
     'drums': {
-      'Electronic': "assets/sounds/sf2/DrumsSlavo.sf2",
+      'Electronic': "assets/sounds/sf2/808-Drums.sf2",
       'Acoustic': "assets/sounds/sf2/DrumsSlavo.sf2"
     },
     'keys': {
