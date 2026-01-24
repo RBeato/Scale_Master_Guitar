@@ -92,7 +92,7 @@ class _PaywallPageState extends State<PaywallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1C2128),
       body: Stack(
         children: [
           SafeArea(
@@ -121,7 +121,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[900],
+                      color: const Color(0xFF262C36),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Column(

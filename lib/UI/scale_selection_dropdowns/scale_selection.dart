@@ -75,7 +75,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                 ),
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  dropdownColor: Colors.grey[800],
+                  dropdownColor: const Color(0xFF262C36),
                   value: selectedScale,
                   onChanged: (newValue) {
                     // Check if user can access this scale
@@ -140,7 +140,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                   ),
                   child: DropdownButtonFormField<String>(
                     isExpanded: true, // Make the dropdown button expanded
-                    dropdownColor: Colors.grey[800],
+                    dropdownColor: const Color(0xFF262C36),
                     value: selectedMode,
                     onChanged: (newValue) {
                       ref

@@ -15,8 +15,8 @@ class Constants {
     'assets/images/cowbell.png',
   ];
 
-  static const mainBackgroundColor = Color(0xFF1D1D1D);
-  static const appBarBackgroundColor = Color(0xFF0F0F0F); // Darker than body background
+  static const mainBackgroundColor = Color(0xFF1C2128);
+  static const appBarBackgroundColor = Color(0xFF1C2128); // Same as body
   static const Color appBarColorTheme = Color.fromARGB(255, 235, 182, 103);
 
   static const List<Color> colors = [

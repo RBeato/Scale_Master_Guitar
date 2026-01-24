@@ -7,6 +7,7 @@ import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../fretboard/provider/fingerings_provider.dart';
 import '../player_page/player_page.dart';
 import '../scale_selection_dropdowns/scale_selection.dart';
+import 'provider/piano_visibility_provider.dart';
 import 'wheel_piano_widget.dart';
 
 class SelectionPage extends ConsumerStatefulWidget {
@@ -32,9 +33,22 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
         actions: [
           IconButton(
             onPressed: () {
+              ref.read(pianoVisibilityProvider.notifier).state =
+                  !ref.read(pianoVisibilityProvider);
+            },
+            icon: Icon(
+              ref.watch(pianoVisibilityProvider)
+                  ? Icons.piano
+                  : Icons.piano_off,
+              color: Colors.orange,
+            ),
+            tooltip: 'Toggle Piano',
+          ),
+          IconButton(
+            onPressed: () {
               // Ensure fingerings provider is warmed up before navigation
-              final fingerings = ref.read(chordModelFretboardFingeringProvider);
-              
+              ref.read(chordModelFretboardFingeringProvider);
+
               // Navigate immediately - PlayerPage will handle loading states properly
               Navigator.pushReplacement(context,
                   PageRouteBuilder(

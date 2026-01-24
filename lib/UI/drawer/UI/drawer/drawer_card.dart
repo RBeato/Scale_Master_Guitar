@@ -29,9 +29,9 @@ class DrawerCard extends ConsumerWidget {
     final isFeatureRestricted = isPremiumFeature && !isPremiumUser;
     
     return Card(
-      color: Colors.black12,
+      color: const Color(0xFF262C36),
       child: ExpansionTile(
-        backgroundColor: Colors.black87,
+        backgroundColor: const Color(0xFF262C36),
         title: Row(
           children: [
             Expanded(
@@ -59,7 +59,7 @@ class DrawerCard extends ConsumerWidget {
           ],
         ),
         trailing: DropdownButton<String>(
-              dropdownColor: Colors.grey[900],
+              dropdownColor: const Color(0xFF262C36),
               value: savedValue,
               style: TextStyle(
                 fontSize: 14.0,

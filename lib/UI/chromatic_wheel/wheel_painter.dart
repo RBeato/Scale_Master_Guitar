@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/constants/music_constants.dart';
 import 'dart:math' as math;
 import '../../constants/color_constants.dart';
+import '../../constants.dart';
 
 class WheelPainter extends CustomPainter {
   final double rotation;
@@ -69,13 +70,10 @@ class WheelPainter extends CustomPainter {
       textPainter.paint(canvas, valuePosition);
     }
 
-    // // Knob design (inner wheel)
+    // Knob design (inner wheel) - matches background color
     Paint knobPaint = Paint()
-      ..color = Colors.grey[800]!
-      ..style = PaintingStyle.fill
-      ..shader = RadialGradient(
-        colors: [Colors.grey[700]!, Colors.black],
-      ).createShader(Rect.fromCircle(center: center, radius: innerRadius));
+      ..color = Constants.mainBackgroundColor
+      ..style = PaintingStyle.fill;
     canvas.drawCircle(center, innerRadius, knobPaint);
 
     // Draw the inner note containers and notes
@@ -95,22 +93,18 @@ class WheelPainter extends CustomPainter {
         center.dy + containerDistance * math.sin(angle),
       );
 
-      //   // Draw 3D-looking circular container
+      // Draw circular container - slightly lighter than background for contrast
       Paint containerPaint = Paint()
-        ..color = Colors.grey[300]!
-        ..style = PaintingStyle.fill
-        ..shader = RadialGradient(
-          colors: [Colors.grey[400]!, Colors.grey[600]!],
-          stops: const [0.5, 1.0],
-        ).createShader(Rect.fromCircle(center: containerPosition, radius: containerRadius));
-      canvas.drawCircle(
-          containerPosition, containerRadius, containerPaint); // Adjust radius as needed
+        ..color = const Color(0xFF262C36)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(containerPosition, containerRadius, containerPaint);
 
-      // Draw shadow for 3D effect
-      Paint shadowPaint = Paint()
-        ..color = Colors.black.withOpacity(0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawCircle(containerPosition, containerRadius * 1.1, shadowPaint);
+      // Draw subtle border
+      Paint borderPaint = Paint()
+        ..color = const Color(0xFF30363D)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
+      canvas.drawCircle(containerPosition, containerRadius, borderPaint);
 
       //   // Text
       //   // Offset notePosition = Offset(

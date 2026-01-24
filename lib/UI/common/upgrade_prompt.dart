@@ -41,7 +41,7 @@ class UpgradePrompt {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
         decoration: const BoxDecoration(
-          color: Colors.black,
+          color: Color(0xFF262C36),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -63,7 +63,7 @@ class UpgradePrompt {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: const Color(0xFF262C36),
         title: Text(
           title,
           style: const TextStyle(color: Colors.white),

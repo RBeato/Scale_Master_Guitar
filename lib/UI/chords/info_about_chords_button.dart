@@ -16,7 +16,7 @@ class _InfoAboutChordsIconState extends State<InfoAboutChordsIcon> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: Colors.black87,
+              backgroundColor: const Color(0xFF262C36),
               title: const Text('Chord Selection',
                   style: TextStyle(color: Colors.white54)),
               content: const Text(

@@ -213,7 +213,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF1C2128),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -358,7 +358,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: const Color(0xFF262C36),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.red, width: 1),
       ),
@@ -447,7 +447,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: const Color(0xFF262C36),
         borderRadius: BorderRadius.circular(12),
         border: isPopular 
           ? Border.all(color: Colors.orange, width: 2)
