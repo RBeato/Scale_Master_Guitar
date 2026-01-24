@@ -15,6 +15,7 @@ import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart'
 import 'package:logger/logger.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/services/ad_service.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -259,13 +260,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Scale Master Guitar',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green[800] ?? Colors.green,
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: appThemeData,
       home: UpgradeAlert(
         upgrader: Upgrader(
           // Only check for updates in release mode (production)

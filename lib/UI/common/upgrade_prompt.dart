@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class UpgradePrompt {
   /// Shows a snackbar with upgrade message and optional action to open paywall
@@ -40,9 +41,9 @@ class UpgradePrompt {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
-        decoration: const BoxDecoration(
-          color: Color(0xFF262C36),
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -63,7 +64,7 @@ class UpgradePrompt {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF262C36),
+        backgroundColor: AppColors.surface,
         title: Text(
           title,
           style: const TextStyle(color: Colors.white),

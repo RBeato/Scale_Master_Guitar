@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class InfoAboutChordsIcon extends StatefulWidget {
   const InfoAboutChordsIcon({super.key});
@@ -16,7 +17,7 @@ class _InfoAboutChordsIconState extends State<InfoAboutChordsIcon> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF262C36),
+              backgroundColor: AppColors.surface,
               title: const Text('Chord Selection',
                   style: TextStyle(color: Colors.white54)),
               content: const Text(

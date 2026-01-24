@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/scales/scales_data_v2.dart';
+import '../../constants/app_theme.dart';
 import '../../services/feature_restriction_service.dart';
 import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import '../../UI/common/upgrade_prompt.dart';
@@ -75,7 +76,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                 ),
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  dropdownColor: const Color(0xFF262C36),
+                  dropdownColor: AppColors.surface,
                   value: selectedScale,
                   onChanged: (newValue) {
                     // Check if user can access this scale
@@ -140,7 +141,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                   ),
                   child: DropdownButtonFormField<String>(
                     isExpanded: true, // Make the dropdown button expanded
-                    dropdownColor: const Color(0xFF262C36),
+                    dropdownColor: AppColors.surface,
                     value: selectedMode,
                     onChanged: (newValue) {
                       ref

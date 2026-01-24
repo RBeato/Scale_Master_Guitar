@@ -4,6 +4,7 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class DrawerCard extends ConsumerWidget {
   final String title;
@@ -29,9 +30,9 @@ class DrawerCard extends ConsumerWidget {
     final isFeatureRestricted = isPremiumFeature && !isPremiumUser;
     
     return Card(
-      color: const Color(0xFF262C36),
+      color: AppColors.surface,
       child: ExpansionTile(
-        backgroundColor: const Color(0xFF262C36),
+        backgroundColor: AppColors.surface,
         title: Row(
           children: [
             Expanded(
@@ -59,7 +60,7 @@ class DrawerCard extends ConsumerWidget {
           ],
         ),
         trailing: DropdownButton<String>(
-              dropdownColor: const Color(0xFF262C36),
+              dropdownColor: AppColors.surface,
               value: savedValue,
               style: TextStyle(
                 fontSize: 14.0,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart'; 
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart'; 
 
 class PaywallPage extends StatefulWidget {
   const PaywallPage({super.key});
@@ -92,7 +93,7 @@ class _PaywallPageState extends State<PaywallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1C2128),
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           SafeArea(
@@ -121,7 +122,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF262C36),
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../constants/styles.dart';
+import '../../../../constants/app_theme.dart';
 import 'drawer_page.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -9,7 +10,7 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-        backgroundColor: const Color(0xFF1C2128),
+        backgroundColor: AppColors.background,
         elevation: 20.0,
         child: ListView(
           children: [

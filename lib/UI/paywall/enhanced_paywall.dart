@@ -6,6 +6,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/utils/audio_state_manager.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class EnhancedPaywallPage extends ConsumerStatefulWidget {
   const EnhancedPaywallPage({super.key});
@@ -213,7 +214,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF1C2128),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -358,7 +359,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF262C36),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.red, width: 1),
       ),
@@ -447,9 +448,9 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF262C36),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: isPopular 
+        border: isPopular
           ? Border.all(color: Colors.orange, width: 2)
           : Border.all(color: Colors.grey[700]!, width: 1),
       ),

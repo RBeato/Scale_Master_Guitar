@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_page_fingerings_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 import '../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../player_page/provider/player_page_title.dart';
@@ -31,7 +32,7 @@ class FretboardPage extends ConsumerWidget {
               Navigator.of(context).pop();
             },
           ),
-          backgroundColor: Colors.grey[800],
+          backgroundColor: AppColors.background,
           title: const PlayerPageTitle(),
         ),
         body: FretboardFull(fingeringsModel: fretboardFingerings),

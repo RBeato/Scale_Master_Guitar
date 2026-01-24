@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/constants/music_constants.dart';
 import 'dart:math' as math;
 import '../../constants/color_constants.dart';
-import '../../constants.dart';
+import '../../constants/app_theme.dart';
 
 class WheelPainter extends CustomPainter {
   final double rotation;
@@ -72,7 +72,7 @@ class WheelPainter extends CustomPainter {
 
     // Knob design (inner wheel) - matches background color
     Paint knobPaint = Paint()
-      ..color = Constants.mainBackgroundColor
+      ..color = AppColors.background
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, innerRadius, knobPaint);
 
@@ -95,13 +95,13 @@ class WheelPainter extends CustomPainter {
 
       // Draw circular container - slightly lighter than background for contrast
       Paint containerPaint = Paint()
-        ..color = const Color(0xFF262C36)
+        ..color = AppColors.surface
         ..style = PaintingStyle.fill;
       canvas.drawCircle(containerPosition, containerRadius, containerPaint);
 
       // Draw subtle border
       Paint borderPaint = Paint()
-        ..color = const Color(0xFF30363D)
+        ..color = AppColors.border
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
       canvas.drawCircle(containerPosition, containerRadius, borderPaint);

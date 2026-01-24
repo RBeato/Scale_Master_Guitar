@@ -4,6 +4,7 @@ import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class DrawerGeneralSwitch extends ConsumerWidget {
   const DrawerGeneralSwitch({
@@ -28,8 +29,9 @@ class DrawerGeneralSwitch extends ConsumerWidget {
     final isFeatureRestricted = isPremiumFeature && !isPremiumUser;
     
     return Card(
-      color: Colors.black12,
+      color: AppColors.surface,
       child: ExpansionTile(
+        backgroundColor: AppColors.surface,
         title: Row(
           children: [
             Expanded(

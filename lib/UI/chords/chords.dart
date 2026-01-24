@@ -108,7 +108,10 @@ class Chords extends ConsumerWidget {
                                   child: Text(
                                     c,
                                     style: const TextStyle(
-                                        fontSize: 20, color: Colors.white),
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),

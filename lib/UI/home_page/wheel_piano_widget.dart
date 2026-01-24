@@ -9,6 +9,7 @@ import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import '../../revenue_cat_purchase_flutter/entitlement.dart';
 import '../../models/scale_model.dart';
 import '../../constants/color_constants.dart';
+import '../../constants/app_theme.dart';
 import 'provider/piano_visibility_provider.dart';
 
 class WheelAndPianoColumn extends ConsumerWidget {
@@ -50,9 +51,9 @@ class WheelAndPianoColumn extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF262C36),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF30363D), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -135,14 +136,19 @@ class WheelAndPianoColumn extends ConsumerWidget {
         if (!showPiano) {
           return Column(
             children: [
+              // Chromatic wheel centered, with bottom padding to account for scale container
               Expanded(
                 child: Center(
-                  child: ChromaticWheel(data.scaleModel!),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 40),
+                    child: ChromaticWheel(data.scaleModel!),
+                  ),
                 ),
               ),
+              // Scale notes at the bottom
               Padding(
                 padding: EdgeInsets.only(
-                  bottom: isPremium ? 40 : 20,
+                  bottom: isPremium ? 20 : 10,
                   left: 16,
                   right: 16,
                 ),
