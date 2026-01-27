@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/save_button.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/save_to_library_button.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/library_access_button.dart';
 
 import 'color_palette.dart';
 import 'fretboard_color_change_button.dart';
@@ -23,6 +25,8 @@ class FretboardOptionButtons extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             const SaveImageButton(),
+            const SaveToLibraryButton(),
+            const LibraryAccessButton(),
             const NoteNamesButton(),
             const FretboardColorChangeButton(),
             isDegreeSelected

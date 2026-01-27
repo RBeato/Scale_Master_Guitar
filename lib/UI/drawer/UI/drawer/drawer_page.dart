@@ -267,6 +267,8 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
         return 'Premium Subscriber';
       case Entitlement.premiumOneTime:
         return 'Premium Lifetime';
+      case Entitlement.fingeringsLibrary:
+        return 'Fingerings Library Subscriber';
     }
   }
 

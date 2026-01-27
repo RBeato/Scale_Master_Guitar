@@ -7,7 +7,11 @@ class PurchaseApi {
   static const String _premiumOfferingId = 'premium';
   static const String _premiumSubEntitlementId = 'premium_subscription';
   static const String _premiumOneTimeEntitlementId = 'premium_lifetime';
-  
+
+  // Fingerings Library subscription
+  static const String _fingeringsLibraryOfferingId = 'fingerings_library';
+  static const String _fingeringsLibraryEntitlementId = 'fingerings_library';
+
   static bool _billingUnavailable = false;
 
   static bool get isBillingUnavailable => _billingUnavailable;
@@ -40,26 +44,66 @@ class PurchaseApi {
     try {
       final customerInfo = await getCustomerInfo();
       final activeEntitlements = customerInfo.entitlements.active;
-      
-      // Check for one-time purchase first
+
+      // Check for one-time purchase first (highest priority)
       if (activeEntitlements.containsKey(_premiumOneTimeEntitlementId)) {
         return Entitlement.premiumOneTime;
       }
-      
-      // Check for subscription
+
+      // Check for premium subscription
       if (activeEntitlements.containsKey(_premiumSubEntitlementId)) {
         return Entitlement.premiumSub;
       }
-      
+
       // Fallback to old premium check for backward compatibility
       if (activeEntitlements.containsKey(_premiumOfferingId)) {
         return Entitlement.premiumSub;
       }
-      
+
+      // Check for fingerings library subscription
+      if (activeEntitlements.containsKey(_fingeringsLibraryEntitlementId)) {
+        return Entitlement.fingeringsLibrary;
+      }
+
       return Entitlement.free;
     } catch (e) {
       debugPrint('Error getting user entitlement: $e');
       return Entitlement.free;
+    }
+  }
+
+  /// Check if user has fingerings library access (either via fingerings sub or premium)
+  static Future<bool> hasFingeringsLibraryAccess() async {
+    try {
+      final entitlement = await getUserEntitlement();
+      return entitlement.hasFingeringsLibraryAccess;
+    } catch (e) {
+      debugPrint('Error checking fingerings library access: $e');
+      return false;
+    }
+  }
+
+  /// Fetch the fingerings library offering for purchase
+  static Future<Offering?> fetchFingeringsLibraryOffering() async {
+    try {
+      final offerings = await Purchases.getOfferings();
+
+      debugPrint('Looking for fingerings library offering: $_fingeringsLibraryOfferingId');
+
+      var fingeringsOffering = offerings.all[_fingeringsLibraryOfferingId];
+
+      if (fingeringsOffering == null) {
+        debugPrint('Fingerings library offering not found');
+      }
+
+      return fingeringsOffering;
+    } on PlatformException catch (e) {
+      debugPrint('Error fetching fingerings library offering: ${e.message}');
+      if (e.message?.contains('BILLING_UNAVAILABLE') == true ||
+          e.message?.contains('billing API version') == true) {
+        _billingUnavailable = true;
+      }
+      return null;
     }
   }
 
@@ -103,10 +147,11 @@ class PurchaseApi {
   static Future<bool> purchasePackage(Package package) async {
     try {
       final purchaserInfo = await Purchases.purchasePackage(package);
-      // Check for any premium entitlement
+      // Check for any entitlement (premium or fingerings library)
       return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
-             purchaserInfo.entitlements.active.containsKey(_premiumOfferingId);
+             purchaserInfo.entitlements.active.containsKey(_premiumOfferingId) ||
+             purchaserInfo.entitlements.active.containsKey(_fingeringsLibraryEntitlementId);
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.code} - ${e.message}');
 

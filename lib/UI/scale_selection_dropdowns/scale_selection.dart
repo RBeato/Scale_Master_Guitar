@@ -105,7 +105,8 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                               value,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: isRestricted ? Colors.white70.withValues(alpha: 0.7) : Colors.white70,
+                                color: isRestricted ? Colors.white60 : Colors.white,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -129,7 +130,10 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                   }).toList(),
                   hint: const Text('Select Scale',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white70)),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      )),
                 )),
               ),
               const SizedBox(width: 20), // Adjust the width as needed
@@ -156,12 +160,18 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                         value: key,
                         child: Text(key,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white70)),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            )),
                       );
                     }).toList(),
                     hint: const Text('Select Mode',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white70)),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        )),
                   ),
                 ),
               ),

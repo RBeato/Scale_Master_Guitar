@@ -54,6 +54,11 @@ class FeatureRestrictionService {
     return entitlement.isPremium;
   }
 
+  /// Returns true if user can access the fingerings library
+  static bool canAccessFingeringsLibrary(Entitlement entitlement) {
+    return entitlement.hasFingeringsLibraryAccess;
+  }
+
   /// Get upgrade message for a restricted feature
   static String getUpgradeMessage(String featureName) {
     return 'Upgrade to Premium to access $featureName';
@@ -78,6 +83,21 @@ class FeatureRestrictionService {
   static String getProgressionSaveRestrictionMessage() {
     return 'Upgrade to Premium to save and manage chord progressions';
   }
+
+  /// Get fingerings library restriction message
+  static String getFingeringsLibraryRestrictionMessage() {
+    return 'Subscribe to access the Fingerings Library - save, share, and discover fingering patterns';
+  }
+
+  /// Get fingerings library restriction message for lifetime users
+  static String getFingeringsLibraryLifetimeMessage() {
+    return 'The Fingerings Library is not included in your lifetime purchase. Subscribe to access cloud storage and sharing features.';
+  }
+
+  /// Returns true if user is a lifetime purchaser
+  static bool isLifetimeUser(Entitlement entitlement) {
+    return entitlement.isLifetime;
+  }
 }
 
 /// Provider for easy access to feature restrictions throughout the app
@@ -95,6 +115,8 @@ final featureRestrictionProvider = Provider.family<bool, String>((ref, feature) 
       return entitlement.hasFullScaleAccess;
     case 'save_progressions':
       return FeatureRestrictionService.canSaveProgressions(entitlement);
+    case 'fingerings_library':
+      return FeatureRestrictionService.canAccessFingeringsLibrary(entitlement);
     default:
       return false;
   }

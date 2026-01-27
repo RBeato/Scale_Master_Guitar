@@ -22,6 +22,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:scalemasterguitar/services/supabase_service.dart';
+import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 
 //TODO: fix performance. Avoid unnecessary rebuilds. Test overall performance
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
@@ -146,7 +148,15 @@ void main() async {
       
       // Load environment variables
       await dotenv.load(fileName: ".env");
-      
+
+      // Initialize Supabase for fingerings library
+      final supabaseInitialized = await SupabaseService.instance.initialize();
+      if (supabaseInitialized) {
+        debugPrint('Supabase initialized successfully');
+      } else {
+        debugPrint('Supabase not configured - fingerings library unavailable');
+      }
+
       // Initialize RevenueCat
       if (Platform.isIOS || Platform.isMacOS) {
         await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '');
@@ -261,6 +271,10 @@ class _MyAppState extends ConsumerState<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Scale Master Guitar',
       theme: appThemeData,
+      routes: {
+        '/paywall': (context) => const UnifiedPaywall(),
+        '/fingerings_paywall': (context) => const UnifiedPaywall(initialTab: 1),
+      },
       home: UpgradeAlert(
         upgrader: Upgrader(
           // Only check for updates in release mode (production)

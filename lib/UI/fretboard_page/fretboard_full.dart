@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_state_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
 
 import '../../models/chord_scale_model.dart';
@@ -34,6 +35,19 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
       (_) => List.filled(fretCount + 1, null),
     );
     selectedColor = ref.read(paletteColorProvider);
+
+    // Sync initial state to provider after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncStateToProvider();
+    });
+  }
+
+  /// Sync current fretboard state to provider for save functionality
+  void _syncStateToProvider() {
+    ref.read(fretboardEditStateProvider.notifier).updateDotsAndColors(
+          dotPositions,
+          dotColors,
+        );
   }
 
   List<List<bool>> createDotPositions(
@@ -119,6 +133,9 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
               setState(() {
                 dotPositions = updatedDotPositions;
               });
+
+              // Sync updated state to provider
+              _syncStateToProvider();
             },
             child: RotatedBox(
               quarterTurns: 1,
