@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_color_provider.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class ColorPickerDialog extends ConsumerStatefulWidget {
   const ColorPickerDialog({super.key});
@@ -18,7 +19,7 @@ class _ColorPickerDialogState extends ConsumerState<ColorPickerDialog> {
     final currentColor = ref.watch(fretboardColorProvider);
 
     return AlertDialog(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.surface,
       title: const Text(
         'Choose Color of Fretboard',
         style: TextStyle(color: Colors.white),

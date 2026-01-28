@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sequencer/track.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/UI/progression_library/widgets/save_progression_dialog.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 
@@ -79,8 +82,8 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black,
+      decoration: BoxDecoration(
+        color: AppColors.backgroundDark,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -141,23 +144,22 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
               ),
             ),
           ),
-          // Save button - only show if user has premium access
-          if (canSaveProgressions)
-            Positioned(
-              top: 0,
-              right: 50,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: GestureDetector(
-                  onTap: () => _showSaveDialog(context, selectedChords),
-                  child: const Icon(
-                    Icons.save,
-                    color: Colors.white70,
-                    size: 24,
-                  ),
+          // Save button - visible to all users, paywall for free users
+          Positioned(
+            top: 0,
+            right: 50,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: () => _showSaveDialog(context, selectedChords, canSaveProgressions),
+                child: Icon(
+                  Icons.save,
+                  color: canSaveProgressions ? Colors.white70 : Colors.grey,
+                  size: 24,
                 ),
               ),
             ),
+          ),
           
           Positioned(
             top: 0,
@@ -169,9 +171,16 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
     );
   }
 
-  void _showSaveDialog(BuildContext context, List<dynamic> selectedChords) {
-    // Note: Only called for premium users since save button is only shown to them
-    
+  void _showSaveDialog(BuildContext context, List<dynamic> selectedChords, bool canSave) {
+    // Show paywall for free users
+    if (!canSave) {
+      Navigator.push(
+        context,
+        SlideRoute(page: const UnifiedPaywall(), direction: SlideDirection.fromBottom),
+      );
+      return;
+    }
+
     if (selectedChords.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

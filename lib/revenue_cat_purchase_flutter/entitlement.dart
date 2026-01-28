@@ -1,13 +1,17 @@
 enum Entitlement {
-  free,               // Free with ads, major scales only, no fretboard download
-  premiumSub,         // Subscription: no ads, full functionality
-  premiumOneTime,     // One-time purchase: no ads, full functionality
-  fingeringsLibrary,  // Fingerings library subscription: save/share fingerings
+  free,                       // Free with ads, major scales only, no fretboard download
+  premiumSub,                 // Subscription: no ads, full functionality + fingerings library
+  premiumOneTime,             // One-time purchase: no ads, full functionality (NO fingerings library)
+  premiumOneTimeWithLibrary,  // Lifetime + fingerings library subscription
+  fingeringsLibrary,          // Fingerings library subscription only: save/share fingerings
 }
 
 extension EntitlementExtensions on Entitlement {
   /// Returns true if user has any premium features (subscription or one-time)
-  bool get isPremium => this == Entitlement.premiumSub || this == Entitlement.premiumOneTime;
+  bool get isPremium =>
+      this == Entitlement.premiumSub ||
+      this == Entitlement.premiumOneTime ||
+      this == Entitlement.premiumOneTimeWithLibrary;
 
   /// Returns true if user should see ads
   bool get showAds => this == Entitlement.free;
@@ -22,11 +26,14 @@ extension EntitlementExtensions on Entitlement {
   bool get hasAudioAccess => isPremium;
 
   /// Returns true if user can access the fingerings library feature
-  /// Only subscription users and fingeringsLibrary subscribers get access
-  /// NOTE: Lifetime (premiumOneTime) users do NOT get fingerings library access
+  /// Subscription users, fingeringsLibrary subscribers, and lifetime+library users get access
   bool get hasFingeringsLibraryAccess =>
-      this == Entitlement.fingeringsLibrary || this == Entitlement.premiumSub;
+      this == Entitlement.premiumSub ||
+      this == Entitlement.fingeringsLibrary ||
+      this == Entitlement.premiumOneTimeWithLibrary;
 
   /// Returns true if user is a lifetime purchaser (one-time premium)
-  bool get isLifetime => this == Entitlement.premiumOneTime;
+  bool get isLifetime =>
+      this == Entitlement.premiumOneTime ||
+      this == Entitlement.premiumOneTimeWithLibrary;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
 
 class ProgressionListItem extends StatelessWidget {
@@ -20,7 +21,7 @@ class ProgressionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.grey[800],
+      color: AppColors.surface,
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,

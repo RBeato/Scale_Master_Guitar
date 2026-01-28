@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart'; 
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
 
+import '../../constants/app_theme.dart';
 import '../../constants/color_constants.dart';
 import '../../constants/scales/scales_data_v2.dart';
 import '../../models/chord_model.dart';
@@ -193,7 +194,7 @@ class Chords extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.grey[900],
+          backgroundColor: AppColors.surface,
           title: const Text("Too many beats!",
               style: TextStyle(color: Colors.orange)),
           content: Text(message, style: const TextStyle(color: Colors.white)),

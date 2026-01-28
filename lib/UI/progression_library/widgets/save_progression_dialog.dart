@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
 import 'package:scalemasterguitar/models/chord_model.dart';
 import 'package:scalemasterguitar/providers/progression_library_provider.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class SaveProgressionDialog extends ConsumerStatefulWidget {
   final List<ChordModel>? initialChords;
@@ -73,7 +74,7 @@ class _SaveProgressionDialogState extends ConsumerState<SaveProgressionDialog> {
         FocusScope.of(context).unfocus();
       },
       child: AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: AppColors.surface,
         title: Text(
           isEditing ? 'Edit Progression' : 'Save Progression',
           style: const TextStyle(color: Colors.white),

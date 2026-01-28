@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
 import 'package:scalemasterguitar/services/progression_storage_service.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
 /// State for the progression library
 class ProgressionLibraryState {
@@ -8,12 +11,14 @@ class ProgressionLibraryState {
   final bool isLoading;
   final String? error;
   final String? successMessage;
+  final ProgressionStorageType storageType;
 
   const ProgressionLibraryState({
     this.progressions = const [],
     this.isLoading = false,
     this.error,
     this.successMessage,
+    this.storageType = ProgressionStorageType.none,
   });
 
   ProgressionLibraryState copyWith({
@@ -21,28 +26,61 @@ class ProgressionLibraryState {
     bool? isLoading,
     String? error,
     String? successMessage,
+    ProgressionStorageType? storageType,
   }) {
     return ProgressionLibraryState(
       progressions: progressions ?? this.progressions,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       successMessage: successMessage,
+      storageType: storageType ?? this.storageType,
     );
+  }
+
+  /// Whether the user can save progressions
+  bool get canSave => storageType != ProgressionStorageType.none;
+
+  /// Human-readable storage description
+  String get storageDescription {
+    switch (storageType) {
+      case ProgressionStorageType.cloud:
+        return 'Cloud sync enabled';
+      case ProgressionStorageType.local:
+        return 'Stored locally';
+      case ProgressionStorageType.none:
+        return 'Upgrade to save';
+    }
   }
 }
 
 /// Notifier for managing progression library state
 class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> {
-  ProgressionLibraryNotifier() : super(const ProgressionLibraryState()) {
-    loadProgressions();
+  final Ref _ref;
+  Entitlement _currentEntitlement = Entitlement.free;
+
+  ProgressionLibraryNotifier(this._ref) : super(const ProgressionLibraryState()) {
+    // Listen to entitlement changes
+    _ref.listen<Entitlement>(revenueCatProvider, (previous, next) {
+      if (previous != next) {
+        _currentEntitlement = next;
+        _updateStorageType(next);
+        loadProgressions();
+      }
+    }, fireImmediately: true);
+  }
+
+  void _updateStorageType(Entitlement entitlement) {
+    final storageType = ProgressionStorageService.getStorageType(entitlement);
+    state = state.copyWith(storageType: storageType);
+    debugPrint('[ProgressionLibraryNotifier] Storage type: $storageType');
   }
 
   /// Load all progressions from storage
   Future<void> loadProgressions() async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
-      final progressions = await ProgressionStorageService.loadAllProgressions();
+      final progressions = await ProgressionStorageService.loadAllProgressions(_currentEntitlement);
       state = state.copyWith(
         progressions: progressions,
         isLoading: false,
@@ -57,11 +95,21 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
 
   /// Save a new progression
   Future<bool> saveProgression(ProgressionModel progression) async {
+    if (!ProgressionStorageService.canSave(_currentEntitlement)) {
+      state = state.copyWith(
+        error: 'Upgrade to Premium to save progressions',
+      );
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // Check if name already exists
-      final nameExists = await ProgressionStorageService.progressionNameExists(progression.name);
+      final nameExists = await ProgressionStorageService.progressionNameExists(
+        progression.name,
+        _currentEntitlement,
+      );
       if (nameExists) {
         state = state.copyWith(
           isLoading: false,
@@ -70,7 +118,10 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
         return false;
       }
 
-      final success = await ProgressionStorageService.saveProgression(progression);
+      final success = await ProgressionStorageService.saveProgression(
+        progression,
+        _currentEntitlement,
+      );
       if (success) {
         // Reload progressions to update the list
         await loadProgressions();
@@ -96,12 +147,20 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
 
   /// Update an existing progression
   Future<bool> updateProgression(ProgressionModel progression) async {
+    if (!ProgressionStorageService.canSave(_currentEntitlement)) {
+      state = state.copyWith(
+        error: 'Upgrade to Premium to update progressions',
+      );
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // Check if name already exists (excluding current progression)
       final nameExists = await ProgressionStorageService.progressionNameExists(
         progression.name,
+        _currentEntitlement,
         excludeId: progression.id,
       );
       if (nameExists) {
@@ -112,7 +171,10 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
         return false;
       }
 
-      final success = await ProgressionStorageService.updateProgression(progression);
+      final success = await ProgressionStorageService.updateProgression(
+        progression,
+        _currentEntitlement,
+      );
       if (success) {
         // Reload progressions to update the list
         await loadProgressions();
@@ -139,11 +201,14 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
   /// Delete a progression
   Future<bool> deleteProgression(String id) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final progression = state.progressions.firstWhere((p) => p.id == id);
-      final success = await ProgressionStorageService.deleteProgression(id);
-      
+      final success = await ProgressionStorageService.deleteProgression(
+        id,
+        _currentEntitlement,
+      );
+
       if (success) {
         // Remove from current state
         final updatedProgressions = state.progressions.where((p) => p.id != id).toList();
@@ -186,7 +251,7 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
   /// Get progressions filtered by name
   List<ProgressionModel> searchProgressions(String query) {
     if (query.isEmpty) return state.progressions;
-    
+
     final lowerQuery = query.toLowerCase();
     return state.progressions.where((progression) =>
       progression.name.toLowerCase().contains(lowerQuery) ||
@@ -198,7 +263,7 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
   /// Get progressions sorted by different criteria
   List<ProgressionModel> getSortedProgressions(ProgressionSortType sortType) {
     final progressions = List<ProgressionModel>.from(state.progressions);
-    
+
     switch (sortType) {
       case ProgressionSortType.nameAsc:
         progressions.sort((a, b) => a.name.compareTo(b.name));
@@ -225,8 +290,29 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
         progressions.sort((a, b) => b.totalBeats.compareTo(a.totalBeats));
         break;
     }
-    
+
     return progressions;
+  }
+
+  /// Migrate local progressions to cloud (for users upgrading to subscription)
+  Future<int> migrateToCloud() async {
+    if (state.storageType != ProgressionStorageType.cloud) {
+      return 0;
+    }
+
+    try {
+      final migratedCount = await ProgressionStorageService.migrateLocalToCloud();
+      if (migratedCount > 0) {
+        await loadProgressions();
+        state = state.copyWith(
+          successMessage: 'Migrated $migratedCount progressions to cloud',
+        );
+      }
+      return migratedCount;
+    } catch (e) {
+      debugPrint('[ProgressionLibraryNotifier] Migration error: $e');
+      return 0;
+    }
   }
 }
 
@@ -244,11 +330,23 @@ enum ProgressionSortType {
 
 /// Provider for progression library
 final progressionLibraryProvider = StateNotifierProvider<ProgressionLibraryNotifier, ProgressionLibraryState>((ref) {
-  return ProgressionLibraryNotifier();
+  return ProgressionLibraryNotifier(ref);
 });
 
 /// Provider for progression count
 final progressionCountProvider = Provider<int>((ref) {
   final state = ref.watch(progressionLibraryProvider);
   return state.progressions.length;
+});
+
+/// Provider for checking if user can save progressions
+final canSaveProgressionsProvider = Provider<bool>((ref) {
+  final state = ref.watch(progressionLibraryProvider);
+  return state.canSave;
+});
+
+/// Provider for storage description
+final progressionStorageDescriptionProvider = Provider<String>((ref) {
+  final state = ref.watch(progressionLibraryProvider);
+  return state.storageDescription;
 });

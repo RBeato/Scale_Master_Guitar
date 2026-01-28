@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/UI/fingerings_library/fingerings_library_page.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
@@ -12,9 +13,7 @@ class LibraryAccessButton extends ConsumerWidget {
   void _openLibrary(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const FingeringsLibraryPage(),
-      ),
+      SlideRoute(page: const FingeringsLibraryPage(), direction: SlideDirection.fromRight),
     );
   }
 
@@ -34,9 +33,7 @@ class LibraryAccessButton extends ConsumerWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const UnifiedPaywall(initialTab: 1),
-              ),
+              SlideRoute(page: const UnifiedPaywall(initialTab: 1), direction: SlideDirection.fromBottom),
             );
           },
         ),

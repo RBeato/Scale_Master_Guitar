@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
+import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 
 class UpgradePrompt {
   /// Shows a snackbar with upgrade message and optional action to open paywall
@@ -26,8 +27,9 @@ class UpgradePrompt {
   /// Shows the enhanced paywall dialog
   static Future<bool?> showUpgradeDialog(BuildContext context) {
     return Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => const EnhancedPaywallPage(),
+      SlideRoute(
+        page: const UnifiedPaywall(),
+        direction: SlideDirection.fromBottom,
         fullscreenDialog: true,
       ),
     );
@@ -48,7 +50,7 @@ class UpgradePrompt {
             topRight: Radius.circular(20),
           ),
         ),
-        child: const EnhancedPaywallPage(),
+        child: const UnifiedPaywall(),
       ),
     );
   }

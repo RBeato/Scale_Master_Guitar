@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_state_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_color_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/note_names_visibility_provider.dart';
@@ -58,9 +59,7 @@ class SaveToLibraryButton extends ConsumerWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const UnifiedPaywall(initialTab: 1),
-              ),
+              SlideRoute(page: const UnifiedPaywall(initialTab: 1), direction: SlideDirection.fromBottom),
             );
           },
         ),

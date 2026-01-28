@@ -5,19 +5,19 @@
   ],
   "products" : [
     {
-      "displayPrice" : "6.99",
+      "displayPrice" : "4.89",
       "familyShareable" : false,
-      "identifier" : "lifetime_premium",
+      "identifier" : "premium",
       "internalID" : "6532168475",
       "localizations" : [
         {
-          "description" : "Unlock all premium features forever with a one-time purchase",
-          "displayName" : "Lifetime Premium",
+          "description" : "Premium access to all apps features",
+          "displayName" : "Premium",
           "locale" : "en_US"
         }
       ],
-      "productID" : "lifetime_premium",
-      "referenceName" : "Lifetime Premium",
+      "productID" : "premium",
+      "referenceName" : "Premium Lifetime",
       "type" : "NonConsumable"
     }
   ],
@@ -40,7 +40,7 @@
       "localizations" : [
 
       ],
-      "name" : "Premium Subscription",
+      "name" : "Fingerings Library",
       "subscriptions" : [
         {
           "adHocOffers" : [
@@ -52,19 +52,19 @@
           "displayPrice" : "0.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "identifier" : "monthly_premium",
+          "identifier" : "smg_fingerings_monthly",
           "internalID" : "6532168474",
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Access all premium features with a monthly subscription",
-              "displayName" : "Monthly Premium",
+              "description" : "Access fingerings library with a monthly subscription",
+              "displayName" : "Scale Master Guitar Monthly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "monthly_premium",
+          "productID" : "smg_fingerings_monthly",
           "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Monthly Premium",
+          "referenceName" : "SMG Fingerings Monthly",
           "subscriptionGroupID" : "21553593",
           "type" : "RecurringSubscription"
         },
@@ -75,22 +75,22 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "9.99",
+          "displayPrice" : "4.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "identifier" : "annual_premium",
+          "identifier" : "smg_fingerings_yearly",
           "internalID" : "6532168476",
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Access all premium features with an annual subscription",
-              "displayName" : "Annual Premium",
+              "description" : "Access fingerings library with an annual subscription",
+              "displayName" : "Scale Master Guitar Yearly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "annual_premium",
+          "productID" : "smg_fingerings_yearly",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Annual Premium",
+          "referenceName" : "SMG Fingerings Yearly",
           "subscriptionGroupID" : "21553593",
           "type" : "RecurringSubscription"
         }

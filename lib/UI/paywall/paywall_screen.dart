@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
@@ -146,7 +147,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const SelectionPage()),
+              SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
             );
           },
         ),

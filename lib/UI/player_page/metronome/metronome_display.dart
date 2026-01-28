@@ -1,6 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 import '../provider/is_playing_provider.dart';
 import '../provider/metronome_tempo_provider.dart';
@@ -68,7 +69,7 @@ class BPMSelector extends ConsumerWidget {
         .addPostFrameCallback((_) => _controller.jumpTo(offset));
 
     return Dialog(
-      backgroundColor: Colors.black38,
+      backgroundColor: AppColors.surface,
       child: SizedBox.expand(
         child: Container(
           padding: const EdgeInsets.all(24),

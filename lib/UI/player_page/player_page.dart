@@ -10,6 +10,7 @@ import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provid
 
 import '../../models/chord_scale_model.dart';
 import '../../models/progression_model.dart';
+import '../../utils/slide_route.dart';
 import '../progression_library/progression_library_page.dart';
 import '../chords/chords.dart';
 import '../fretboard/UI/fretboard_neck.dart';
@@ -20,6 +21,7 @@ import '../scale_selection_dropdowns/provider/scale_dropdown_value_provider.dart
 import '../scale_selection_dropdowns/provider/mode_dropdown_value_provider.dart';
 import '../fretboard/provider/beat_counter_provider.dart';
 import '../home_page/selection_page.dart';
+import '../paywall/unified_paywall.dart';
 import '../../services/feature_restriction_service.dart';
 
 class PlayerPage extends ConsumerWidget {
@@ -223,7 +225,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const SelectionPage()),
+                  SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
                 );
                 debugPrint('[PlayerPage] Navigated back to selection page');
               }
@@ -233,18 +235,22 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
             Consumer(
               builder: (context, ref, child) {
                 final canSaveProgressions = ref.watch(featureRestrictionProvider('save_progressions'));
-                
-                // Only show library button to premium users
-                if (!canSaveProgressions) {
-                  return const SizedBox.shrink(); // Hide button for free users
-                }
-                
+
                 return IconButton(
                   onPressed: () async {
+                    // Show paywall for free users
+                    if (!canSaveProgressions) {
+                      Navigator.push(
+                        context,
+                        SlideRoute(page: const UnifiedPaywall(), direction: SlideDirection.fromBottom),
+                      );
+                      return;
+                    }
+
                     // Stop any current playback before navigating to library
                     final sequencerManager = ref.read(sequencerManagerProvider);
                     final isCurrentlyPlaying = ref.read(isSequencerPlayingProvider);
-                    
+
                     if (isCurrentlyPlaying && sequencerManager.sequence != null) {
                       debugPrint('[PlayerPage] Stopping playback before navigating to library');
                       try {
@@ -256,19 +262,17 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                         debugPrint('[PlayerPage] Error stopping playback: $e');
                       }
                     }
-                    
+
                     if (context.mounted) {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProgressionLibraryPage(),
-                        ),
+                        SlideRoute(page: const ProgressionLibraryPage(), direction: SlideDirection.fromRight),
                       );
                     }
                   },
-                  icon: const Icon(
-                    Icons.library_music, 
-                    color: Colors.white,
+                  icon: Icon(
+                    Icons.library_music,
+                    color: canSaveProgressions ? Colors.white : Colors.grey,
                   ),
                 );
               },
@@ -291,8 +295,8 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                 await _cleanupResources();
                 
                 if (context.mounted) {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const FretboardPage()));
+                  Navigator.of(context).push(SlideRoute(
+                      page: const FretboardPage(), direction: SlideDirection.fromRight));
                   debugPrint('[PlayerPage] Navigated forward to FretboardPage');
                 }
               },

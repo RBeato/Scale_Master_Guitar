@@ -45,23 +45,31 @@ class PurchaseApi {
       final customerInfo = await getCustomerInfo();
       final activeEntitlements = customerInfo.entitlements.active;
 
-      // Check for one-time purchase first (highest priority)
-      if (activeEntitlements.containsKey(_premiumOneTimeEntitlementId)) {
+      final hasLifetime =
+          activeEntitlements.containsKey(_premiumOneTimeEntitlementId);
+      final hasPremiumSub =
+          activeEntitlements.containsKey(_premiumSubEntitlementId) ||
+              activeEntitlements.containsKey(_premiumOfferingId);
+      final hasFingeringsLibrary =
+          activeEntitlements.containsKey(_fingeringsLibraryEntitlementId);
+
+      // Premium subscription gets all features including fingerings library
+      if (hasPremiumSub) {
+        return Entitlement.premiumSub;
+      }
+
+      // Lifetime user with fingerings library subscription
+      if (hasLifetime && hasFingeringsLibrary) {
+        return Entitlement.premiumOneTimeWithLibrary;
+      }
+
+      // Lifetime user without fingerings library
+      if (hasLifetime) {
         return Entitlement.premiumOneTime;
       }
 
-      // Check for premium subscription
-      if (activeEntitlements.containsKey(_premiumSubEntitlementId)) {
-        return Entitlement.premiumSub;
-      }
-
-      // Fallback to old premium check for backward compatibility
-      if (activeEntitlements.containsKey(_premiumOfferingId)) {
-        return Entitlement.premiumSub;
-      }
-
-      // Check for fingerings library subscription
-      if (activeEntitlements.containsKey(_fingeringsLibraryEntitlementId)) {
+      // Fingerings library subscription only
+      if (hasFingeringsLibrary) {
         return Entitlement.fingeringsLibrary;
       }
 

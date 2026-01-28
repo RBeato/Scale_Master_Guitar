@@ -6,6 +6,7 @@ import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 
 class UnifiedPaywall extends ConsumerStatefulWidget {
   /// Which tab to show initially: 0 = Premium, 1 = Fingerings Library
@@ -31,6 +32,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
   bool _isFingeringsLoading = true;
   String? _fingeringsError;
   Offering? _fingeringsOffering;
+  Package? _selectedPackage;
 
   bool _isPurchasing = false;
 
@@ -115,6 +117,13 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
         setState(() {
           _fingeringsOffering = offering;
           _isFingeringsLoading = false;
+          // Select yearly by default, or first available
+          if (offering != null && offering.availablePackages.isNotEmpty) {
+            _selectedPackage = offering.availablePackages.firstWhere(
+              (p) => p.packageType == PackageType.annual,
+              orElse: () => offering.availablePackages.first,
+            );
+          }
         });
       }
     } catch (e) {
@@ -285,7 +294,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
     } else {
       // If we can't pop (paywall is root), navigate to selection page
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const SelectionPage()),
+        SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
       );
     }
   }
@@ -323,6 +332,14 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           indicatorColor: AppColors.accent,
           labelColor: AppColors.accent,
           unselectedLabelColor: Colors.grey,
+          labelStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           tabs: const [
             Tab(text: 'Lifetime Premium'),
             Tab(text: 'Fingerings Library'),
@@ -390,7 +407,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 16),
 
-          // Important note about Fingerings Library
+          // Important note about Fingerings Library and storage
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -398,18 +415,40 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Note: Lifetime Premium does not include access to the Fingerings Library cloud feature. Subscribe separately to save and share fingerings.',
-                    style: TextStyle(
-                      color: Colors.orange[200],
-                      fontSize: 12,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Important: Lifetime Premium stores progressions locally on this device only. They will not sync across devices.',
+                        style: TextStyle(
+                          color: Colors.orange[200],
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: Text(
+                        'For cloud sync of progressions and fingerings, subscribe to Fingerings Library.',
+                        style: TextStyle(
+                          color: Colors.orange[200],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -553,6 +592,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           _buildFeatureRow(
               Icons.cloud_upload, 'Save unlimited fingerings to the cloud'),
           _buildFeatureRow(
+              Icons.queue_music, 'Save progressions to the cloud'),
+          _buildFeatureRow(
               Icons.public, 'Share your fingerings with the community'),
           _buildFeatureRow(
               Icons.explore, 'Discover fingerings from other guitarists'),
@@ -561,7 +602,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 32),
 
-          // Packages
+          // Packages - selectable options
           if (_fingeringsOffering != null &&
               _fingeringsOffering!.availablePackages.isNotEmpty)
             ..._fingeringsOffering!.availablePackages.map(
@@ -595,6 +636,43 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
             ),
 
           const SizedBox(height: 24),
+
+          // Subscribe button
+          if (_selectedPackage != null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isPurchasing
+                    ? null
+                    : () => _handleFingeringsPurchase(_selectedPackage!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlueAccent,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isPurchasing
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                      )
+                    : Text(
+                        'Subscribe for ${_selectedPackage!.storeProduct.priceString}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+
+          const SizedBox(height: 16),
 
           // Restore purchases
           TextButton(
@@ -662,6 +740,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
     final product = package.storeProduct;
     final isMonthly = package.packageType == PackageType.monthly;
     final isYearly = package.packageType == PackageType.annual;
+    final isSelected = _selectedPackage == package;
 
     String periodLabel = '';
     String? savingsLabel;
@@ -676,22 +755,45 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
     }
 
     return InkWell(
-      onTap: _isPurchasing ? null : () => _handleFingeringsPurchase(package),
+      onTap: _isPurchasing
+          ? null
+          : () {
+              setState(() {
+                _selectedPackage = package;
+              });
+            },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isYearly
+          color: isSelected
               ? Colors.lightBlueAccent.withValues(alpha: 0.15)
               : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isYearly ? Colors.lightBlueAccent : AppColors.border,
-            width: isYearly ? 2 : 1,
+            color: isSelected ? Colors.lightBlueAccent : AppColors.border,
+            width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
+            // Selection indicator
+            Container(
+              width: 24,
+              height: 24,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? Colors.lightBlueAccent : Colors.grey,
+                  width: 2,
+                ),
+                color: isSelected ? Colors.lightBlueAccent : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 16, color: Colors.black)
+                  : null,
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,8 +802,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                     children: [
                       Text(
                         product.title.replaceAll(' (Scale Master Guitar)', ''),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.grey[300],
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -742,8 +844,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               children: [
                 Text(
                   product.priceString,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[300],
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),

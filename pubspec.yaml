@@ -5,7 +5,7 @@ description: "A comprehensive guitar scale learning and practice application"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.28+42
+version: 1.0.29+43
 
 environment:
   sdk: ">=2.19.0-146.2.beta <3.0.0"
@@ -62,7 +62,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  adaptive_icon_background: "#1c1c1c"
+  background_color: "#1C2128"
+  adaptive_icon_background: "#1C2128"
   adaptive_icon_foreground: "assets/images/smguitar_512.png"
 
 # For information on the generic Dart part of this file, see the

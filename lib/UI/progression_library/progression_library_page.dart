@@ -6,6 +6,8 @@ import 'package:scalemasterguitar/UI/progression_library/widgets/progression_sea
 import 'package:scalemasterguitar/providers/progression_library_provider.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
 import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import '../player_page/player_page.dart';
 import '../home_page/selection_page.dart';
 import '../../services/feature_restriction_service.dart';
@@ -51,7 +53,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const SelectionPage()),
+                SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
               );
             },
           ),
@@ -104,7 +106,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const SelectionPage()),
+                      SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
                     );
                   },
                   child: const Text(
@@ -125,9 +127,9 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
         : progressionNotifier.searchProgressions(_searchQuery);
 
     return ScreenWithBannerAd(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.grey[800],
+        backgroundColor: AppColors.background,
         title: const Text(
           "Progression Library",
           style: TextStyle(color: Colors.orange),
@@ -138,7 +140,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const SelectionPage()),
+              SlideRoute(page: const SelectionPage(), direction: SlideDirection.fromLeft),
             );
           },
         ),
@@ -318,7 +320,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const PlayerPage()),
+                  SlideRoute(page: const PlayerPage(), direction: SlideDirection.fromLeft),
                 );
               },
               icon: const Icon(Icons.add),
@@ -354,9 +356,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     // Navigate to player page and load the progression
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => PlayerPage(initialProgression: progression),
-      ),
+      SlideRoute(page: PlayerPage(initialProgression: progression), direction: SlideDirection.fromLeft),
     );
   }
 
@@ -373,6 +373,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
         title: const Text('Delete Progression', style: TextStyle(color: Colors.white)),
         content: Text(
           'Are you sure you want to delete "${progression.name}"? This action cannot be undone.',
@@ -412,6 +413,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
         title: const Text('Clear All Progressions', style: TextStyle(color: Colors.white)),
         content: const Text(
           'Are you sure you want to delete all saved progressions? This action cannot be undone.',

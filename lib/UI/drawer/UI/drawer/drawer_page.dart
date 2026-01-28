@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
 import 'package:scalemasterguitar/ads/banner_ad_widget.dart';
 import 'package:scalemasterguitar/constants/styles.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
-import 'package:scalemasterguitar/UI/paywall/enhanced_paywall.dart';
+import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -83,8 +85,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const EnhancedPaywallPage(),
+                        SlideRoute(
+                          page: const UnifiedPaywall(),
+                          direction: SlideDirection.fromBottom,
                           fullscreenDialog: true,
                         ),
                       );
@@ -182,79 +185,47 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
 
   Widget _buildTestingSection() {
     final revenueCatNotifier = ref.read(revenueCatProvider.notifier);
-    final testingState = ref.watch(testingStateProvider); // Watch for testing state changes
+    final testingState = ref.watch(testingStateProvider);
     final isTestingMode = testingState.isEnabled;
     final testingEntitlement = testingState.testEntitlement;
 
     return Card(
       color: Colors.deepPurple.withValues(alpha: 0.2),
-      child: ExpansionTile(
-        title: const Row(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: [
-            Icon(Icons.science, color: Colors.deepPurple, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Testing Mode',
-              style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold),
+            const Icon(Icons.science, color: Colors.deepPurple, size: 18),
+            const SizedBox(width: 8),
+            Switch(
+              value: isTestingMode,
+              activeTrackColor: Colors.deepPurple,
+              onChanged: (value) {
+                revenueCatNotifier.setTestingMode(value, testingEntitlement);
+              },
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: DropdownButton<Entitlement>(
+                value: testingEntitlement,
+                isExpanded: true,
+                dropdownColor: AppColors.surface,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                underline: const SizedBox(),
+                items: Entitlement.values.map((e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(_getEntitlementDisplayName(e)),
+                )).toList(),
+                onChanged: isTestingMode ? (value) {
+                  if (value != null) {
+                    revenueCatNotifier.setTestingMode(true, value);
+                  }
+                } : null,
+              ),
             ),
           ],
         ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Override subscription status for testing:',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text(
-                    'Enable Testing Mode',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    isTestingMode ? 'Testing: ${testingEntitlement.name}' : 'Using real subscription status',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  value: isTestingMode,
-                  activeColor: Colors.deepPurple,
-                  onChanged: (value) {
-                    if (value) {
-                      revenueCatNotifier.setTestingMode(true, Entitlement.free);
-                    } else {
-                      revenueCatNotifier.setTestingMode(false, Entitlement.free);
-                    }
-                  },
-                ),
-                if (isTestingMode) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Test as:',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  ...Entitlement.values.map((entitlement) => RadioListTile<Entitlement>(
-                    title: Text(
-                      _getEntitlementDisplayName(entitlement),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    value: entitlement,
-                    groupValue: testingEntitlement,
-                    activeColor: Colors.deepPurple,
-                    onChanged: (value) {
-                      if (value != null) {
-                        revenueCatNotifier.setTestingMode(true, value);
-                      }
-                    },
-                  )),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -267,6 +238,8 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
         return 'Premium Subscriber';
       case Entitlement.premiumOneTime:
         return 'Premium Lifetime';
+      case Entitlement.premiumOneTimeWithLibrary:
+        return 'Premium Lifetime + Library';
       case Entitlement.fingeringsLibrary:
         return 'Fingerings Library Subscriber';
     }

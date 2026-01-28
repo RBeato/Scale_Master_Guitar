@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 
 class ProgressionSearchBar extends StatefulWidget {
   final Function(String) onSearchChanged;
@@ -33,7 +34,7 @@ class _ProgressionSearchBarState extends State<ProgressionSearchBar> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey[800],
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: TextField(

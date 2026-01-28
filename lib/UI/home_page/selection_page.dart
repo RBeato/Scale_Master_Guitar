@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
+import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
 
 import '../chromatic_wheel/provider/top_note_provider.dart';
@@ -51,10 +52,9 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
 
               // Navigate immediately - PlayerPage will handle loading states properly
               Navigator.pushReplacement(context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) => const PlayerPage(),
-                    transitionDuration: Duration.zero,
-                    reverseTransitionDuration: Duration.zero,
+                  SlideRoute(
+                    page: const PlayerPage(),
+                    direction: SlideDirection.fromRight,
                   ));
             },
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
