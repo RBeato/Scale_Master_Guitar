@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_state_provider.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/loaded_fingering_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
+import 'package:scalemasterguitar/models/saved_fingering.dart';
 
 import '../../models/chord_scale_model.dart';
 import 'custom_fretboard_painter.dart';
@@ -72,8 +74,45 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
     return dotPositions;
   }
 
+  /// Apply a loaded fingering from the library
+  void _applyLoadedFingering(SavedFingering fingering) {
+    setState(() {
+      // Apply dot positions
+      dotPositions = fingering.dotPositions.map((row) => List<bool>.from(row)).toList();
+
+      // Apply dot colors (convert from hex strings to Colors)
+      dotColors = fingering.getDotColorsAsColors();
+    });
+
+    // Apply other settings via providers
+    if (fingering.sharpFlatPreference != null) {
+      final sharpFlat = fingering.sharpFlatPreference == 'sharps'
+          ? FretboardSharpFlat.sharps
+          : FretboardSharpFlat.flats;
+      ref.read(sharpFlatSelectionProvider.notifier).state = sharpFlat;
+    }
+    ref.read(noteNamesVisibilityProvider.notifier).state = !fingering.showNoteNames;
+
+    final loadedFretboardColor = fingering.getFretboardColorAsColor();
+    if (loadedFretboardColor != null) {
+      ref.read(fretboardColorProvider.notifier).state = loadedFretboardColor;
+    }
+
+    // Sync to provider for subsequent saves
+    _syncStateToProvider();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Listen for loaded fingerings from the library
+    ref.listen<SavedFingering?>(loadedFingeringProvider, (previous, next) {
+      if (next != null) {
+        _applyLoadedFingering(next);
+        // Clear the provider after applying
+        ref.read(loadedFingeringProvider.notifier).state = null;
+      }
+    });
+
     selectedColor = ref.watch(paletteColorProvider);
     final flatSharpSelection = ref.watch(sharpFlatSelectionProvider);
     final fretboardColor = ref.watch(fretboardColorProvider);

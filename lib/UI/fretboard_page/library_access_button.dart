@@ -6,15 +6,22 @@ import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
+import 'package:scalemasterguitar/models/saved_fingering.dart';
+import 'package:scalemasterguitar/UI/fretboard_page/provider/loaded_fingering_provider.dart';
 
 class LibraryAccessButton extends ConsumerWidget {
   const LibraryAccessButton({super.key});
 
-  void _openLibrary(BuildContext context) {
-    Navigator.push(
+  Future<void> _openLibrary(BuildContext context, WidgetRef ref) async {
+    final result = await Navigator.push<SavedFingering>(
       context,
       SlideRoute(page: const FingeringsLibraryPage(), direction: SlideDirection.fromRight),
     );
+
+    // If a fingering was returned, set the provider so the fretboard can load it
+    if (result != null) {
+      ref.read(loadedFingeringProvider.notifier).state = result;
+    }
   }
 
   void _showPaywall(BuildContext context, {bool isLifetime = false}) {
@@ -72,7 +79,7 @@ class LibraryAccessButton extends ConsumerWidget {
             return;
           }
 
-          _openLibrary(context);
+          _openLibrary(context, ref);
         },
         child: RotatedBox(
           quarterTurns: 1,
