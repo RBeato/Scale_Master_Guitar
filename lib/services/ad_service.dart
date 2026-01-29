@@ -47,13 +47,10 @@ class AdService {
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (Ad ad) => debugPrint('Ad loaded'),
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
           debugPrint('Ad failed to load: $error');
           ad.dispose();
         },
-        onAdOpened: (Ad ad) => debugPrint('Ad opened'),
-        onAdClosed: (Ad ad) => debugPrint('Ad closed'),
       ),
     )..load();
     
