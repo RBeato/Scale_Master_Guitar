@@ -5,7 +5,6 @@ import 'package:scalemasterguitar/UI/progression_library/widgets/save_progressio
 import 'package:scalemasterguitar/UI/progression_library/widgets/progression_search_bar.dart';
 import 'package:scalemasterguitar/providers/progression_library_provider.dart';
 import 'package:scalemasterguitar/models/progression_model.dart';
-import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
 import '../player_page/player_page.dart';
@@ -41,7 +40,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
 
     // Check premium access first
     if (!canSaveProgressions) {
-      return ScreenWithBannerAd(
+      return Scaffold(
         appBar: AppBar(
           title: const Text(
             "Progression Library",
@@ -58,7 +57,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
             },
           ),
         ),
-        child: Center(
+        body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
@@ -126,7 +125,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
         ? progressionNotifier.getSortedProgressions(_sortType)
         : progressionNotifier.searchProgressions(_searchQuery);
 
-    return ScreenWithBannerAd(
+    return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
@@ -213,7 +212,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
           ),
         ],
       ),
-      child: Column(
+      body: Column(
         children: [
           // Search bar
           ProgressionSearchBar(

@@ -14,12 +14,9 @@ import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:logger/logger.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
-import 'package:scalemasterguitar/services/ad_service.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'UI/fretboard/provider/fingerings_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
@@ -182,25 +179,6 @@ void main() async {
           debugPrint('Error setting testing mode: $e');
         }
       }
-
-      // Initialize AdMob with test devices
-      final List<String> deviceIds = []; // Add your test device IDs here
-      final configuration = RequestConfiguration(
-        testDeviceIds: deviceIds,
-      tagForChildDirectedTreatment: TagForChildDirectedTreatment.unspecified,
-      tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.unspecified,
-    );
-    MobileAds.instance.updateRequestConfiguration(configuration);
-    await MobileAds.instance.initialize();
-    
-    // Check connectivity and initialize AdService
-    var connectivityResults = await (Connectivity().checkConnectivity());
-    if (connectivityResults.contains(ConnectivityResult.none)) {
-      debugPrint('No internet connection');
-      // Handle no internet scenario
-    } else {
-      await AdService().initialize();
-    }
 
     // Removed all FlutterNativeSplash calls to eliminate duplicate splash screens
     

@@ -1,9 +1,9 @@
 enum Entitlement {
-  free,                       // Free with ads, major scales only, no fretboard download
-  premiumSub,                 // Subscription: no ads, full functionality + fingerings library
-  premiumOneTime,             // One-time purchase: no ads, full functionality (NO fingerings library)
+  free,                       // Free tier, major scales only, no fretboard download
+  premiumSub,                 // Subscription: full functionality + fingerings library
+  premiumOneTime,             // One-time purchase: full functionality (NO fingerings library)
   premiumOneTimeWithLibrary,  // Lifetime + fingerings library subscription
-  fingeringsLibrary,          // Fingerings library subscription only: save/share fingerings
+  fingeringsLibrary,          // Fingerings library subscription: full features
 }
 
 extension EntitlementExtensions on Entitlement {
@@ -13,9 +13,6 @@ extension EntitlementExtensions on Entitlement {
       this == Entitlement.premiumOneTime ||
       this == Entitlement.premiumOneTimeWithLibrary ||
       this == Entitlement.fingeringsLibrary;
-
-  /// Returns true if user should see ads
-  bool get showAds => this == Entitlement.free;
 
   /// Returns true if user can access all scales
   bool get hasFullScaleAccess => isPremium;

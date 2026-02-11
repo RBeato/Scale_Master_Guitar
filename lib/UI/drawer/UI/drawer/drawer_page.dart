@@ -5,14 +5,11 @@ import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/sounds_dropdown_column.dart';
 import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dart';
-import 'package:scalemasterguitar/ads/banner_ad_widget.dart';
 import 'package:scalemasterguitar/constants/styles.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
-import 'package:scalemasterguitar/services/feature_restriction_service.dart';
 import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -143,12 +140,6 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               
               const SizedBox(height: 20),
               
-              // Ads only show for free users
-              if (FeatureRestrictionService.shouldShowAds(entitlement))
-                const BannerAdWidget(),
-              
-              const SizedBox(height: 20),
-
               // Contact & Feedback button with User ID sharing
               Card(
                 color: Colors.green.withValues(alpha: 0.1),

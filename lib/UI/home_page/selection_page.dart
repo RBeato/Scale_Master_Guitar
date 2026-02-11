@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
-import 'package:scalemasterguitar/widgets/screen_with_banner_ad.dart';
-
 import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../fretboard/provider/fingerings_provider.dart';
 import '../player_page/player_page.dart';
@@ -23,7 +21,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
   Widget build(BuildContext context) {
     ref.watch(topNoteProvider);
 
-    return ScreenWithBannerAd(
+    return Scaffold(
       appBar: AppBar(
         title: const FittedBox(
           fit: BoxFit.scaleDown,
@@ -61,7 +59,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
           ),
         ],
       ),
-      child: Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

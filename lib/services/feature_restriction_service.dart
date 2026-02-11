@@ -44,11 +44,6 @@ class FeatureRestrictionService {
     return entitlement.hasAudioAccess;
   }
 
-  /// Returns true if user should see ads
-  static bool shouldShowAds(Entitlement entitlement) {
-    return entitlement.showAds;
-  }
-
   /// Returns true if user can save progressions
   static bool canSaveProgressions(Entitlement entitlement) {
     return entitlement.isPremium;
@@ -110,7 +105,7 @@ final featureRestrictionProvider = Provider.family<bool, String>((ref, feature) 
     case 'audio_features':
       return FeatureRestrictionService.canUseAudioFeatures(entitlement);
     case 'show_ads':
-      return FeatureRestrictionService.shouldShowAds(entitlement);
+      return false;
     case 'full_scale_access':
       return entitlement.hasFullScaleAccess;
     case 'save_progressions':
