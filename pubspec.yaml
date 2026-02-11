@@ -26,8 +26,6 @@ dependencies:
     git:
       url: https://github.com/RBeato/flutter_sequencer_plus.git
       ref: performance/parallel-track-loading
-  google_fonts: ^6.2.1
-  google_mobile_ads: ^6.0.0
   logger: ^2.5.0
   # modal_progress_hud_nsn: ^0.5.1
   path_provider: ^2.1.0
@@ -77,6 +75,11 @@ flutter:
     - assets/sounds/sf2/
     - assets/images/
     - .env
+
+  fonts:
+    - family: LilitaOne
+      fonts:
+        - asset: assets/fonts/LilitaOne-Regular.ttf
 
 flutter_native_splash:
   # This package generates native code to customize Flutter's default white native splash screen

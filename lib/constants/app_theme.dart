@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 /// App Color Palette
 /// Centralized color definitions for consistent theming across the app
 class AppColors {
@@ -34,15 +32,6 @@ class AppColors {
   static const Color success = Color(0xFF4CAF50);
   static const Color error = Color(0xFFEF5350);
   static const Color warning = Color(0xFFFFB74D);
-}
-
-TextStyle _getFontFamily({double? size, FontWeight? weight, Color? color}) {
-  return GoogleFonts.lilitaOne(
-    fontWeight: weight ?? FontWeight.w100,
-    fontSize: size ?? 16.0,
-    letterSpacing: 0.5,
-    color: color ?? Colors.white,
-  );
 }
 
 final ThemeData appThemeData = ThemeData(
@@ -211,35 +200,35 @@ final ThemeData appThemeData = ThemeData(
   ),
 
   // Text Theme
-  textTheme: TextTheme(
-    headlineLarge: _getFontFamily(
-      size: 50.0,
+  textTheme: const TextTheme(
+    headlineLarge: TextStyle(
+      fontSize: 50.0,
       color: AppColors.accent,
-      weight: FontWeight.w400,
+      fontWeight: FontWeight.w400,
     ),
-    headlineMedium: _getFontFamily(
-      size: 20.0,
+    headlineMedium: TextStyle(
+      fontSize: 20.0,
       color: AppColors.accent,
-      weight: FontWeight.w400,
+      fontWeight: FontWeight.w400,
     ),
-    headlineSmall: _getFontFamily(
-      size: 18.0,
+    headlineSmall: TextStyle(
+      fontSize: 18.0,
       color: Colors.white,
     ),
-    titleLarge: _getFontFamily(size: 20.0),
-    titleMedium: _getFontFamily(size: 16.0),
-    titleSmall: _getFontFamily(
-      size: 12.0,
+    titleLarge: TextStyle(fontSize: 20.0, color: Colors.white),
+    titleMedium: TextStyle(fontSize: 16.0, color: Colors.white),
+    titleSmall: TextStyle(
+      fontSize: 12.0,
       color: AppColors.accent,
-      weight: FontWeight.w400,
+      fontWeight: FontWeight.w400,
     ),
-    bodyLarge: const TextStyle(
+    bodyLarge: TextStyle(
       fontSize: 16.0,
       color: AppColors.textPrimary,
     ),
-    bodyMedium: _getFontFamily(size: 16.0),
-    bodySmall: _getFontFamily(size: 12.0),
-    labelLarge: const TextStyle(
+    bodyMedium: TextStyle(fontSize: 16.0, color: Colors.white),
+    bodySmall: TextStyle(fontSize: 12.0, color: Colors.white),
+    labelLarge: TextStyle(
       fontSize: 14.0,
       fontWeight: FontWeight.w500,
       color: AppColors.textPrimary,
