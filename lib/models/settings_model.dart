@@ -18,7 +18,7 @@ class Settings extends Equatable {
     this.showScaleDegrees = false,
     this.isSingleColor = false,
     this.isTonicUniversalBassNote = false,
-    this.keyboardSound = 'Piano',
+    this.keyboardSound = 'Rhodes',
     this.bassSound = 'Double Bass',
     this.drumsSound = 'Acoustic',
   });
