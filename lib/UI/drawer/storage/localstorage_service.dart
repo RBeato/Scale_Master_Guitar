@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/settings_enum.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/settings_model.dart';
@@ -46,10 +45,6 @@ class LocalStorageService {
       value = settings.isSingleColor;
     }
 
-    // Debugging statement to debugPrint the settings object
-    debugPrint('LocalStorageService getFiltered() $settings');
-
-    // Return the settings object after filtering based on the selection
     return settings;
   }
 
@@ -62,9 +57,18 @@ class LocalStorageService {
     final bool hasMigrated = preferences.getBool(migrationKey) ?? false;
 
     if (!hasMigrated) {
-      debugPrint('[LocalStorageService] Running migration: resetting tonicUniversalBassNote to false');
       await preferences.setBool(SettingsSelection.tonicUniversalBassNote.toString(), false);
       await preferences.setBool(migrationKey, true);
+    }
+
+    // Migration: Reset keyboardSound to 'Rhodes' for existing installations
+    // Version 1.0.31 changed the default from 'Piano' to 'Rhodes'
+    const String keyboardMigrationKey = 'migration_v1.0.31_keyboard_rhodes';
+    final bool hasKeyboardMigrated = preferences.getBool(keyboardMigrationKey) ?? false;
+
+    if (!hasKeyboardMigrated) {
+      await preferences.setString(SettingsSelection.keyboardSound.toString(), 'Rhodes');
+      await preferences.setBool(keyboardMigrationKey, true);
     }
 
     bool showScaleDegrees =
@@ -75,10 +79,9 @@ class LocalStorageService {
             .getBool(SettingsSelection.tonicUniversalBassNote.toString()) ??
         false;
 
-    debugPrint('[LocalStorageService] Loaded isTonicUniversalBassNote from disk: $isTonicUniversalBassNote');
     String keyboardSound =
         preferences.getString(SettingsSelection.keyboardSound.toString()) ??
-            'Piano';
+            'Rhodes';
     String bassSound =
         preferences.getString(SettingsSelection.bassSound.toString()) ??
             'Electric';
@@ -140,7 +143,7 @@ class LocalStorageService {
       showScaleDegrees: false,
       isSingleColor: false,
       isTonicUniversalBassNote: false,
-      keyboardSound: 'Piano',
+      keyboardSound: 'Rhodes',
       bassSound: 'Double Bass',
       drumsSound: 'Acoustic',
     );
