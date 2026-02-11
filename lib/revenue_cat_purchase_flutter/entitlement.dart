@@ -11,7 +11,8 @@ extension EntitlementExtensions on Entitlement {
   bool get isPremium =>
       this == Entitlement.premiumSub ||
       this == Entitlement.premiumOneTime ||
-      this == Entitlement.premiumOneTimeWithLibrary;
+      this == Entitlement.premiumOneTimeWithLibrary ||
+      this == Entitlement.fingeringsLibrary;
 
   /// Returns true if user should see ads
   bool get showAds => this == Entitlement.free;
