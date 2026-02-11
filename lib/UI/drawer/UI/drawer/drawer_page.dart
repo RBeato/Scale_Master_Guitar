@@ -27,6 +27,23 @@ class DrawerPage extends ConsumerStatefulWidget {
 }
 
 class _DrawerPageState extends ConsumerState<DrawerPage> {
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${packageInfo.version}+${packageInfo.buildNumber}';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final entitlement = ref.watch(revenueCatProvider);
@@ -168,9 +185,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'v1.0.0+16',
-                style: TextStyle(
+              Text(
+                _appVersion,
+                style: const TextStyle(
                   color: Colors.white60,
                   fontSize: 10,
                 ),
