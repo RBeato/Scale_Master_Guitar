@@ -336,12 +336,16 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        product.title.replaceAll(' (Scale Master Guitar)', ''),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          product.title.replaceAll(' (Scale Master Guitar)', ''),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (savingsLabel != null) ...[

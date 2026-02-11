@@ -800,12 +800,16 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                 children: [
                   Row(
                     children: [
-                      Text(
-                        product.title.replaceAll(' (Scale Master Guitar)', ''),
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.grey[300],
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          product.title.replaceAll(' (Scale Master Guitar)', ''),
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey[300],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (savingsLabel != null) ...[
