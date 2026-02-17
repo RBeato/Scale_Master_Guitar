@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../revenue_cat_purchase_flutter/entitlement.dart';
 import '../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
 /// Banner widget — shows RiffRoutine cross-marketing for free-tier users.
