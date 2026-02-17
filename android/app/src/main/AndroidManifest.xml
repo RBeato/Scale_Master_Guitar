@@ -2,8 +2,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.rbsoundz.scalemasterguitar">
 
-    <!-- Explicitly opt out of advertising ID since ads were removed -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <!-- Required by RevenueCat for attribution/analytics -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
     <!-- Required permissions -->
     <uses-permission android:name="com.android.vending.BILLING"/>
