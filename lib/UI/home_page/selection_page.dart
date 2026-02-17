@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
+import 'package:scalemasterguitar/widgets/banner_ad_widget.dart';
 import '../chromatic_wheel/provider/top_note_provider.dart';
 import '../fretboard/provider/fingerings_provider.dart';
 import '../player_page/player_page.dart';
@@ -59,23 +60,30 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(
-              height: 80,
-              child: ScaleSelector(),
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 80,
+                    child: ScaleSelector(),
+                  ),
+                  const Expanded(
+                    child: WheelAndPianoColumn(),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.bottom,
+                  )
+                ],
+              ),
             ),
-            const Expanded(
-              child: WheelAndPianoColumn(),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: MediaQuery.of(context).padding.bottom,
-            )
-          ],
-        ),
+          ),
+          const BannerAdWidget(),
+        ],
       ),
       drawer: const CustomDrawer(),
     );

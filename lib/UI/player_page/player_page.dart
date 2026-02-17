@@ -6,7 +6,8 @@ import 'package:scalemasterguitar/UI/player_page/logic/sequencer_manager.dart';
 import 'package:scalemasterguitar/UI/player_page/player/player_widget.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/is_playing_provider.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/player_page_title.dart';
-import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';  
+import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
+import 'package:scalemasterguitar/widgets/banner_ad_widget.dart';
 
 import '../../models/chord_scale_model.dart';
 import '../../models/progression_model.dart';
@@ -305,6 +306,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
             ),
           ],
         ),
+        bottomNavigationBar: const BannerAdWidget(),
         body: SafeArea(
             child: fingerings.when(
                 data: (data) {

@@ -40,37 +40,58 @@ class OtherAppsPromoWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                Icon(
-                  Icons.apps_rounded,
-                  color: accentColor ?? theme.colorScheme.primary,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'More Music Apps',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
+            // Header with RiffRoutine branding — tappable to visit website
+            InkWell(
+              onTap: () => _launchRiffRoutine(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/riff_routine_logo.png',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.music_note_rounded,
+                          color: accentColor ?? theme.colorScheme.primary,
+                          size: 28,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Check out our other tools for musicians',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'More from RiffRoutine',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'riffroutine.com — Apps & resources for musicians',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.open_in_new,
+                      size: 16,
+                      color: accentColor ?? theme.colorScheme.primary,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -286,43 +307,69 @@ class OtherAppsPromoWidget extends StatelessWidget {
     return allApps.where((app) => app.id != currentAppId).toList();
   }
 
+  Future<void> _launchRiffRoutine(BuildContext context) async {
+    const url = 'https://www.riffroutine.com';
+    final uri = Uri.parse(url);
+    bool launched = false;
+
+    for (final mode in [
+      LaunchMode.externalApplication,
+      LaunchMode.platformDefault,
+      LaunchMode.inAppBrowserView,
+      LaunchMode.inAppWebView,
+    ]) {
+      try {
+        launched = await launchUrl(uri, mode: mode);
+        if (launched) return;
+      } catch (_) {
+        // Try next mode
+      }
+    }
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open riffroutine.com'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   Future<void> _launchAppStore(BuildContext context, AppInfo app) async {
-    // Determine platform and URL
     final url = _getPlatformUrl(context, app);
     final uri = Uri.parse(url);
+    bool launched = false;
 
-    try {
-      final canLaunch = await canLaunchUrl(uri);
-      if (canLaunch) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          _showErrorSnackbar(context, 'Unable to open store');
-        }
+    for (final mode in [
+      LaunchMode.externalApplication,
+      LaunchMode.platformDefault,
+      LaunchMode.inAppBrowserView,
+    ]) {
+      try {
+        launched = await launchUrl(uri, mode: mode);
+        if (launched) return;
+      } catch (_) {
+        // Try next mode
       }
-    } catch (e) {
-      if (context.mounted) {
-        _showErrorSnackbar(context, 'Error opening store');
-      }
+    }
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open store'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
   String _getPlatformUrl(BuildContext context, AppInfo app) {
-    // Detect platform
     if (Theme.of(context).platform == TargetPlatform.iOS) {
       return app.iosUrl;
     } else {
       return app.androidUrl;
     }
-  }
-
-  void _showErrorSnackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 }
 
