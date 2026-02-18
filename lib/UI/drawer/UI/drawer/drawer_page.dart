@@ -13,8 +13,11 @@ import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'chord_options_cards.dart';
+
+const _linkedEmailKey = 'riffroutine_linked_email';
 
 class DrawerPage extends ConsumerStatefulWidget {
   const DrawerPage({super.key});
@@ -138,8 +141,24 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                   ),
                 ),
               
-              const SizedBox(height: 20),
-              
+              const SizedBox(height: 8),
+
+              // Link RiffRoutine Account
+              Card(
+                color: Colors.purple.withValues(alpha: 0.1),
+                child: ListTile(
+                  leading: const Icon(Icons.link, color: Colors.purple),
+                  title: const Text(
+                    'Link RiffRoutine Account',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text('Unlock premium with your web subscription'),
+                  onTap: () => _showLinkAccountSheet(context),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
               // Contact & Feedback button with User ID sharing
               Card(
                 color: Colors.green.withValues(alpha: 0.1),
@@ -251,6 +270,46 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
       case Entitlement.fingeringsLibrary:
         return 'Fingerings Library Subscriber';
     }
+  }
+
+  /// Show bottom sheet to link a RiffRoutine web subscription
+  Future<void> _showLinkAccountSheet(BuildContext context) async {
+    // Check if already linked
+    final prefs = await SharedPreferences.getInstance();
+    final existingEmail = prefs.getString(_linkedEmailKey);
+
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return _LinkAccountSheet(
+          existingEmail: existingEmail,
+          onLinked: (email) async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_linkedEmailKey, email);
+            // Refresh entitlement state
+            final entitlement = await PurchaseApi.getUserEntitlement();
+            ref.read(revenueCatProvider.notifier).state = entitlement;
+            if (mounted) setState(() {});
+          },
+          onUnlinked: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove(_linkedEmailKey);
+            try {
+              await Purchases.logOut();
+            } catch (_) {}
+            final entitlement = await PurchaseApi.getUserEntitlement();
+            ref.read(revenueCatProvider.notifier).state = entitlement;
+            if (mounted) setState(() {});
+          },
+        );
+      },
+    );
   }
 
   /// Show support dialog with User ID sharing
@@ -421,5 +480,248 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
         ),
       );
     }
+  }
+}
+
+/// Bottom sheet widget for linking/unlinking a RiffRoutine account.
+class _LinkAccountSheet extends StatefulWidget {
+  final String? existingEmail;
+  final Future<void> Function(String email) onLinked;
+  final Future<void> Function() onUnlinked;
+
+  const _LinkAccountSheet({
+    required this.existingEmail,
+    required this.onLinked,
+    required this.onUnlinked,
+  });
+
+  @override
+  State<_LinkAccountSheet> createState() => _LinkAccountSheetState();
+}
+
+class _LinkAccountSheetState extends State<_LinkAccountSheet> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+  String? _linkedEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _linkedEmail = widget.existingEmail;
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _linkAccount() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await Purchases.logIn(email);
+      final hasAccess = result.customerInfo.entitlements.active.isNotEmpty;
+
+      await widget.onLinked(email);
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _linkedEmail = email;
+      });
+
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            hasAccess
+                ? 'Account linked! Premium unlocked.'
+                : 'Account linked. No active subscription found.',
+          ),
+          backgroundColor: hasAccess ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to link account: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _unlinkAccount() async {
+    setState(() => _isLoading = true);
+    try {
+      await widget.onUnlinked();
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _linkedEmail = null;
+      });
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account unlinked.'),
+          backgroundColor: Colors.grey,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Row(
+            children: [
+              Icon(Icons.link, color: Colors.purple, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Link RiffRoutine Account',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _linkedEmail != null
+                ? 'Your account is linked to:'
+                : 'Enter the email you used to subscribe on riffroutine.com',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          if (_linkedEmail != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _linkedEmail!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _unlinkAccount,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Unlink Account'),
+              ),
+            ),
+          ] else ...[
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: 'your@email.com',
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.purple, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _linkAccount,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Link Account',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
