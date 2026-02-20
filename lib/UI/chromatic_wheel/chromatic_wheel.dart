@@ -327,7 +327,10 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
             _currentRotation, chromaticNotes, scaleIntervals, topNote),
         child: LayoutBuilder(
   builder: (context, constraints) {
-    final double size = MediaQuery.of(context).size.width * 0.9;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double size = screenWidth > 600
+        ? screenWidth * 0.66  // Tablet/iPad: scaled wheel
+        : screenWidth * 0.9;  // Phone: unchanged
     return SizedBox(
       width: size,
       height: size,

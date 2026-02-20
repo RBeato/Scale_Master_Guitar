@@ -29,9 +29,10 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
     // Show all scales but indicate which ones require premium
     final allScales = Scales.data.keys.toList();
 
+    final isTablet = MediaQuery.of(context).size.width > 600;
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        padding: EdgeInsets.symmetric(horizontal: isTablet ? 40.0 : 8.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

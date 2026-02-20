@@ -44,9 +44,10 @@ class WheelAndPianoColumn extends ConsumerWidget {
     return ConstantColors.scaleTonicColorMap[interval] ?? Colors.white;
   }
 
-  Widget _buildScaleNotesDisplay(ScaleModel scaleModel) {
+  Widget _buildScaleNotesDisplay(BuildContext context, ScaleModel scaleModel) {
     final notes = scaleModel.scaleNotesNames;
     final intervals = scaleModel.notesIntervalsRelativeToTonicForBuildingChordsList ?? [];
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -72,9 +73,9 @@ class WheelAndPianoColumn extends ConsumerWidget {
             children: [
               Text(
                 note,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: isTablet ? 22 : 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -83,7 +84,7 @@ class WheelAndPianoColumn extends ConsumerWidget {
                 intervalName,
                 style: TextStyle(
                   color: intervalColor,
-                  fontSize: 12,
+                  fontSize: isTablet ? 16 : 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -149,10 +150,10 @@ class WheelAndPianoColumn extends ConsumerWidget {
               Padding(
                 padding: EdgeInsets.only(
                   bottom: isPremium ? 20 : 10,
-                  left: 16,
-                  right: 16,
+                  left: MediaQuery.of(context).size.width > 600 ? 40 : 16,
+                  right: MediaQuery.of(context).size.width > 600 ? 40 : 16,
                 ),
-                child: _buildScaleNotesDisplay(data.scaleModel!),
+                child: _buildScaleNotesDisplay(context, data.scaleModel!),
               ),
             ],
           );
@@ -175,14 +176,18 @@ class WheelAndPianoColumn extends ConsumerWidget {
                 flex: isPremium ? 5 : 6, // Slightly smaller piano area for premium
                 child: Align(
                   alignment: Alignment.bottomCenter,
-                  child: Transform.scale(
-                    scale: 1.12, // Keep the same scale
-                    child: CustomPianoSoundController(data.scaleModel),
+                  child: Builder(
+                    builder: (context) {
+                      final isTablet = MediaQuery.of(context).size.width > 600;
+                      return CustomPianoSoundController(
+                        data.scaleModel,
+                        keyScale: isTablet ? 1.61 : 1.12,
+                      );
+                    },
                   ),
                 ),
               ),
-              if (isPremium)
-                const SizedBox(height: 20), // Extra bottom padding for premium users
+              SizedBox(height: isPremium ? 20 : 30), // Bottom padding to clear banner
             ],
           ),
         );

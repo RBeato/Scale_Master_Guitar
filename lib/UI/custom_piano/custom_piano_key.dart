@@ -7,6 +7,8 @@ class CustomPianoKey extends StatefulWidget {
   final Function(String) onKeyUp;
   final bool isInScale;
   final Color? containerColor;
+  final double keyHeight;
+  final double keyWidth;
 
   const CustomPianoKey({
     super.key,
@@ -16,6 +18,8 @@ class CustomPianoKey extends StatefulWidget {
     required this.onKeyUp,
     required this.containerColor,
     this.isInScale = false,
+    this.keyHeight = 0,
+    this.keyWidth = 0,
   });
 
   @override
@@ -26,14 +30,14 @@ class _CustomPianoKeyState extends State<CustomPianoKey> {
   bool _isPressed = false;
 
   void _onKeyTapDown(TapDownDetails details) {
-    if (!_isPressed) {
-      setState(() {
-        _isPressed = true;
-      });
-      final String keyContext = 'CustomPianoKey[\${widget.note}]';
-      debugPrint('[$keyContext] KEY DOWN. Calling onKeyDown("${widget.note}")');
-      widget.onKeyDown(widget.note);
+    if (_isPressed) {
+      // Previous tap-up was missed (e.g., due to parent rebuild) - clean up first
+      widget.onKeyUp(widget.note);
     }
+    setState(() {
+      _isPressed = true;
+    });
+    widget.onKeyDown(widget.note);
   }
 
   void _onKeyTapUp(TapUpDetails details) {
@@ -90,13 +94,22 @@ class _CustomPianoKeyState extends State<CustomPianoKey> {
                           BorderSide(width: 1.0, color: Colors.grey.shade800),
                     ),
             ),
-            height: widget.isBlack ? 100 : 150,
-            width: widget.isBlack ? 25 : 40,
+            height: widget.keyHeight > 0 ? widget.keyHeight : (widget.isBlack ? 100 : 150),
+            width: widget.keyWidth > 0 ? widget.keyWidth : (widget.isBlack ? 25 : 40),
             alignment: Alignment.bottomCenter,
-            child: Text(
-              widget.note,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: textColor, fontSize: 12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                widget.isBlack && widget.note.contains('/')
+                    ? widget.note.replaceFirst('/', '\n')
+                    : widget.note,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  height: widget.isBlack ? 1.2 : null,
+                ),
+              ),
             ),
           ),
           if (widget.isInScale) // Add oval container if the key is in the scale

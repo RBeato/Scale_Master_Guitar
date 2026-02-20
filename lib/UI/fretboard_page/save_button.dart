@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:typed_data';
+import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:share_plus/share_plus.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/services/feature_restriction_service.dart';
@@ -26,18 +26,21 @@ class SaveImageButton extends ConsumerWidget {
     }
 
     try {
-      // Save to temp directory, then share via native share sheet
+      // Save to temp file first, then use Gal to save to device gallery/photos
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final file = File('${tempDir.path}/SMG_fretboard_$timestamp.png');
       await file.writeAsBytes(pngBytes);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Scale Master Guitar - Fretboard',
-      );
+      await Gal.putImage(file.path, album: 'SMGuitar');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image saved to Photos')),
+        );
+      }
     } catch (e) {
-      debugPrint('Error sharing image: $e');
+      debugPrint('Error saving image: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error saving image')),

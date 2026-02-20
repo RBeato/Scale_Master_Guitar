@@ -323,10 +323,36 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                       Column(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          const SizedBox(height: 30),
-                          Fretboard(),
-                          const Expanded(
-                              flex: 6, child: Center(child: Chords())),
+                          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 60 : 30),
+                          Builder(
+                            builder: (context) {
+                              final isTablet = MediaQuery.of(context).size.width > 600;
+                              return Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isTablet ? 20 : 0,
+                                ),
+                                child: Center(
+                                  child: Transform.scale(
+                                    scale: isTablet ? 1.44 : 1.0, // Scaled up for iPad
+                                    child: Fretboard(),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Expanded(
+                              flex: 6,
+                              child: Center(
+                                child: Builder(
+                                  builder: (context) {
+                                    final isTablet = MediaQuery.of(context).size.width > 600;
+                                    return Transform.scale(
+                                      scale: isTablet ? 1.2 : 1.0, // 20% bigger on iPad
+                                      child: const Chords(),
+                                    );
+                                  },
+                                ),
+                              )),
                           Expanded(
                               flex: 8,
                               child: Builder(
@@ -340,7 +366,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                                   }
                                 },
                               )),
-                          const SizedBox(height: 40),
+                          SizedBox(height: MediaQuery.of(context).size.width > 600 ? 60 : 40),
                         ],
                       ),
                     ],

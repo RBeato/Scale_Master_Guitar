@@ -16,6 +16,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scalemasterguitar/services/in_app_review_service.dart';
+import 'package:scalemasterguitar/services/riffroutine_api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'chord_options_cards.dart';
@@ -532,7 +533,10 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
   }
 }
 
-/// Bottom sheet widget for linking/unlinking a RiffRoutine account.
+enum _LinkStep { enterEmail, enterCode, result }
+
+/// Bottom sheet widget for linking/unlinking a RiffRoutine account
+/// with 6-digit email verification code.
 class _LinkAccountSheet extends StatefulWidget {
   final String? existingEmail;
   final Future<void> Function(String email) onLinked;
@@ -550,8 +554,16 @@ class _LinkAccountSheet extends StatefulWidget {
 
 class _LinkAccountSheetState extends State<_LinkAccountSheet> {
   final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _api = RiffRoutineApiService.instance;
+
+  _LinkStep _step = _LinkStep.enterEmail;
   bool _isLoading = false;
   String? _linkedEmail;
+  String? _error;
+  bool _canResend = false;
+  bool _hasSubscription = false;
+  String _tier = 'FREE';
 
   @override
   void initState() {
@@ -562,59 +574,183 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
   @override
   void dispose() {
     _emailController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
-  Future<void> _linkAccount() async {
+  Future<void> _sendCode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid email'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      setState(() => _error = 'Please enter a valid email');
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final success = await _api.sendLinkCode(email);
+
+    if (!mounted) return;
+    if (success) {
+      setState(() {
+        _isLoading = false;
+        _step = _LinkStep.enterCode;
+        _canResend = false;
+      });
+      Future.delayed(const Duration(seconds: 60), () {
+        if (mounted) setState(() => _canResend = true);
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+        _error = 'Failed to send code. Please try again.';
+      });
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final code = _codeController.text.trim();
+    if (code.length != 6) {
+      setState(() => _error = 'Please enter the 6-digit code');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final email = _emailController.text.trim();
+    final result = await _api.verifyLinkCode(email, code);
+
+    if (!mounted) return;
+
+    if (result == null) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Connection error. Please try again.';
+      });
+      return;
+    }
+
+    if (result['verified'] != true) {
+      final errorCode = result['error'] as String?;
+      final remaining = result['attemptsRemaining'] as int?;
+      String errorMsg;
+      if (errorCode == 'code_expired') {
+        errorMsg = 'Code expired. Please request a new one.';
+      } else if (errorCode == 'too_many_attempts') {
+        errorMsg = 'Too many failed attempts. Please request a new code.';
+        _codeController.clear();
+        _step = _LinkStep.enterEmail;
+      } else if (remaining != null && remaining > 0) {
+        errorMsg = 'Invalid code. $remaining attempt${remaining == 1 ? '' : 's'} remaining.';
+      } else {
+        errorMsg = 'Invalid code. Please try again.';
+      }
+      setState(() {
+        _isLoading = false;
+        _error = errorMsg;
+      });
+      return;
+    }
+
+    // Verified — now do RevenueCat login with purchase protection
+    _hasSubscription = result['hasSubscription'] == true;
+    _tier = (result['tier'] as String?) ?? 'FREE';
 
     try {
-      final result = await Purchases.logIn(email);
-      final hasAccess = result.customerInfo.entitlements.active.isNotEmpty;
+      // 1. Snapshot current entitlements BEFORE switching identity
+      final beforeInfo = await Purchases.getCustomerInfo();
+      final previousEntitlements = beforeInfo.entitlements.active.keys.toList();
 
+      // 2. Switch RevenueCat identity
+      final loginResult = await Purchases.logIn(email);
+
+      // 3. Check if existing purchases would be lost
+      final lostEntitlements = previousEntitlements.where(
+        (id) => !loginResult.customerInfo.entitlements.active.containsKey(id),
+      ).toList();
+
+      if (lostEntitlements.isNotEmpty && !_hasSubscription) {
+        if (!mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Warning: Existing Purchases'),
+            content: Text(
+              'Linking this account would disconnect your current in-app purchase '
+              '(${lostEntitlements.join(", ")}). '
+              'The linked RiffRoutine account has no active subscription.\n\n'
+              'Do you want to proceed anyway?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.orange),
+                child: const Text('Link Anyway'),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) {
+          try { await Purchases.logOut(); } catch (_) {}
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // 4. Success — notify parent
       await widget.onLinked(email);
 
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _linkedEmail = email;
+        _step = _LinkStep.result;
       });
-
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            hasAccess
-                ? 'Account linked! Premium unlocked.'
-                : 'Account linked. No active subscription found.',
-          ),
-          backgroundColor: hasAccess ? Colors.green : Colors.orange,
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to link account: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _isLoading = false;
+        _error = 'Failed to link account: $e';
+      });
     }
   }
 
   Future<void> _unlinkAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unlink Account?'),
+        content: const Text(
+          'This will disconnect your RiffRoutine subscription from this app. '
+          'You can re-link at any time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Unlink'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
     setState(() => _isLoading = true);
     try {
       await widget.onUnlinked();
@@ -622,14 +758,11 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
       setState(() {
         _isLoading = false;
         _linkedEmail = null;
+        _step = _LinkStep.enterEmail;
+        _emailController.clear();
+        _codeController.clear();
+        _error = null;
       });
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account unlinked.'),
-          backgroundColor: Colors.grey,
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -670,105 +803,264 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            _linkedEmail != null
-                ? 'Your account is linked to:'
-                : 'Enter the email you used to subscribe on riffroutine.com',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          if (_linkedEmail != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _linkedEmail!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+          const SizedBox(height: 16),
+
+          // Show linked view
+          if (_linkedEmail != null && _step != _LinkStep.result) ...[
+            _buildLinkedView(),
+          ] else ...[
+            // Error message
+            if (_error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ],
+
+            // Step content
+            if (_step == _LinkStep.enterEmail) _buildEmailStep(),
+            if (_step == _LinkStep.enterCode) _buildCodeStep(),
+            if (_step == _LinkStep.result) _buildResultStep(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkedView() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.1),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Account Linked', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text(_linkedEmail!, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _isLoading ? null : _unlinkAccount,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Unlink Account'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter the email you used on riffroutine.com',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          decoration: InputDecoration(
+            hintText: 'your@email.com',
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.purple, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "We'll send a 6-digit verification code to this email",
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _sendCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Send Verification Code', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCodeStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Code sent to ${_emailController.text.trim()}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _isLoading ? null : _unlinkAccount,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Unlink Account'),
-              ),
-            ),
-          ] else ...[
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                hintText: 'your@email.com',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.purple, width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _linkAccount,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Link Account',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-              ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _step = _LinkStep.enterEmail;
+                  _codeController.clear();
+                  _error = null;
+                });
+              },
+              child: const Text('Change', style: TextStyle(color: Colors.purple)),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _codeController,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 8),
+          decoration: InputDecoration(
+            hintText: '000000',
+            counterText: '',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.purple, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _verifyCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Verify & Link', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: _canResend ? _sendCode : null,
+            child: Text(
+              _canResend ? 'Resend code' : 'Resend code (wait 60s)',
+              style: TextStyle(
+                color: _canResend ? Colors.purple : Colors.grey.shade400,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultStep() {
+    if (_hasSubscription) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.1),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green, size: 48),
+            const SizedBox(height: 12),
+            const Text('Account Linked!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(
+              '${_tier.toUpperCase()} subscription active',
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange, size: 48),
+          const SizedBox(height: 12),
+          const Text('Email Verified & Linked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            'No active subscription found. Subscribe at riffroutine.com/pricing to unlock premium.',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your subscription will automatically sync to this app.',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

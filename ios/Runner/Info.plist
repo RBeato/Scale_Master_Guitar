@@ -49,6 +49,8 @@
 		<false/>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>This app needs access to your photo library to save and load scale diagrams and chord charts.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>This app needs permission to save fretboard images to your photo library.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>This app needs access to the microphone for audio playback.</string>
 		<key>UIBackgroundModes</key>

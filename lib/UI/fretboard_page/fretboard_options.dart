@@ -17,37 +17,46 @@ class FretboardOptionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final column = Column(
+      mainAxisAlignment: isTablet ? MainAxisAlignment.center : MainAxisAlignment.spaceEvenly,
+      mainAxisSize: isTablet ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        const SaveImageButton(),
+        const SaveToLibraryButton(),
+        const LibraryAccessButton(),
+        const NoteNamesButton(),
+        const FretboardColorChangeButton(),
+        isDegreeSelected
+            ? Container()
+            : const FretboardSharpFlatToggleButton(),
+        ColorPalette(
+          colors: const [
+            Colors.blueGrey,
+            Colors.red,
+            Colors.green,
+            Colors.yellow,
+            Colors.purple,
+          ],
+          onColorSelected: (Color color) {
+            ref
+                .read(paletteColorProvider.notifier)
+                .update((state) => color);
+          },
+        ),
+      ],
+    );
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(top: 20.0, bottom: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            const SaveImageButton(),
-            const SaveToLibraryButton(),
-            const LibraryAccessButton(),
-            const NoteNamesButton(),
-            const FretboardColorChangeButton(),
-            isDegreeSelected
-                ? Container()
-                : const FretboardSharpFlatToggleButton(),
-            ColorPalette(
-              colors: const [
-                Colors.blueGrey,
-                Colors.red,
-                Colors.green,
-                Colors.yellow,
-                Colors.purple,
-              ],
-              onColorSelected: (Color color) {
-                ref
-                    .read(paletteColorProvider.notifier)
-                    .update((state) => color);
-              },
-            ),
-          ],
-        ),
+        child: isTablet
+            ? Transform.scale(
+                scale: 1.3,
+                child: column,
+              )
+            : column,
       ),
     );
   }

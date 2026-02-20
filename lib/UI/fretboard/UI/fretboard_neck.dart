@@ -16,6 +16,7 @@ class Fretboard extends ConsumerWidget {
     final fingerings = ref.watch(chordModelFretboardFingeringProvider);
     final sharpFlatPreference = ref.watch(sharpFlatSelectionProvider);
 
+    final isTablet = MediaQuery.of(context).size.width > 600;
     return SizedBox(
       height: 200,
       child: fingerings.when(
@@ -23,10 +24,11 @@ class Fretboard extends ConsumerWidget {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             controller: _scrollController,
+            physics: const ClampingScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 vertical: 20.0,
-                horizontal: 50.0,
+                horizontal: isTablet ? 160.0 : 50.0,
               ),
               child: CustomPaint(
                 painter: FretboardPainter(

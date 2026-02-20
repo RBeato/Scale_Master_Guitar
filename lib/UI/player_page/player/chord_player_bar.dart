@@ -81,6 +81,8 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
       ));
     }
 
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final double edgeInset = isTablet ? 20.0 : 0.0;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.backgroundDark,
@@ -98,7 +100,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
           ),
           //CLEAR DRUMS BUTTON and TRANSPORT
           Positioned(
-            left: 0,
+            left: edgeInset,
             bottom: 0,
             child: Padding(
               padding: const EdgeInsets.all(10.0),
@@ -114,7 +116,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
           ),
           Positioned(
             bottom: 0,
-            right: 0,
+            right: edgeInset,
             child: InkWell(
               onTap: widget.clearTracks,
               child: Container(
@@ -132,7 +134,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
           ),
           Positioned(
             top: 0,
-            left: 0,
+            left: edgeInset,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
@@ -147,7 +149,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
           // Save button - visible to all users, paywall for free users
           Positioned(
             top: 0,
-            right: 50,
+            right: 50 + edgeInset,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -163,7 +165,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
           
           Positioned(
             top: 0,
-            right: 0,
+            right: edgeInset,
             child: MetronomeButton(),
           ),
         ],

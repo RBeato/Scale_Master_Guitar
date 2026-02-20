@@ -829,8 +829,8 @@ class SequencerManager {
     if (kDebugMode) {
       debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
     }
-    // Custom playback system uses local tempo directly
-    tempo = nextTempo; 
+    tempo = nextTempo;
+    sequence.setTempo(nextTempo);
   }
 
   // handleTrackChange(Track nextTrack) {

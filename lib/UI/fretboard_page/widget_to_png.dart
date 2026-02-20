@@ -67,6 +67,31 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
+    if (isTablet) {
+      // Stack: buttons at left edge, fretboard centered with 30% width reduction
+      return Stack(
+        children: [
+          // Centered fretboard (70% of screen width)
+          Center(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.5,
+              child: RepaintBoundary(key: _globalKey, child: widget.child),
+            ),
+          ),
+          // Buttons pinned to the left
+          Positioned(
+            left: 12,
+            top: 0,
+            bottom: 0,
+            child: FretboardOptionButtons(widget.isDegreeSelected),
+          ),
+        ],
+      );
+    }
+
+    // Phone: original Row layout
     return Row(
       children: [
         Expanded(

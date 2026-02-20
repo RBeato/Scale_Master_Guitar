@@ -18,9 +18,10 @@ import '../player_page/provider/metronome_tempo_provider.dart';
 import 'custom_piano.dart';
 
 class CustomPianoSoundController extends ConsumerStatefulWidget {
-  const CustomPianoSoundController(this.scaleModel, {super.key});
+  const CustomPianoSoundController(this.scaleModel, {this.keyScale = 1.0, super.key});
 
   final ScaleModel? scaleModel;
+  final double keyScale;
 
   @override
   CustomPianoState createState() => CustomPianoState();
@@ -255,11 +256,9 @@ class CustomPianoState extends ConsumerState<CustomPianoSoundController>
     // );
     return CustomPiano(
       widget.scaleModel,
-      // onKeyPressed: (note) => Debouncer.handleButtonPress(() { // Old
-      //   sequencerManager.playPianoNote(note, tracks, sequence);
-      // }),
-      onKeyDown: handlePianoKeyDown, // New
-      onKeyUp: handlePianoKeyUp,     // New
+      onKeyDown: handlePianoKeyDown,
+      onKeyUp: handlePianoKeyUp,
+      keyScale: widget.keyScale,
     );
   }
 }
