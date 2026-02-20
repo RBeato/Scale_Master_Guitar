@@ -8,12 +8,15 @@ import 'package:scalemasterguitar/UI/drawer/provider/settings_state_notifier.dar
 import 'package:scalemasterguitar/constants/styles.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/shared/widgets/other_apps_promo_widget.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:scalemasterguitar/services/in_app_review_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'chord_options_cards.dart';
 
@@ -158,6 +161,52 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               ),
 
               const SizedBox(height: 12),
+
+              // Rate the App
+              Card(
+                color: Colors.orange.withValues(alpha: 0.1),
+                child: ListTile(
+                  leading: const Icon(Icons.star_rate_rounded, color: Colors.orange),
+                  title: const Text(
+                    'Rate Scale Master',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text('Enjoying the app? Leave a review!'),
+                  onTap: () => InAppReviewService().openStoreListing(),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Suggest improvements via email
+              Card(
+                color: Colors.amber.withValues(alpha: 0.1),
+                child: ListTile(
+                  leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
+                  title: const Text(
+                    'Suggest Improvements',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text('Tell us what features you want'),
+                  onTap: () async {
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: 'rb.soundz@hotmail.com',
+                      queryParameters: {
+                        'subject': 'Scale Master Guitar - Feature Suggestion',
+                        'body': 'Hi! I\'d love to see this feature in Scale Master:\n\n',
+                      },
+                    );
+                    try {
+                      await launchUrl(emailUri);
+                    } catch (e) {
+                      debugPrint('Could not launch email: $e');
+                    }
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 8),
 
               // Contact & Feedback button with User ID sharing
               Card(
