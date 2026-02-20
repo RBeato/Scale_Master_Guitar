@@ -126,7 +126,7 @@ class InAppReviewService {
   Future<void> openStoreListing() async {
     try {
       await _inAppReview.openStoreListing(
-        appStoreId: '', // iOS App Store ID - will use bundle ID if empty
+        appStoreId: '6746448058',
       );
     } catch (e) {
       debugPrint('📊 [ReviewService] Error opening store listing: $e');
