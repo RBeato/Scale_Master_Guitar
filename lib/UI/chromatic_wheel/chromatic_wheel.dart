@@ -329,7 +329,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
   builder: (context, constraints) {
     final screenWidth = MediaQuery.of(context).size.width;
     final double size = screenWidth > 600
-        ? screenWidth * 0.66  // Tablet/iPad: scaled wheel
+        ? screenWidth * 0.58  // Tablet/iPad: scaled wheel
         : screenWidth * 0.9;  // Phone: unchanged
     return SizedBox(
       width: size,

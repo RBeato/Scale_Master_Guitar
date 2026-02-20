@@ -58,7 +58,7 @@ class WheelPainter extends CustomPainter {
           fontWeight:
               scaleIntervals[i] != null ? FontWeight.bold : FontWeight.normal,
           color: getDegreeColor(chromaticNotes[i], i), // Colors.grey,
-          fontSize: size.width * 0.06,
+          fontSize: size.width * 0.055,
         ),
       );
       textPainter.layout();
@@ -79,7 +79,7 @@ class WheelPainter extends CustomPainter {
     // Draw the inner note containers and notes
     double containerRadius = size.width * 0.07;
     double containerDistance = innerRadius * 0.8;
-    double containerFontSize = size.width * 0.045;
+    double containerFontSize = size.width * 0.041;
     for (int i = 0; i < MusicConstants.notesWithFlatsAndSharps.length; i++) {
       // debugPrint(
       //     "i=$i, MusicConstants.notesWithFlatsAndSharps[i]: ${MusicConstants.notesWithFlatsAndSharps[i]}, ");
