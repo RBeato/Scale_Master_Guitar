@@ -21,6 +21,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
+import 'package:scalemasterguitar/services/in_app_review_service.dart';
 
 //TODO: fix performance. Avoid unnecessary rebuilds. Test overall performance
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
@@ -146,6 +147,9 @@ void main() async {
       // Load environment variables
       await dotenv.load(fileName: ".env");
 
+      // Track app open for smart review prompts
+      await InAppReviewService().trackAppOpen();
+
       // Initialize Supabase for fingerings library
       final supabaseInitialized = await SupabaseService.instance.initialize();
       if (supabaseInitialized) {
@@ -223,8 +227,8 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-// Global flag to show debug overlay in TestFlight builds
-bool showDebugOverlay = true;
+// Global flag to show debug overlay - only in debug mode
+bool showDebugOverlay = kDebugMode;
 
 class _MyAppState extends ConsumerState<MyApp> {
   final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();

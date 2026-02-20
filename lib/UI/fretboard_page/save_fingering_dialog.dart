@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/models/saved_fingering.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
+import 'package:scalemasterguitar/services/in_app_review_service.dart';
 import 'package:uuid/uuid.dart';
 
 class SaveFingeringDialog extends ConsumerStatefulWidget {
@@ -72,6 +73,10 @@ class _SaveFingeringDialogState extends ConsumerState<SaveFingeringDialog> {
       final saved = await supabase.saveFingering(fingering);
 
       if (saved != null) {
+        // Track positive action & request review
+        InAppReviewService().trackKeyAction();
+        InAppReviewService().requestReviewIfReady();
+
         if (mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
