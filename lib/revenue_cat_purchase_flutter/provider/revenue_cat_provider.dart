@@ -4,6 +4,9 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 
+// Tracks whether the initial entitlement check has completed
+final entitlementLoadedProvider = StateProvider<bool>((ref) => false);
+
 // Define a provider for RevenueCatNotifier
 final revenueCatProvider =
     StateNotifierProvider<RevenueCatNotifier, Entitlement>((ref) {
@@ -50,7 +53,9 @@ class TestingStateNotifier extends StateNotifier<TestingState> {
 
 class RevenueCatNotifier extends StateNotifier<Entitlement> {
   final Ref _ref;
-  
+  bool _hasLoaded = false;
+  bool get hasLoaded => _hasLoaded;
+
   RevenueCatNotifier(this._ref) : super(Entitlement.free) {
     init();
   }
@@ -59,9 +64,13 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
   Future<void> init() async {
     try {
       await updatePurchaseStatus();
+      _hasLoaded = true;
+      _ref.read(entitlementLoadedProvider.notifier).state = true;
       // Set up listener for purchase updates
       Purchases.addCustomerInfoUpdateListener((_) => updatePurchaseStatus());
     } catch (e) {
+      _hasLoaded = true;
+      _ref.read(entitlementLoadedProvider.notifier).state = true;
       debugPrint('Error initializing RevenueCat: $e');
     }
   }

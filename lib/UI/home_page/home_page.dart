@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
@@ -11,44 +12,23 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hasLoaded = ref.watch(entitlementLoadedProvider);
     final entitlement = ref.watch(revenueCatProvider);
-    final isPremium = entitlement.isPremium; // Use the proper check for premium status
 
-    if (isPremium) {
-      // If premium, go directly to selection page
-      return const SelectionPage();
-    } else {
-      // If not premium, show paywall
-      return const UnifiedPaywall();
+    // Show loading screen until entitlement is resolved
+    if (!hasLoaded) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.orangeAccent),
+        ),
+      );
     }
 
-
-//TODO: Use this
-    // return FutureBuilder(
-    //   future: ref.read(revenueCatProvider.notifier).updatePurchaseStatus(),
-    //   builder: (context, snapshot) {
-    //     if (snapshot.connectionState == ConnectionState.waiting) {
-    //       return const Center(child: CircularProgressIndicator());
-    //     } else if (snapshot.connectionState == ConnectionState.done) {
-    //       WidgetsBinding.instance.addPostFrameCallback((_) {
-    //         Navigator.pushReplacement(
-    //           context,
-    //           MaterialPageRoute(builder: (context) => const SelectionPage()),
-    //         );
-    //       });
-    //       return const SizedBox.shrink();
-    //     } else {
-    //       return Scaffold(
-    //         appBar: AppBar(
-    //           title: Text(title),
-    //         ),
-    //         body: const Center(
-    //           child:
-    //               Text('Failed to check entitlement. Please try again later.'),
-    //         ),
-    //       );
-    //     }
-    //   },
-    // );
+    if (entitlement.isPremium) {
+      return const SelectionPage();
+    } else {
+      return const UnifiedPaywall();
+    }
   }
 }

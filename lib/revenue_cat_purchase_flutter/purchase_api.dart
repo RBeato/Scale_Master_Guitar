@@ -49,7 +49,8 @@ class PurchaseApi {
           activeEntitlements.containsKey(_premiumOneTimeEntitlementId);
       final hasPremiumSub =
           activeEntitlements.containsKey(_premiumSubEntitlementId) ||
-              activeEntitlements.containsKey(_premiumOfferingId);
+              activeEntitlements.containsKey(_premiumOfferingId) ||
+              activeEntitlements.containsKey('all_access');
       final hasFingeringsLibrary =
           activeEntitlements.containsKey(_fingeringsLibraryEntitlementId);
 
@@ -159,7 +160,8 @@ class PurchaseApi {
       return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey(_premiumOfferingId) ||
-             purchaserInfo.entitlements.active.containsKey(_fingeringsLibraryEntitlementId);
+             purchaserInfo.entitlements.active.containsKey(_fingeringsLibraryEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.code} - ${e.message}');
 
@@ -230,7 +232,8 @@ class PurchaseApi {
       // Check for any premium entitlement
       return restoredInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
              restoredInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
-             restoredInfo.entitlements.active.containsKey(_premiumOfferingId);
+             restoredInfo.entitlements.active.containsKey(_premiumOfferingId) ||
+             restoredInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error restoring purchases: ${e.message}');
       return false;

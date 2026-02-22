@@ -22,6 +22,8 @@ import 'package:upgrader/upgrader.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
 import 'package:scalemasterguitar/UI/paywall/unified_paywall.dart';
 import 'package:scalemasterguitar/services/in_app_review_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 //TODO: fix performance. Avoid unnecessary rebuilds. Test overall performance
 //TODO: fix too many beats error in the player. when trashing set beat counter to 0.
@@ -164,7 +166,37 @@ void main() async {
       } else if (Platform.isAndroid) {
         await PurchaseApi.init(dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? '');
       }
-    
+
+      // Auto-login with previously linked RiffRoutine email
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final linkedEmail = prefs.getString('riffroutine_linked_email');
+        if (linkedEmail != null && linkedEmail.isNotEmpty) {
+          debugPrint('[SMG] Auto-login with linked email: $linkedEmail');
+          final loginResult = await Purchases.logIn(linkedEmail);
+          final activeEntitlements = loginResult.customerInfo.entitlements.active;
+          debugPrint('[SMG] Auto-login success. Entitlements: ${activeEntitlements.keys.toList()}');
+
+          // Sync riffroutine_tier based on current RC entitlements
+          final hasAllAccess = activeEntitlements.containsKey('all_access');
+          if (hasAllAccess) {
+            await prefs.setString('riffroutine_tier', 'ELITE');
+            await prefs.setBool('riffroutine_subscription_active', true);
+          } else {
+            // No all_access — if was ELITE, subscription expired/canceled
+            final storedTier = prefs.getString('riffroutine_tier');
+            if (storedTier == 'ELITE') {
+              await prefs.setString('riffroutine_tier', 'FREE');
+              await prefs.setBool('riffroutine_subscription_active', false);
+            }
+            // If stored tier is PRO, keep it — PRO doesn't grant app entitlements
+          }
+          debugPrint('[SMG] Synced tier = ${prefs.getString('riffroutine_tier')}');
+        }
+      } catch (e) {
+        debugPrint('[SMG] Auto-login failed (non-fatal): $e');
+      }
+
       // Audio session is already configured above, no need to configure it again
 
       final container = ProviderContainer();
@@ -227,8 +259,8 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-// Global flag to show debug overlay - only in debug mode
-bool showDebugOverlay = kDebugMode;
+// Global flag to show debug overlay - disabled
+bool showDebugOverlay = false;
 
 class _MyAppState extends ConsumerState<MyApp> {
   final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();

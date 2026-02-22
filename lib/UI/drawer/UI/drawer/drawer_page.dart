@@ -22,6 +22,7 @@ import 'dart:io';
 import 'chord_options_cards.dart';
 
 const _linkedEmailKey = 'riffroutine_linked_email';
+const _anonUserIdKey = 'revenuecat_anon_user_id';
 
 class DrawerPage extends ConsumerStatefulWidget {
   const DrawerPage({super.key});
@@ -32,11 +33,13 @@ class DrawerPage extends ConsumerStatefulWidget {
 
 class _DrawerPageState extends ConsumerState<DrawerPage> {
   String _appVersion = '';
+  String? _linkedEmail;
 
   @override
   void initState() {
     super.initState();
     _loadVersion();
+    _loadLinkedEmail();
   }
 
   Future<void> _loadVersion() async {
@@ -44,6 +47,16 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
     if (mounted) {
       setState(() {
         _appVersion = 'v${packageInfo.version}+${packageInfo.buildNumber}';
+      });
+    }
+  }
+
+  Future<void> _loadLinkedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(_linkedEmailKey);
+    if (mounted) {
+      setState(() {
+        _linkedEmail = email;
       });
     }
   }
@@ -116,6 +129,38 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                   ),
                 ),
               
+              // Restore purchases button for free users
+              if (!entitlement.isPremium)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Restore Purchases'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey.shade400,
+                    ),
+                    onPressed: () async {
+                      try {
+                        await ref.read(revenueCatProvider.notifier).restorePurchases();
+                        if (!context.mounted) return;
+                        final restored = ref.read(revenueCatProvider).isPremium;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(restored
+                                ? 'Purchases restored successfully!'
+                                : 'No previous purchases found.'),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Error restoring purchases. Please try again.')),
+                        );
+                      }
+                    },
+                  ),
+                ),
+
               // Show premium status for premium users
               if (entitlement.isPremium)
                 Container(
@@ -133,9 +178,11 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                       const Icon(Icons.verified, color: Colors.green, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        entitlement.name == 'premiumSub' 
-                          ? 'Premium Subscriber' 
-                          : 'Premium Lifetime',
+                        _linkedEmail != null
+                          ? 'RiffRoutine Premium'
+                          : entitlement.name == 'premiumSub'
+                            ? 'Premium Subscriber'
+                            : 'Premium Lifetime',
                         style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.w600,
@@ -149,14 +196,21 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
 
               // Link RiffRoutine Account
               Card(
-                color: Colors.purple.withValues(alpha: 0.1),
+                color: _linkedEmail != null
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.purple.withValues(alpha: 0.1),
                 child: ListTile(
-                  leading: const Icon(Icons.link, color: Colors.purple),
-                  title: const Text(
-                    'Link RiffRoutine Account',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                  leading: Icon(
+                    _linkedEmail != null ? Icons.check_circle : Icons.link,
+                    color: _linkedEmail != null ? Colors.green : Colors.purple,
                   ),
-                  subtitle: const Text('Unlock premium with your web subscription'),
+                  title: Text(
+                    _linkedEmail != null ? 'RiffRoutine Linked' : 'Link RiffRoutine Account',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                    _linkedEmail != null ? _linkedEmail! : 'Unlock premium with your web subscription',
+                  ),
                   onTap: () => _showLinkAccountSheet(context),
                 ),
               ),
@@ -345,17 +399,26 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
             // Refresh entitlement state
             final entitlement = await PurchaseApi.getUserEntitlement();
             ref.read(revenueCatProvider.notifier).state = entitlement;
-            if (mounted) setState(() {});
+            if (mounted) setState(() => _linkedEmail = email);
           },
           onUnlinked: () async {
             final prefs = await SharedPreferences.getInstance();
+            final savedAnonId = prefs.getString(_anonUserIdKey);
             await prefs.remove(_linkedEmailKey);
+            await prefs.remove('riffroutine_tier');
+            await prefs.remove('riffroutine_subscription_active');
+            await prefs.remove(_anonUserIdKey);
             try {
-              await Purchases.logOut();
+              // Restore original anonymous identity to reconnect prior purchases
+              if (savedAnonId != null) {
+                await Purchases.logIn(savedAnonId);
+              } else {
+                await Purchases.logOut();
+              }
             } catch (_) {}
             final entitlement = await PurchaseApi.getUserEntitlement();
             ref.read(revenueCatProvider.notifier).state = entitlement;
-            if (mounted) setState(() {});
+            if (mounted) setState(() => _linkedEmail = null);
           },
         );
       },
@@ -661,10 +724,19 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
     _hasSubscription = result['hasSubscription'] == true;
     _tier = (result['tier'] as String?) ?? 'FREE';
 
+    // Persist tier for display and subscription-aware logic
+    final tierPrefs = await SharedPreferences.getInstance();
+    await tierPrefs.setString('riffroutine_tier', _tier);
+    await tierPrefs.setBool('riffroutine_subscription_active', _hasSubscription);
+
     try {
-      // 1. Snapshot current entitlements BEFORE switching identity
+      // 1. Snapshot current entitlements and anonymous ID BEFORE switching identity
       final beforeInfo = await Purchases.getCustomerInfo();
       final previousEntitlements = beforeInfo.entitlements.active.keys.toList();
+      final previousAnonId = beforeInfo.originalAppUserId;
+
+      // Save anonymous ID so we can restore it on unlink
+      await tierPrefs.setString(_anonUserIdKey, previousAnonId);
 
       // 2. Switch RevenueCat identity
       final loginResult = await Purchases.logIn(email);
@@ -732,8 +804,8 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
       builder: (ctx) => AlertDialog(
         title: const Text('Unlink Account?'),
         content: const Text(
-          'This will disconnect your RiffRoutine subscription from this app. '
-          'You can re-link at any time.',
+          'If you purchased premium through this app while linked, '
+          'unlinking may affect your access. You can re-link anytime to restore it.',
         ),
         actions: [
           TextButton(
