@@ -203,18 +203,11 @@ void main() async {
       await container.read(settingsStateNotifierProvider.notifier).settings;
       await container.read(chordModelFretboardFingeringProvider.future);
       
-      // Enable testing mode for simulators in debug mode
-      if (kDebugMode && (Platform.isIOS || Platform.isAndroid)) {
-        // Check if running on simulator/emulator
-        try {
-          // For iOS simulator, we can check if it's a simulator environment
-          // For now, let's enable premium for all debug builds to test the layout
-          container.read(revenueCatProvider.notifier).setTestingMode(true, Entitlement.premiumSub);
-          debugPrint('Debug mode: Enabled premium testing mode');
-        } catch (e) {
-          debugPrint('Error setting testing mode: $e');
-        }
-      }
+      // Debug testing mode DISABLED — use real RevenueCat entitlements for testing
+      // To manually enable premium in debug, use the Developer Tools toggle in the drawer
+      // if (kDebugMode && (Platform.isIOS || Platform.isAndroid)) {
+      //   container.read(revenueCatProvider.notifier).setTestingMode(true, Entitlement.premiumSub);
+      // }
 
     // Removed all FlutterNativeSplash calls to eliminate duplicate splash screens
     

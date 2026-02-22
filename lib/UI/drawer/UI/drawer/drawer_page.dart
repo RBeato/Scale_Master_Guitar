@@ -129,33 +129,53 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                   ),
                 ),
               
-              // Restore purchases button for free users
-              if (!entitlement.isPremium)
+              // Restore purchases button - always visible (Apple requirement)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Restore Purchases'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade400,
+                  ),
+                  onPressed: () async {
+                    try {
+                      await ref.read(revenueCatProvider.notifier).restorePurchases();
+                      if (!context.mounted) return;
+                      final restored = ref.read(revenueCatProvider).isPremium;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(restored
+                              ? 'Purchases restored successfully!'
+                              : 'No previous purchases found.'),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error restoring purchases. Please try again.')),
+                      );
+                    }
+                  },
+                ),
+              ),
+
+              // Manage Subscription - link to store subscription management
+              if (entitlement.isPremium)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 4),
                   child: TextButton.icon(
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Restore Purchases'),
+                    icon: const Icon(Icons.manage_accounts, size: 18),
+                    label: const Text('Manage Subscription'),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.grey.shade400,
                     ),
                     onPressed: () async {
-                      try {
-                        await ref.read(revenueCatProvider.notifier).restorePurchases();
-                        if (!context.mounted) return;
-                        final restored = ref.read(revenueCatProvider).isPremium;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(restored
-                                ? 'Purchases restored successfully!'
-                                : 'No previous purchases found.'),
-                          ),
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Error restoring purchases. Please try again.')),
-                        );
+                      final url = Platform.isIOS
+                          ? 'https://apps.apple.com/account/subscriptions'
+                          : 'https://play.google.com/store/account/subscriptions';
+                      if (await canLaunchUrl(Uri.parse(url))) {
+                        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                       }
                     },
                   ),
