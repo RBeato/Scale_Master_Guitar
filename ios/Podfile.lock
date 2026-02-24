@@ -12,6 +12,9 @@ PODS:
     - Flutter
   - flutter_sequencer (0.1.0):
     - Flutter
+  - gal (1.0.0):
+    - Flutter
+    - FlutterMacOS
   - in_app_review (2.0.0):
     - Flutter
   - just_audio (0.0.1):
@@ -46,6 +49,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - flutter_sequencer (from `.symlinks/plugins/flutter_sequencer/ios`)
+  - gal (from `.symlinks/plugins/gal/darwin`)
   - in_app_review (from `.symlinks/plugins/in_app_review/ios`)
   - just_audio (from `.symlinks/plugins/just_audio/darwin`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
@@ -76,6 +80,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
   flutter_sequencer:
     :path: ".symlinks/plugins/flutter_sequencer/ios"
+  gal:
+    :path: ".symlinks/plugins/gal/darwin"
   in_app_review:
     :path: ".symlinks/plugins/in_app_review/ios"
   just_audio:
@@ -103,6 +109,7 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   flutter_sequencer: a394d9c90483556c9d6172487268d933b796f523
+  gal: baecd024ebfd13c441269ca7404792a7152fde89
   in_app_review: 7dd1ea365263f834b8464673f9df72c80c17c937
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
