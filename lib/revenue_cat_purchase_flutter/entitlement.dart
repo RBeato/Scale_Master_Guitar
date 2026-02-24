@@ -1,18 +1,17 @@
 enum Entitlement {
-  free,                       // Free tier, major scales only, no fretboard download
-  premiumSub,                 // Subscription: full functionality + fingerings library
-  premiumOneTime,             // One-time purchase: full functionality (NO fingerings library)
-  premiumOneTimeWithLibrary,  // Lifetime + fingerings library subscription
-  fingeringsLibrary,          // Fingerings library subscription: full features
+  free,           // Free tier, major scales only
+  premiumSub,     // Monthly subscription (in-app or riffroutine.com): all features + cloud library
+  premiumOneTime, // Lifetime purchase: scales, audio, download (NO instruments, NO cloud library)
 }
 
 extension EntitlementExtensions on Entitlement {
-  /// Returns true if user has any premium features (subscription or one-time)
+  /// Returns true if user has any premium features (subscription or lifetime)
   bool get isPremium =>
       this == Entitlement.premiumSub ||
-      this == Entitlement.premiumOneTime ||
-      this == Entitlement.premiumOneTimeWithLibrary ||
-      this == Entitlement.fingeringsLibrary;
+      this == Entitlement.premiumOneTime;
+
+  /// Returns true if user is an active subscriber (monthly in-app or riffroutine.com)
+  bool get isSubscriber => this == Entitlement.premiumSub;
 
   /// Returns true if user can access all scales
   bool get hasFullScaleAccess => isPremium;
@@ -23,15 +22,9 @@ extension EntitlementExtensions on Entitlement {
   /// Returns true if user can use audio player features
   bool get hasAudioAccess => isPremium;
 
-  /// Returns true if user can access the fingerings library feature
-  /// Subscription users, fingeringsLibrary subscribers, and lifetime+library users get access
-  bool get hasFingeringsLibraryAccess =>
-      this == Entitlement.premiumSub ||
-      this == Entitlement.fingeringsLibrary ||
-      this == Entitlement.premiumOneTimeWithLibrary;
+  /// Returns true if user can access the fingerings library (subscribers only)
+  bool get hasFingeringsLibraryAccess => isSubscriber;
 
-  /// Returns true if user is a lifetime purchaser (one-time premium)
-  bool get isLifetime =>
-      this == Entitlement.premiumOneTime ||
-      this == Entitlement.premiumOneTimeWithLibrary;
+  /// Returns true if user is a lifetime purchaser
+  bool get isLifetime => this == Entitlement.premiumOneTime;
 }

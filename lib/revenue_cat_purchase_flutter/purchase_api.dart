@@ -5,12 +5,11 @@ import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart'
 
 class PurchaseApi {
   static const String _premiumOfferingId = 'premium';
-  static const String _premiumSubEntitlementId = 'premium_subscription';
   static const String _premiumOneTimeEntitlementId = 'premium_lifetime';
 
-  // Fingerings Library subscription
-  static const String _fingeringsLibraryOfferingId = 'fingerings_library';
-  static const String _fingeringsLibraryEntitlementId = 'fingerings_library';
+  // Monthly subscription (in-app)
+  static const String _subscriptionOfferingId = 'fingerings_library';
+  static const String _subscriptionEntitlementId = 'fingerings_library';
 
   static bool _billingUnavailable = false;
 
@@ -45,33 +44,20 @@ class PurchaseApi {
       final customerInfo = await getCustomerInfo();
       final activeEntitlements = customerInfo.entitlements.active;
 
+      final hasSubscription =
+          activeEntitlements.containsKey(_subscriptionEntitlementId) ||
+              activeEntitlements.containsKey('all_access');
       final hasLifetime =
           activeEntitlements.containsKey(_premiumOneTimeEntitlementId);
-      final hasPremiumSub =
-          activeEntitlements.containsKey(_premiumSubEntitlementId) ||
-              activeEntitlements.containsKey(_premiumOfferingId) ||
-              activeEntitlements.containsKey('all_access');
-      final hasFingeringsLibrary =
-          activeEntitlements.containsKey(_fingeringsLibraryEntitlementId);
 
-      // Premium subscription gets all features including fingerings library
-      if (hasPremiumSub) {
+      // Subscriber gets everything (subscription takes precedence over lifetime)
+      if (hasSubscription) {
         return Entitlement.premiumSub;
       }
 
-      // Lifetime user with fingerings library subscription
-      if (hasLifetime && hasFingeringsLibrary) {
-        return Entitlement.premiumOneTimeWithLibrary;
-      }
-
-      // Lifetime user without fingerings library
+      // Lifetime user: scales, audio, download (no instruments, no cloud library)
       if (hasLifetime) {
         return Entitlement.premiumOneTime;
-      }
-
-      // Fingerings library subscription only
-      if (hasFingeringsLibrary) {
-        return Entitlement.fingeringsLibrary;
       }
 
       return Entitlement.free;
@@ -97,9 +83,9 @@ class PurchaseApi {
     try {
       final offerings = await Purchases.getOfferings();
 
-      debugPrint('Looking for fingerings library offering: $_fingeringsLibraryOfferingId');
+      debugPrint('Looking for subscription offering: $_subscriptionOfferingId');
 
-      var fingeringsOffering = offerings.all[_fingeringsLibraryOfferingId];
+      var fingeringsOffering = offerings.all[_subscriptionOfferingId];
 
       if (fingeringsOffering == null) {
         debugPrint('Fingerings library offering not found');
@@ -156,11 +142,9 @@ class PurchaseApi {
   static Future<bool> purchasePackage(Package package) async {
     try {
       final purchaserInfo = await Purchases.purchasePackage(package);
-      // Check for any entitlement (premium or fingerings library)
+      // Check for any entitlement (lifetime, subscription, or all_access)
       return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
-             purchaserInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
-             purchaserInfo.entitlements.active.containsKey(_premiumOfferingId) ||
-             purchaserInfo.entitlements.active.containsKey(_fingeringsLibraryEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey(_subscriptionEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.code} - ${e.message}');
@@ -229,10 +213,9 @@ class PurchaseApi {
   static Future<bool> restorePurchases() async {
     try {
       final restoredInfo = await Purchases.restorePurchases();
-      // Check for any premium entitlement
+      // Check for any entitlement (lifetime, subscription, or all_access)
       return restoredInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
-             restoredInfo.entitlements.active.containsKey(_premiumSubEntitlementId) ||
-             restoredInfo.entitlements.active.containsKey(_premiumOfferingId) ||
+             restoredInfo.entitlements.active.containsKey(_subscriptionEntitlementId) ||
              restoredInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error restoring purchases: ${e.message}');

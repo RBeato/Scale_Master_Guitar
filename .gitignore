@@ -63,3 +63,6 @@ ios/build/
 *.xcworkspace/xcuserdata/
 **/xcuserdata/
 **/DerivedData/
+
+# Supabase generated plugin artifacts
+supabase/permission_handler_android/

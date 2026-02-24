@@ -86,7 +86,7 @@ class FeatureRestrictionService {
 
   /// Get fingerings library restriction message for lifetime users
   static String getFingeringsLibraryLifetimeMessage() {
-    return 'The Fingerings Library is not included in your lifetime purchase. Subscribe to access cloud storage and sharing features.';
+    return 'Subscribe to unlock the Fingerings Library, multi-instrument support, and custom tunings.';
   }
 
   /// Returns true if user is a lifetime purchaser
@@ -94,14 +94,14 @@ class FeatureRestrictionService {
     return entitlement.isLifetime;
   }
 
-  /// Returns true if user can change instrument/tuning
+  /// Returns true if user can change instrument/tuning (subscribers only)
   static bool canChangeInstrument(Entitlement entitlement) {
-    return entitlement.isPremium;
+    return entitlement.isSubscriber;
   }
 
   /// Get instrument/tuning restriction message
   static String getInstrumentRestrictionMessage() {
-    return 'Upgrade to Premium to access alternate tunings and instruments';
+    return 'Subscribe to access alternate tunings and instruments';
   }
 }
 

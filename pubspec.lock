@@ -323,7 +323,7 @@ packages:
     description:
       path: "."
       ref: "performance/parallel-track-loading"
-      resolved-ref: "2c8216b463e5344f17e2c1f0a589611f2fd4ebc9"
+      resolved-ref: b5fb22f9cce7b920b9b99cb9b4f674c276ddd5fa
       url: "https://github.com/RBeato/flutter_sequencer_plus.git"
     source: git
     version: "1.0.0+1"

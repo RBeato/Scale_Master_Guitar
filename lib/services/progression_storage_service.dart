@@ -23,10 +23,10 @@ class ProgressionStorageService {
   /// Determine storage type based on entitlement
   static ProgressionStorageType getStorageType(Entitlement entitlement) {
     if (entitlement.hasFingeringsLibraryAccess) {
-      // Subscription users (premiumSub, fingeringsLibrary, premiumOneTimeWithLibrary)
+      // Subscribers get cloud storage
       return ProgressionStorageType.cloud;
     } else if (entitlement.isPremium) {
-      // Lifetime Premium only (premiumOneTime)
+      // Lifetime users get local storage
       return ProgressionStorageType.local;
     } else {
       // Free users

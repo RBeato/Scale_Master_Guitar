@@ -66,20 +66,31 @@ The complete SQL schema for Scale Master Guitar is in:
 
 ## RevenueCat Entitlements
 
-### Entitlement Types
+### 3-Tier Model
 
-| Entitlement | Description |
-|-------------|-------------|
-| `free` | Free tier with ads, major scales only |
-| `premiumSub` | Monthly subscription - full features + fingerings library |
-| `premiumOneTime` | Lifetime purchase - full features, NO fingerings library |
-| `fingeringsLibrary` | Fingerings library only subscription |
+| Code Enum | RevenueCat Entitlement | Type | Features |
+|-----------|----------------------|------|----------|
+| `free` | (none) | — | Major scales only, with ads |
+| `premiumOneTime` | `premium_lifetime` | One-time | All scales, audio, fretboard download, local saves |
+| `premiumSub` | `fingerings_library` or `all_access` | Monthly | Everything: scales, audio, download, **multi-instrument**, **cloud library** |
 
-### Important: Lifetime Users
+### Feature Gating
 
-Lifetime purchasers (`premiumOneTime`) do NOT get access to the Fingerings Library. This is by design - the cloud storage feature requires ongoing server costs.
+- **Scales, audio, fretboard download**: Any premium user (`isPremium`)
+- **Multi-instrument/tuning**: Subscribers only (`isSubscriber`)
+- **Cloud fingerings library**: Subscribers only (`isSubscriber`)
+- **Local progression saves**: Any premium user (`isPremium`)
+- **Cloud progression saves**: Subscribers only (`hasFingeringsLibraryAccess`)
 
-When a lifetime user tries to access the library, show them a message explaining they can subscribe to the Fingerings Library separately.
+### RevenueCat → Code Mapping
+
+- `all_access` (riffroutine.com cross-app subscription) → `Entitlement.premiumSub`
+- `fingerings_library` (in-app monthly subscription) → `Entitlement.premiumSub`
+- `premium_lifetime` (in-app one-time purchase) → `Entitlement.premiumOneTime`
+
+### Important: Lifetime vs Subscriber Differentiation
+
+Lifetime purchasers (`premiumOneTime`) do NOT get access to multi-instrument/tuning or the cloud Fingerings Library. These features require an active subscription to drive recurring revenue. When a lifetime user tries to access these features, show a message encouraging them to subscribe.
 
 ## Project Structure
 

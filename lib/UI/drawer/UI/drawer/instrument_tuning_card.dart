@@ -16,8 +16,7 @@ class InstrumentTuningCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entitlement = ref.watch(revenueCatProvider);
-    final isPremiumUser = entitlement.isPremium;
-    final isRestricted = !isPremiumUser;
+    final isRestricted = !entitlement.isSubscriber;
     final currentTuning = ref.watch(tuningProvider);
     final customTunings = ref.watch(customTuningsProvider);
 
