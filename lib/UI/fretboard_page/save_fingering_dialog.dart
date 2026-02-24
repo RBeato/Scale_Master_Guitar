@@ -4,6 +4,7 @@ import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/models/saved_fingering.dart';
 import 'package:scalemasterguitar/services/supabase_service.dart';
 import 'package:scalemasterguitar/services/in_app_review_service.dart';
+import 'package:scalemasterguitar/providers/tuning_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class SaveFingeringDialog extends ConsumerStatefulWidget {
@@ -55,6 +56,8 @@ class _SaveFingeringDialogState extends ConsumerState<SaveFingeringDialog> {
         return;
       }
 
+      final tuning = ref.read(tuningProvider);
+
       final fingering = SavedFingering.fromFretboardState(
         id: const Uuid().v4(),
         userId: userId,
@@ -68,6 +71,7 @@ class _SaveFingeringDialogState extends ConsumerState<SaveFingeringDialog> {
         showNoteNames: widget.showNoteNames,
         fretboardColor: widget.fretboardColor,
         isPublic: _isPublic,
+        tuningInfo: tuning,
       );
 
       final saved = await supabase.saveFingering(fingering);

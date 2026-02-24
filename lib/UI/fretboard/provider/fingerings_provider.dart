@@ -9,6 +9,7 @@ import '../../drawer/provider/settings_state_notifier.dart';
 import '../../chromatic_wheel/provider/top_note_provider.dart';
 import '../../scale_selection_dropdowns/provider/mode_dropdown_value_provider.dart';
 import '../../scale_selection_dropdowns/provider/scale_dropdown_value_provider.dart';
+import '../../../providers/tuning_provider.dart';
 import '../service/fingerings_positions_and_color.dart';
 
 final chordModelFretboardFingeringProvider =
@@ -18,6 +19,7 @@ final chordModelFretboardFingeringProvider =
   final topNote = ref.watch(topNoteProvider);
   final scale = ref.watch(scaleDropdownValueProvider);
   final mode = ref.watch(modeDropdownValueProvider);
+  final tuning = ref.watch(tuningProvider);
   ref.watch(settingsStateNotifierProvider);
 
   final Settings settings =
@@ -60,7 +62,7 @@ final chordModelFretboardFingeringProvider =
   MusicUtils.getTriadsNames(item, modesScalarTonicIntervals);
 
   ChordScaleFingeringsModel fingering =
-      FingeringsCreator().createChordsScales(item, settings);
+      FingeringsCreator().createChordsScales(item, settings, tuning: tuning);
 
   return fingering;
 });

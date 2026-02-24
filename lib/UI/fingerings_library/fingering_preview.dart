@@ -85,7 +85,7 @@ class _FingeringPreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const int stringCount = 6;
+    final int stringCount = dotPositions.length;
     final double fretWidth = size.width / displayFretCount;
     final double stringHeight = size.height / (stringCount + 1);
     final double dotRadius = (fretWidth.clamp(8, 20) / 2.5).clamp(3.0, 8.0);

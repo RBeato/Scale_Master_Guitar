@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/fretboard_notes.dart';
 import '../../../models/chord_scale_model.dart';
 import '../../fretboard_page/provider/sharp_flat_selection_provider.dart';
 
@@ -9,12 +8,16 @@ class FretboardPainter extends CustomPainter {
   final int fretCount;
   final ChordScaleFingeringsModel fingeringsModel;
   final FretboardSharpFlat? sharpFlatPreference;
+  final List<List<String>> notesSharps;
+  final List<List<String>> notesFlats;
 
   FretboardPainter({
     required this.stringCount,
     required this.fretCount,
     required this.fingeringsModel,
     this.sharpFlatPreference,
+    required this.notesSharps,
+    required this.notesFlats,
   });
 
   static TextStyle textStyle =
@@ -22,18 +25,21 @@ class FretboardPainter extends CustomPainter {
 
   /// Gets the note name based on user preference (sharps vs flats)
   String _getNoteNameWithPreference(int string, int fret) {
+    if (string - 1 < 0 || string - 1 >= notesSharps.length) return '';
+    if (fret < 0 || fret >= notesSharps[string - 1].length) return '';
+
     // If user has a preference, use it
     if (sharpFlatPreference != null) {
       return sharpFlatPreference == FretboardSharpFlat.sharps
-          ? fretboardNotesNamesSharps[string - 1][fret]
-          : fretboardNotesNamesFlats[string - 1][fret];
+          ? notesSharps[string - 1][fret]
+          : notesFlats[string - 1][fret];
     }
-    
+
     // Fall back to scale-based logic (original behavior)
     return fingeringsModel.scaleModel!.scaleNotesNames
-            .contains(fretboardNotesNamesSharps[string - 1][fret])
-        ? fretboardNotesNamesSharps[string - 1][fret]
-        : fretboardNotesNamesFlats[string - 1][fret];
+            .contains(notesSharps[string - 1][fret])
+        ? notesSharps[string - 1][fret]
+        : notesFlats[string - 1][fret];
   }
 
   @override

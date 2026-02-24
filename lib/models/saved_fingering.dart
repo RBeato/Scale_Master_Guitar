@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'instrument_tuning.dart';
+
 /// Model representing a saved fingering pattern that can be stored in Supabase
 class SavedFingering {
   final String id;
   final String userId;
   final String name;
   final String? description;
-  final List<List<bool>> dotPositions; // 6 strings x 25 frets
-  final List<List<String?>> dotColors; // 6 strings x 25 frets (hex colors)
+  final List<List<bool>> dotPositions; // [strings][frets] - variable size
+  final List<List<String?>> dotColors; // [strings][frets] (hex colors)
   final String? sharpFlatPreference; // 'sharps' | 'flats' | null
   final bool showNoteNames;
   final String? fretboardColor; // hex color
@@ -17,6 +19,7 @@ class SavedFingering {
   final DateTime createdAt;
   final DateTime updatedAt;
   bool isLikedByUser; // computed field, not stored in DB
+  final InstrumentTuning? tuningInfo; // null = standard 6-string guitar
 
   SavedFingering({
     required this.id,
@@ -34,6 +37,7 @@ class SavedFingering {
     required this.createdAt,
     required this.updatedAt,
     this.isLikedByUser = false,
+    this.tuningInfo,
   });
 
   /// Create from Supabase JSON response
@@ -49,6 +53,12 @@ class SavedFingering {
     final dotColors = rawColors.map((row) {
       return (row as List<dynamic>).map((val) => val as String?).toList();
     }).toList();
+
+    // Parse tuning_info if present (null = standard 6-string guitar)
+    final tuningData = json['tuning_info'];
+    final tuningInfo = tuningData != null
+        ? InstrumentTuning.fromJson(tuningData as Map<String, dynamic>)
+        : null;
 
     return SavedFingering(
       id: json['id'] as String,
@@ -66,12 +76,13 @@ class SavedFingering {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       isLikedByUser: json['is_liked_by_user'] as bool? ?? false,
+      tuningInfo: tuningInfo,
     );
   }
 
   /// Convert to JSON for Supabase insert/update
   Map<String, dynamic> toJson() {
-    return {
+    final json = {
       'user_id': userId,
       'name': name,
       'description': description,
@@ -82,6 +93,10 @@ class SavedFingering {
       'fretboard_color': fretboardColor,
       'is_public': isPublic,
     };
+    if (tuningInfo != null) {
+      json['tuning_info'] = tuningInfo!.toJson();
+    }
+    return json;
   }
 
   /// Create from current fretboard state
@@ -96,6 +111,7 @@ class SavedFingering {
     bool showNoteNames = false,
     Color? fretboardColor,
     bool isPublic = false,
+    InstrumentTuning? tuningInfo,
   }) {
     // Convert Colors to hex strings
     final hexColors = dotColors.map((row) {
@@ -124,6 +140,7 @@ class SavedFingering {
       showNoteNames: showNoteNames,
       fretboardColor: fretboardHex,
       isPublic: isPublic,
+      tuningInfo: tuningInfo,
       createdAt: now,
       updatedAt: now,
     );
@@ -171,6 +188,7 @@ class SavedFingering {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isLikedByUser,
+    InstrumentTuning? tuningInfo,
   }) {
     return SavedFingering(
       id: id ?? this.id,
@@ -188,6 +206,7 @@ class SavedFingering {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isLikedByUser: isLikedByUser ?? this.isLikedByUser,
+      tuningInfo: tuningInfo ?? this.tuningInfo,
     );
   }
 

@@ -93,6 +93,16 @@ class FeatureRestrictionService {
   static bool isLifetimeUser(Entitlement entitlement) {
     return entitlement.isLifetime;
   }
+
+  /// Returns true if user can change instrument/tuning
+  static bool canChangeInstrument(Entitlement entitlement) {
+    return entitlement.isPremium;
+  }
+
+  /// Get instrument/tuning restriction message
+  static String getInstrumentRestrictionMessage() {
+    return 'Upgrade to Premium to access alternate tunings and instruments';
+  }
 }
 
 /// Provider for easy access to feature restrictions throughout the app
@@ -112,6 +122,8 @@ final featureRestrictionProvider = Provider.family<bool, String>((ref, feature) 
       return FeatureRestrictionService.canSaveProgressions(entitlement);
     case 'fingerings_library':
       return FeatureRestrictionService.canAccessFingeringsLibrary(entitlement);
+    case 'instrument_tuning':
+      return FeatureRestrictionService.canChangeInstrument(entitlement);
     default:
       return false;
   }

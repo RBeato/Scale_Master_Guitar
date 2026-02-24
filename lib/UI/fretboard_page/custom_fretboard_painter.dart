@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/sharp_flat_selection_provider.dart';
 
-import '../../../constants/fretboard_notes.dart';
 import '../../../models/chord_scale_model.dart';
 import '../../constants/roman_numeral_converter.dart';
 
@@ -16,6 +15,8 @@ class CustomFretboardPainter extends CustomPainter {
   final Size size;
   final bool hideNotes;
   final Color fretboardColor;
+  final List<List<String>> notesSharps;
+  final List<List<String>> notesFlats;
 
   CustomFretboardPainter({
     required this.stringCount,
@@ -27,6 +28,8 @@ class CustomFretboardPainter extends CustomPainter {
     required this.size,
     required this.hideNotes,
     required this.fretboardColor,
+    required this.notesSharps,
+    required this.notesFlats,
   });
 
   static TextStyle textStyle =
@@ -122,9 +125,9 @@ class CustomFretboardPainter extends CustomPainter {
           double textY = y;
 
           var noteName = fingeringsModel.scaleModel!.scaleNotesNames
-                  .contains(fretboardNotesNamesSharps[string][fret])
-              ? fretboardNotesNamesSharps[string][fret]
-              : fretboardNotesNamesFlats[string][fret];
+                  .contains(notesSharps[string][fret])
+              ? notesSharps[string][fret]
+              : notesFlats[string][fret];
 
           final showDegrees =
               fingeringsModel.scaleModel!.settings!.showScaleDegrees == true;
@@ -142,8 +145,8 @@ class CustomFretboardPainter extends CustomPainter {
               : flatSharpSelection == null
                   ? noteName
                   : flatSharpSelection == FretboardSharpFlat.sharps
-                      ? fretboardNotesNamesSharps[string][fret]
-                      : fretboardNotesNamesFlats[string][fret];
+                      ? notesSharps[string][fret]
+                      : notesFlats[string][fret];
 
           // Calculate the max font size that fits within the dot
           double maxFontSize = dotRadius; // Adjust as needed

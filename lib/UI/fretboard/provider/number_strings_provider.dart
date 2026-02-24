@@ -1,3 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final numberStringsProvider = Provider((ref) => 15);
+import '../../../providers/tuning_provider.dart';
+
+final numberStringsProvider = Provider((ref) {
+  final tuning = ref.watch(tuningProvider);
+  return tuning.stringCount;
+});

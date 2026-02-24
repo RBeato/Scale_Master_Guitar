@@ -1,3 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final numberFretsProvider = Provider((ref) => 15);
+import '../../../providers/tuning_provider.dart';
+
+final numberFretsProvider = Provider((ref) {
+  final tuning = ref.watch(tuningProvider);
+  return tuning.fretCount;
+});

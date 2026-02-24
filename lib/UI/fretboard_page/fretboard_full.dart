@@ -7,6 +7,8 @@ import 'package:scalemasterguitar/UI/fretboard_page/widget_to_png.dart';
 import 'package:scalemasterguitar/models/saved_fingering.dart';
 
 import '../../models/chord_scale_model.dart';
+import '../../providers/fretboard_notes_provider.dart';
+import '../../providers/tuning_provider.dart';
 import 'custom_fretboard_painter.dart';
 import 'provider/fretboard_color_provider.dart';
 import 'provider/note_names_visibility_provider.dart';
@@ -25,12 +27,15 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
   late List<List<bool>> dotPositions;
   late List<List<Color?>> dotColors;
   late Color selectedColor;
-  int stringCount = 6;
-  int fretCount = 24;
+  late int stringCount;
+  late int fretCount;
 
   @override
   void initState() {
     super.initState();
+    final tuning = ref.read(tuningProvider);
+    stringCount = tuning.stringCount;
+    fretCount = tuning.fretCount;
     dotPositions = createDotPositions(widget.fingeringsModel);
     dotColors = List.generate(
       stringCount,
@@ -117,6 +122,8 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
     final flatSharpSelection = ref.watch(sharpFlatSelectionProvider);
     final fretboardColor = ref.watch(fretboardColorProvider);
     final hideNotes = ref.watch(noteNamesVisibilityProvider);
+    final notesSharps = ref.watch(fretboardNotesSharpsProvider);
+    final notesFlats = ref.watch(fretboardNotesFlatsProvider);
     const widthFactor = 3.37;
     const heightTolerance = 0.75;
     const fretTolerance = 3.2;
@@ -195,6 +202,8 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
                       flatSharpSelection: flatSharpSelection,
                       hideNotes: hideNotes,
                       fretboardColor: fretboardColor,
+                      notesSharps: notesSharps,
+                      notesFlats: notesFlats,
                     ),
                   ),
                 ),

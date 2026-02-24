@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS smg_saved_fingerings (
   user_id UUID NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
-  dot_positions JSONB NOT NULL,        -- 2D array of booleans [6 strings][25 frets]
+  dot_positions JSONB NOT NULL,        -- 2D array of booleans [strings][frets] (variable size)
   dot_colors JSONB NOT NULL,           -- 2D array of hex color strings
+  tuning_info JSONB,                   -- instrument tuning info (null = standard 6-string guitar)
   sharp_flat_preference TEXT,          -- 'sharps' | 'flats' | null
   show_note_names BOOLEAN DEFAULT false,
   fretboard_color TEXT,                -- hex color string for background

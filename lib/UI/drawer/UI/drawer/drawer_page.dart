@@ -20,6 +20,7 @@ import 'package:scalemasterguitar/services/riffroutine_api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'chord_options_cards.dart';
+import 'instrument_tuning_card.dart';
 
 const _linkedEmailKey = 'riffroutine_linked_email';
 const _anonUserIdKey = 'revenuecat_anon_user_id';
@@ -75,6 +76,7 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               child: Column(
                 children: <Widget>[
                   const GeneralOptions(),
+                  const InstrumentTuningCard(),
                   // Testing switch only visible in debug mode
                   if (kDebugMode) _buildTestingSection(),
                   const SoundsDropdownColumn(),

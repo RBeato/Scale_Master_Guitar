@@ -5,8 +5,10 @@ import 'package:tonic/tonic.dart' as tonic;
 
 import '../../../constants/color_constants.dart';
 import '../../../constants/flats_only_nomenclature_converter.dart';
-import '../../../constants/fretboard_notes.dart';
+import '../../../constants/fretboard_note_generator.dart';
+import '../../../constants/instrument_presets.dart';
 import '../../../constants/scales/scales_data_v2.dart';
+import '../../../models/instrument_tuning.dart';
 import '../../../models/scale_model.dart';
 import '../../../models/chord_scale_model.dart';
 import '../../../models/settings_model.dart';
@@ -18,7 +20,11 @@ class FingeringsCreator {
   String? _chordVoicings;
 
   late String _key;
-  // late String _key;
+
+  // Tuning support
+  late InstrumentTuning _tuning;
+  late List<List<String>> _fretboardNotesFlats;
+  late int _stringCount;
 
   List? _voicingIntervalsNumbers;
   List? _lowerStringList;
@@ -47,8 +53,11 @@ class FingeringsCreator {
   // }
 
   ChordScaleFingeringsModel createChordsScales(
-      ScaleModel chordModel, Settings settings) {
-    // settingsChanged(settings);
+      ScaleModel chordModel, Settings settings,
+      {InstrumentTuning? tuning}) {
+    _tuning = tuning ?? InstrumentPresets.defaultTuning;
+    _fretboardNotesFlats = FretboardNoteGenerator.generateFlats(_tuning);
+    _stringCount = _tuning.stringCount;
 
     _key = chordModel.parentScaleKey;
     _modeOption = chordModel.mode;
@@ -190,7 +199,8 @@ class FingeringsCreator {
           string = _lowerStringList![i]; //strings between 0-5
 
           for (int n = 0; n < noteRepetitionsInOneString.length; n++) {
-            fret = fretboardNotesNamesFlats[string - 1]
+            if (string - 1 < 0 || string - 1 >= _stringCount) continue;
+            fret = _fretboardNotesFlats[string - 1]
                 .indexOf(noteNameWithoutIndex, noteRepetitionsInOneString[n]);
             if (n == 1 && fret == auxValue) {
               continue;
@@ -203,6 +213,11 @@ class FingeringsCreator {
       // debugPrint('\"All chord tones\" chordNotesPositions: $_chordNotesPositions');
     }
     if (_chordVoicings == 'CAGED') {
+      // CAGED voicings only work for standard 6-string guitar
+      if (_stringCount != 6) {
+        // Fallback: skip CAGED for non-6-string instruments
+        return;
+      }
       //CAGED NOTES POSITIONS
       //!!ADD CAGED TYPE TO 7TH CHORDS.?
       final chordType =
@@ -244,10 +259,10 @@ class FingeringsCreator {
                 noteName.substring(0, noteName.toString().length - 1);
             noteNameWithoutIndex =
                 flatsOnlyNoteNomenclature(noteNameWithoutIndex);
-            if (string == 0) {
-              debugPrint("STRING == 0");
+            if (string == 0 || string - 1 >= _stringCount) {
+              continue;
             }
-            fret = fretboardNotesNamesFlats[string - 1]
+            fret = _fretboardNotesFlats[string - 1]
                 .indexOf(noteNameWithoutIndex, notesRepetitionsInOneString[k]);
             if (k > 0 && fret == auxValue) {
               continue;
@@ -286,11 +301,11 @@ class FingeringsCreator {
     // debugPrint('ModeNotes: ${_modeNotes}');
 
     // var notesRepetitionsInOneString = [0, 2, 3];
-    for (int string = 0; string < 6; string++) {
+    for (int string = 0; string < _stringCount; string++) {
       for (int i = 0; i < _modeNotes!.length; i++) {
         int noteIndex = 0;
         while (noteIndex != -1) {
-          int fret = fretboardNotesNamesFlats[string].indexOf(
+          int fret = _fretboardNotesFlats[string].indexOf(
             _modeNotes![i],
             noteIndex,
           );
