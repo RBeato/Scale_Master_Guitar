@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PurchaseApi {
-  static const String _premiumOfferingId = 'premium';
-  static const String _premiumOneTimeEntitlementId = 'premium_lifetime';
+  // New prefixed entitlement/offering IDs for unified RC project
+  static const String _premiumOfferingId = 'smg_premium';
+  static const String _premiumOneTimeEntitlementId = 'smg_premium';
 
   // Monthly subscription (in-app)
-  static const String _subscriptionOfferingId = 'fingerings_library';
-  static const String _subscriptionEntitlementId = 'fingerings_library';
+  static const String _subscriptionOfferingId = 'smg_fingerings';
+  static const String _subscriptionEntitlementId = 'smg_fingerings_library';
+
+  // Old entitlement/offering IDs — checked as fallback during migration
+  // TODO: Remove these 30+ days after unified RC project migration
+  static const String _oldPremiumOfferingId = 'premium';
+  static const String _oldPremiumOneTimeEntitlementId = 'premium_lifetime';
+  static const String _oldSubscriptionOfferingId = 'fingerings_library';
+  static const String _oldSubscriptionEntitlementId = 'fingerings_library';
 
   static bool _billingUnavailable = false;
 
@@ -18,6 +27,21 @@ class PurchaseApi {
   static Future<void> init(String apiKey) async {
     await Purchases.setLogLevel(LogLevel.debug);
     await Purchases.configure(PurchasesConfiguration(apiKey));
+
+    // One-time migration: restore purchases so RC re-validates receipts
+    // and grants new prefixed entitlements (smg_premium_lifetime, smg_fingerings_library)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final didMigrate = prefs.getBool('rc_entitlement_migration_v1') ?? false;
+      if (!didMigrate) {
+        debugPrint('[PurchaseApi] Running one-time entitlement migration restore...');
+        await Purchases.restorePurchases();
+        await prefs.setBool('rc_entitlement_migration_v1', true);
+        debugPrint('[PurchaseApi] Migration restore complete');
+      }
+    } catch (e) {
+      debugPrint('[PurchaseApi] Migration restore failed (non-fatal): $e');
+    }
   }
 
   static Future<CustomerInfo> getCustomerInfo() async {
@@ -44,11 +68,14 @@ class PurchaseApi {
       final customerInfo = await getCustomerInfo();
       final activeEntitlements = customerInfo.entitlements.active;
 
+      // Check both new prefixed and old entitlement names for migration
       final hasSubscription =
           activeEntitlements.containsKey(_subscriptionEntitlementId) ||
+              activeEntitlements.containsKey(_oldSubscriptionEntitlementId) ||
               activeEntitlements.containsKey('all_access');
       final hasLifetime =
-          activeEntitlements.containsKey(_premiumOneTimeEntitlementId);
+          activeEntitlements.containsKey(_premiumOneTimeEntitlementId) ||
+              activeEntitlements.containsKey(_oldPremiumOneTimeEntitlementId);
 
       // Subscriber gets everything (subscription takes precedence over lifetime)
       if (hasSubscription) {
@@ -87,6 +114,12 @@ class PurchaseApi {
 
       var fingeringsOffering = offerings.all[_subscriptionOfferingId];
 
+      // Fallback to old offering ID during migration
+      if (fingeringsOffering == null) {
+        debugPrint('New offering not found, trying old: $_oldSubscriptionOfferingId');
+        fingeringsOffering = offerings.all[_oldSubscriptionOfferingId];
+      }
+
       if (fingeringsOffering == null) {
         debugPrint('Fingerings library offering not found');
       }
@@ -110,10 +143,16 @@ class PurchaseApi {
       debugPrint('Available offerings: ${offerings.all.keys.toList()}');
       debugPrint('Current offering: ${offerings.current?.identifier}');
       
-      // Try to get premium offering
+      // Try to get premium offering (new prefixed ID first, then old)
       var premiumOffering = offerings.all[_premiumOfferingId];
-      
-      // If premium not found, try current offering or first available
+
+      // Fallback to old offering ID during migration
+      if (premiumOffering == null) {
+        debugPrint('New premium offering not found, trying old: $_oldPremiumOfferingId');
+        premiumOffering = offerings.all[_oldPremiumOfferingId];
+      }
+
+      // If still not found, try current offering or first available
       if (premiumOffering == null && offerings.current != null) {
         debugPrint('Premium offering not found, using current offering: ${offerings.current!.identifier}');
         premiumOffering = offerings.current;
@@ -142,9 +181,11 @@ class PurchaseApi {
   static Future<bool> purchasePackage(Package package) async {
     try {
       final purchaserInfo = await Purchases.purchasePackage(package);
-      // Check for any entitlement (lifetime, subscription, or all_access)
+      // Check for any entitlement (new prefixed + old fallback + all_access)
       return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey(_oldPremiumOneTimeEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey(_subscriptionEntitlementId) ||
+             purchaserInfo.entitlements.active.containsKey(_oldSubscriptionEntitlementId) ||
              purchaserInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error purchasing package: ${e.code} - ${e.message}');
@@ -213,9 +254,11 @@ class PurchaseApi {
   static Future<bool> restorePurchases() async {
     try {
       final restoredInfo = await Purchases.restorePurchases();
-      // Check for any entitlement (lifetime, subscription, or all_access)
+      // Check for any entitlement (new prefixed + old fallback + all_access)
       return restoredInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
+             restoredInfo.entitlements.active.containsKey(_oldPremiumOneTimeEntitlementId) ||
              restoredInfo.entitlements.active.containsKey(_subscriptionEntitlementId) ||
+             restoredInfo.entitlements.active.containsKey(_oldSubscriptionEntitlementId) ||
              restoredInfo.entitlements.active.containsKey('all_access');
     } on PlatformException catch (e) {
       debugPrint('Error restoring purchases: ${e.message}');
