@@ -20,8 +20,8 @@ Map<String, dynamic> melodicMinorModes = {
     ],
   },
   'Dorian ♭2': {
-    'scaleStepsRoman': ['I', 'II', '♭III', 'IV', 'V', 'VI', 'VII'],
-    'intervals': [0, 1, 3, 5, 7, 9, 11],
+    'scaleStepsRoman': ['I', '♭II', '♭III', 'IV', 'V', 'VI', '♭VII'],
+    'intervals': [0, 1, 3, 5, 7, 9, 10],
     'scaleDegrees': [
       Interval.P1,
       Interval.m2,
@@ -33,8 +33,8 @@ Map<String, dynamic> melodicMinorModes = {
       Interval.P5,
       null,
       Interval.M6,
+      Interval.m7,
       null,
-      Interval.M7
     ],
   },
   'Lydian Augmented': {
@@ -57,7 +57,7 @@ Map<String, dynamic> melodicMinorModes = {
   },
   'Lydian Dominant': {
     'scaleStepsRoman': ['I', 'II', 'III', '♯IV', 'V', 'VI', '♭VII'],
-    'intervals': [0, 2, 4, 6, 8, 9, 1],
+    'intervals': [0, 2, 4, 6, 7, 9, 10],
     'scaleDegrees': [
       Interval.P1,
       null,
@@ -74,14 +74,14 @@ Map<String, dynamic> melodicMinorModes = {
     ],
   },
   'Mixolydian ♭6': {
-    'scaleStepsRoman': ['I', 'II', '♭III', 'IV', 'V', '♭VI', '♭VII'],
-    'intervals': [0, 2, 3, 5, 7, 8, 10],
+    'scaleStepsRoman': ['I', 'II', 'III', 'IV', 'V', '♭VI', '♭VII'],
+    'intervals': [0, 2, 4, 5, 7, 8, 10],
     'scaleDegrees': [
       Interval.P1,
       null,
       Interval.M2,
-      Interval.m3,
       null,
+      Interval.M3,
       Interval.P4,
       null,
       Interval.P5,
@@ -92,12 +92,12 @@ Map<String, dynamic> melodicMinorModes = {
     ],
   },
   'Semilocrian': {
-    'scaleStepsRoman': ['I', '♭II', '♭III', 'IV', '♭V', '♭VI', '♭VII'],
-    'intervals': [0, 1, 3, 5, 6, 8, 10],
+    'scaleStepsRoman': ['I', 'II', '♭III', 'IV', '♭V', '♭VI', '♭VII'],
+    'intervals': [0, 2, 3, 5, 6, 8, 10],
     'scaleDegrees': [
       Interval.P1,
-      Interval.m2,
       null,
+      Interval.M2,
       Interval.m3,
       null,
       Interval.P4,

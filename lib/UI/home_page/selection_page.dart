@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/drawer/UI/drawer/custom_drawer.dart';
+import 'package:scalemasterguitar/constants/app_theme.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
 import 'package:scalemasterguitar/widgets/banner_ad_widget.dart';
 import '../chromatic_wheel/provider/top_note_provider.dart';
@@ -18,6 +19,35 @@ class SelectionPage extends ConsumerStatefulWidget {
 }
 
 class SelectionPageState extends ConsumerState<SelectionPage> {
+  bool _isNavigating = false;
+
+  Future<void> _navigateToPlayer() async {
+    if (_isNavigating) return;
+    setState(() { _isNavigating = true; });
+
+    try {
+      // Pre-compute fingerings before navigating so the transition is smooth
+      await ref.read(chordModelFretboardFingeringProvider.future);
+    } catch (e) {
+      debugPrint('[SelectionPage] Fingerings pre-computation failed: $e');
+      // Navigate anyway — PlayerPage handles errors
+    }
+
+    if (!mounted) return;
+
+    // Let the UI settle after computation before transitioning
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      SlideRoute(
+        page: const PlayerPage(),
+        direction: SlideDirection.fromRight,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.watch(topNoteProvider);
@@ -45,45 +75,58 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
             tooltip: 'Toggle Piano',
           ),
           IconButton(
-            onPressed: () {
-              // Ensure fingerings provider is warmed up before navigation
-              ref.read(chordModelFretboardFingeringProvider);
-
-              // Navigate immediately - PlayerPage will handle loading states properly
-              Navigator.pushReplacement(context,
-                  SlideRoute(
-                    page: const PlayerPage(),
-                    direction: SlideDirection.fromRight,
-                  ));
-            },
+            onPressed: _isNavigating ? null : _navigateToPlayer,
             icon: const Icon(Icons.arrow_forward_ios, color: Colors.orange),
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 10),
-                  const SizedBox(
-                    height: 80,
-                    child: ScaleSelector(),
+          Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 10),
+                      const SizedBox(
+                        height: 80,
+                        child: ScaleSelector(),
+                      ),
+                      const Expanded(
+                        child: WheelAndPianoColumn(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
-                  const Expanded(
-                    child: WheelAndPianoColumn(),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.bottom,
-                  )
-                ],
+                ),
+              ),
+              const BannerAdWidget(),
+            ],
+          ),
+          // Loading overlay while pre-computing fingerings
+          if (_isNavigating)
+            Container(
+              color: AppColors.background.withValues(alpha: 0.85),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.orangeAccent),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Preparing your sequence...',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BannerAdWidget(),
         ],
       ),
       drawer: const CustomDrawer(),

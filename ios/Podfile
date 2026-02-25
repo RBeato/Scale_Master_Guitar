@@ -48,6 +48,17 @@ post_install do |installer|
       if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.0
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       end
+      # Remove outdated arm64 simulator exclusion (needed for Apple Silicon Macs)
+      config.build_settings.delete('EXCLUDED_ARCHS[sdk=iphonesimulator*]')
+    end
+  end
+
+  # Also remove arm64 exclusion from the generated aggregate xcconfigs
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.xcconfigs.each do |config_name, config_file|
+      config_file.attributes.delete('EXCLUDED_ARCHS[sdk=iphonesimulator*]')
+      xcconfig_path = aggregate_target.xcconfig_path(config_name)
+      config_file.save_as(xcconfig_path)
     end
   end
 end

@@ -187,7 +187,7 @@ class WheelAndPianoColumn extends ConsumerWidget {
                   ),
                 ),
               ),
-              SizedBox(height: isPremium ? 20 : 30), // Bottom padding to clear banner
+              SizedBox(height: isPremium ? 20 : 24), // Bottom padding to clear banner
             ],
           ),
         );

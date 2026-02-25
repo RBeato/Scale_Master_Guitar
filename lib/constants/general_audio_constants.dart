@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class Constants {
   static const INITIAL_TEMPO = 120.0;
   static const INITIAL_IS_LOOPING = true;
-  static const DEFAULT_VELOCITY = 0.75;
+  static const DEFAULT_VELOCITY = 0.68;
 
   static const ROW_LABELS_DRUMS = ['HH', 'S', 'K', 'CB'];
   static const ROW_PITCHES_DRUMS = [44, 38, 36, 56];

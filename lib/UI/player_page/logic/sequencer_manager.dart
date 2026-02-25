@@ -243,11 +243,11 @@ class SequencerManager {
 
       for (int i = 0; i < this.tracks.length; i++) {
         Track track = this.tracks[i];
-        trackVolumes[track.id] = 0.6; // Reduced from 0.8 to 0.6 to prevent distortion at high phone volumes
+        trackVolumes[track.id] = 0.54; // Reduced from 0.6 to 0.54 to soften output
         trackStepSequencerStates[track.id] = StepSequencerState();
 
         // Ensure track volume is properly set
-        track.changeVolumeNow(volume: 0.6); // 60% volume to prevent clipping/distortion
+        track.changeVolumeNow(volume: 0.54); // 54% volume to prevent clipping/distortion
 
         if (kDebugMode) {
           debugPrint('[SequencerManager] 📍 Track $i Details:');
@@ -329,7 +329,7 @@ class SequencerManager {
       for (var note in chord.chordNotesInversionWithIndexes!) {
         final midiValue = MusicConstants.midiValues[note];
         if (midiValue != null) {
-          project.pianoState.setVelocity(chord.position, midiValue, 0.75); // Reduced from 0.95 to 0.75 to prevent distortion
+          project.pianoState.setVelocity(chord.position, midiValue, 0.68); // Reduced from 0.75 to 0.68 to soften output
           debugPrint("  Added piano note: $note (MIDI: $midiValue)");
         } else {
           debugPrint("  ERROR: No MIDI value found for note: $note");
@@ -362,7 +362,7 @@ class SequencerManager {
       debugPrint("  MIDI Value: $bassMidiValue");
 
       project.bassState.setVelocity(
-          chord.position, bassMidiValue, 0.75); // Reduced from 0.99 to 0.75 to prevent distortion
+          chord.position, bassMidiValue, 0.68); // Reduced from 0.75 to 0.68 to soften output
 
       // Verify if the note was added successfully
       double? addedVelocity =
@@ -391,7 +391,7 @@ class SequencerManager {
 
     if (isMetronomeSelected && playAllInstruments) {
       for (int i = 0; i < nBeats; i++) {
-        project.drumState.setVelocity(i, 44, 0.59); // Hi-hat (Pedal Hi-Hat in GM)
+        project.drumState.setVelocity(i, 44, 0.53); // Hi-hat (Pedal Hi-Hat in GM)
       }
     }
     return project;
@@ -436,7 +436,7 @@ class SequencerManager {
       }
       
       final Stopwatch stopwatch = Stopwatch()..start();
-      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.7); // Reduced from 0.85 to 0.7 to prevent distortion
+      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.63); // Reduced from 0.7 to 0.63 to soften output
       stopwatch.stop();
       
       // Only add to tracking AFTER successful start
