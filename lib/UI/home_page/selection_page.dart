@@ -90,10 +90,7 @@ class SelectionPageState extends ConsumerState<SelectionPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 10),
-                      const SizedBox(
-                        height: 80,
-                        child: ScaleSelector(),
-                      ),
+                      const ScaleSelector(),
                       const Expanded(
                         child: WheelAndPianoColumn(),
                       ),

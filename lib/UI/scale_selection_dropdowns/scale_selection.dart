@@ -30,44 +30,43 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
     final allScales = Scales.data.keys.toList();
 
     final isTablet = MediaQuery.of(context).size.width > 600;
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isTablet ? 40.0 : 8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-          // Premium feature indication for scales  
-          if (!FeatureRestrictionService.canAccessScale('Harmonic Minor', entitlement)) // Check if restricted scales exist
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Colors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.star,
-                      size: 10,
-                      color: Colors.white,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isTablet ? 40.0 : 8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+        // Premium feature indication for scales
+        if (!FeatureRestrictionService.canAccessScale('Harmonic Minor', entitlement)) // Check if restricted scales exist
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.star,
+                    size: 10,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'Premium scales available - Upgrade to unlock all scales',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Expanded(
-                    child: Text(
-                      'Premium scales available - Upgrade to unlock all scales',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          Row(
+          ),
+        Row(
             children: [
               Expanded(
                 child: ConstrainedBox(
@@ -178,8 +177,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
               ),
             ],
           ),
-          ],
-        ),
+        ],
       ),
     );
   }
