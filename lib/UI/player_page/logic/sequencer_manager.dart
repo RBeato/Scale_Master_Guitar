@@ -830,7 +830,29 @@ class SequencerManager {
       debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
     }
     tempo = nextTempo;
-    sequence.setTempo(nextTempo);
+
+    if (isPlaying) {
+      // Save current beat position before tempo change
+      final currentBeat = sequence.getBeat();
+      debugPrint('[SequencerManager] Tempo change during playback: beat=$currentBeat, newTempo=$nextTempo');
+
+      // Update tempo (adjusts engineStartFrame and frame calculations)
+      sequence.setTempo(nextTempo);
+
+      // Force clear ALL native buffers so stale events at old tempo are removed
+      for (var track in tracks) {
+        track.clearBuffer();
+      }
+
+      // Re-sync from current beat position — this re-schedules all events
+      // using the new tempo via beatToFrames()
+      sequence.setBeat(currentBeat);
+
+      // Clear processed events so Dart-dispatch (iOS) can retrigger correctly
+      _processedEvents.clear();
+    } else {
+      sequence.setTempo(nextTempo);
+    }
   }
 
   // handleTrackChange(Track nextTrack) {
