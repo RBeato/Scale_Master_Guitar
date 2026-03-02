@@ -105,9 +105,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.star, color: Colors.white),
                     label: Text(
-                      entitlement.name == 'free' 
-                        ? 'Unlock Premium Features' 
-                        : 'Upgrade to Premium'
+                      entitlement.name == 'free'
+                        ? 'Upgrade to Pro'
+                        : 'Upgrade to Pro'
                     ),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
@@ -201,10 +201,10 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                       const SizedBox(width: 8),
                       Text(
                         _linkedEmail != null
-                          ? 'RiffRoutine Premium'
+                          ? 'RiffRoutine Pro'
                           : entitlement.name == 'premiumSub'
-                            ? 'Premium Subscriber'
-                            : 'Premium Lifetime',
+                            ? 'Pro Subscriber'
+                            : 'Lifetime',
                         style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.w600,
@@ -231,7 +231,7 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                   subtitle: Text(
-                    _linkedEmail != null ? _linkedEmail! : 'Unlock premium with your web subscription',
+                    _linkedEmail != null ? _linkedEmail! : 'Unlock Pro with your web subscription',
                   ),
                   onTap: () => _showLinkAccountSheet(context),
                 ),
@@ -388,9 +388,9 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
       case Entitlement.free:
         return 'Free User (with ads, limited scales)';
       case Entitlement.premiumSub:
-        return 'Premium Subscriber';
+        return 'Pro Subscriber';
       case Entitlement.premiumOneTime:
-        return 'Premium Lifetime';
+        return 'Lifetime';
     }
   }
 
@@ -1141,7 +1141,7 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
           const Text('Email Verified & Linked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text(
-            'No active subscription found. Subscribe at riffroutine.com/pricing to unlock premium.',
+            'No active subscription found. Subscribe at riffroutine.com/pricing to unlock Pro.',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             textAlign: TextAlign.center,
           ),

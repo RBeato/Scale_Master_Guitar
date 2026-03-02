@@ -70,7 +70,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Premium Feature',
+                  'Pro Feature',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -93,7 +93,7 @@ class _ProgressionLibraryPageState extends ConsumerState<ProgressionLibraryPage>
                     UpgradePrompt.showUpgradeDialog(context);
                   },
                   icon: const Icon(Icons.star),
-                  label: const Text('Upgrade to Premium'),
+                  label: const Text('Upgrade to Pro'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,

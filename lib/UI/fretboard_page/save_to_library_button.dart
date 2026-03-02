@@ -45,8 +45,8 @@ class SaveToLibraryButton extends ConsumerWidget {
 
   void _showPaywall(BuildContext context, {bool isLifetime = false}) {
     final message = isLifetime
-        ? 'Fingerings Library is not included in your lifetime purchase'
-        : 'Subscribe to save fingerings to your library';
+        ? 'Fingerings Library requires a Pro Subscription'
+        : 'Upgrade to Pro to save fingerings to your library';
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -54,7 +54,7 @@ class SaveToLibraryButton extends ConsumerWidget {
         backgroundColor: isLifetime ? Colors.orange : Colors.blue,
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: 'Subscribe',
+          label: 'Upgrade',
           textColor: Colors.white,
           onPressed: () {
             Navigator.push(

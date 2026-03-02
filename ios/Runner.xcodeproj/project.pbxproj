@@ -199,6 +199,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				3C580DA511E22D18BE36B8E7 /* [CP] Embed Pods Frameworks */,
 				5628094623BA153607C71559 /* [CP] Copy Pods Resources */,
+				3A63155269FED909101DF500 /* Generate objective_c.framework dSYM */,
 			);
 			buildRules = (
 			);
@@ -291,6 +292,24 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		3A63155269FED909101DF500 /* Generate objective_c.framework dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate objective_c.framework dSYM";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Generate dSYM for objective_c.framework (Dart native asset missing dSYM)\nOBJ_C_FW=$(find \"${BUILD_DIR}\" -path \"*/native_assets/ios/objective_c.framework/objective_c\" -type f 2>/dev/null | head -1)\nif [ -n \"$OBJ_C_FW\" ] && [ -d \"${DWARF_DSYM_FOLDER_PATH}\" ]; then\n  echo \"Generating dSYM for objective_c.framework...\"\n  dsymutil \"$OBJ_C_FW\" -o \"${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM\" 2>/dev/null || true\nfi\n";
 		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;

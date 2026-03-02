@@ -5,4 +5,5 @@ enum SettingsSelection {
   keyboardSound,
   bassSound,
   drumsSound,
+  droneSound,
 }

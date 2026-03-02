@@ -44,6 +44,9 @@ class LocalStorageService {
     if (settingsSelection == SettingsSelection.singleColor) {
       value = settings.isSingleColor;
     }
+    if (settingsSelection == SettingsSelection.droneSound) {
+      value = settings.droneSound;
+    }
 
     return settings;
   }
@@ -88,6 +91,9 @@ class LocalStorageService {
     String drumsSound =
         preferences.getString(SettingsSelection.drumsSound.toString()) ??
             'Acoustic';
+    String droneSound =
+        preferences.getString(SettingsSelection.droneSound.toString()) ??
+            'Organ';
 
     Settings settings = Settings(
       showScaleDegrees: showScaleDegrees,
@@ -96,6 +102,7 @@ class LocalStorageService {
       keyboardSound: keyboardSound,
       bassSound: bassSound,
       drumsSound: drumsSound,
+      droneSound: droneSound,
     );
 
     return settings;
@@ -116,6 +123,8 @@ class LocalStorageService {
         SettingsSelection.bassSound.toString(), settings.bassSound);
     preferences.setString(
         SettingsSelection.drumsSound.toString(), settings.drumsSound);
+    preferences.setString(
+        SettingsSelection.droneSound.toString(), settings.droneSound);
   }
 
   Future<void> _updateSettings(
@@ -135,6 +144,8 @@ class LocalStorageService {
       settings.bassSound = value;
     } else if (settingsSelection == SettingsSelection.drumsSound) {
       settings.drumsSound = value;
+    } else if (settingsSelection == SettingsSelection.droneSound) {
+      settings.droneSound = value;
     }
   }
 
@@ -146,6 +157,7 @@ class LocalStorageService {
       keyboardSound: 'Rhodes',
       bassSound: 'Double Bass',
       drumsSound: 'Acoustic',
+      droneSound: 'Organ',
     );
 
     await _saveSettingsToDisk(settings);

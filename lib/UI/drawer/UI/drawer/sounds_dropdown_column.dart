@@ -55,5 +55,13 @@ Widget buildColumnWithData(BuildContext context, Settings settings) {
       settingsSelection: SettingsSelection.drumsSound,
       isPremiumFeature: true,
     ),
+    DrawerCard(
+      title: 'Drone Sound',
+      subtitle: 'Choose the sustained pad sound for drone mode',
+      dropdownList: const ['Organ', 'Atmospheric Pad'],
+      savedValue: settings.droneSound,
+      settingsSelection: SettingsSelection.droneSound,
+      isPremiumFeature: true,
+    ),
   ]);
 }

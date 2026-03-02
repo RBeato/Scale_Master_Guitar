@@ -25,7 +25,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
   // Premium tab state
   bool _isPremiumLoading = false;
   String? _premiumError;
-  String _premiumPriceText = 'Unlock Premium';
+  String _premiumPriceText = 'Get Lifetime Access';
   Offering? _premiumOffering;
 
   // Fingerings Library tab state
@@ -96,7 +96,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           if (offering != null && offering.availablePackages.isNotEmpty) {
             final package = offering.availablePackages.first;
             _premiumPriceText =
-                'Unlock Premium for ${package.storeProduct.priceString}';
+                'Get Lifetime Access for ${package.storeProduct.priceString}';
           }
         });
       }
@@ -153,7 +153,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           });
         } else {
           setState(() {
-            _premiumError = 'Premium offering not available. Please try again.';
+            _premiumError = 'Offering not available. Please try again.';
           });
         }
         return;
@@ -177,7 +177,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           Navigator.of(context).pop(true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Premium features unlocked!'),
+              content: Text('Lifetime features unlocked!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -214,7 +214,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Welcome to Fingerings Library!'),
+              content: Text('Welcome to Pro! All features unlocked.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -341,8 +341,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
             fontWeight: FontWeight.w500,
           ),
           tabs: const [
-            Tab(text: 'Lifetime Premium'),
-            Tab(text: 'Fingerings Library'),
+            Tab(text: 'Lifetime'),
+            Tab(text: 'Pro Subscription'),
           ],
         ),
       ),
@@ -379,7 +379,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           // Title
           const Text(
-            'Lifetime Premium',
+            'Lifetime',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -398,16 +398,36 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           ),
           const SizedBox(height: 32),
 
-          // Features
+          // Included features
           _buildFeatureRow(Icons.block, 'Remove all advertisements'),
           _buildFeatureRow(Icons.music_note, 'Access to all scales and modes'),
-          _buildFeatureRow(Icons.tune, 'Advanced practice tools'),
-          _buildFeatureRow(Icons.settings, 'Custom tunings'),
+          _buildFeatureRow(Icons.volume_up, 'Audio playback & chord progressions'),
           _buildFeatureRow(Icons.download, 'Download fretboard images'),
+          _buildFeatureRow(Icons.save, 'Save progressions locally'),
+
+          const SizedBox(height: 20),
+
+          // Subscriber-only features (not included)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Requires subscription:',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildExcludedFeatureRow(Icons.music_note, 'Drone Mode'),
+          _buildExcludedFeatureRow(Icons.piano, 'Multi-instrument & custom tunings'),
+          _buildExcludedFeatureRow(Icons.cloud_upload, 'Cloud Fingerings Library'),
+          _buildExcludedFeatureRow(Icons.sync, 'Cross-device sync'),
 
           const SizedBox(height: 16),
 
-          // Important note about Fingerings Library and storage
+          // Note about subscription
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -415,40 +435,19 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Important: Lifetime Premium stores progressions locally on this device only. They will not sync across devices.',
-                        style: TextStyle(
-                          color: Colors.orange[200],
-                          fontSize: 12,
-                        ),
-                      ),
+                const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'For Drone Mode, multi-instrument support, and cloud features, upgrade to Pro Subscription.',
+                    style: TextStyle(
+                      color: Colors.orange[200],
+                      fontSize: 12,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(width: 32),
-                    Expanded(
-                      child: Text(
-                        'For cloud sync of progressions and fingerings, subscribe to Fingerings Library.',
-                        style: TextStyle(
-                          color: Colors.orange[200],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -520,7 +519,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Premium purchases work on real devices'),
+                    content: Text('In-app purchases work on real devices'),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -569,7 +568,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           // Title
           const Text(
-            'Fingerings Library',
+            'Pro Subscription',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -579,7 +578,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           ),
           const SizedBox(height: 8),
           Text(
-            'Unlock unlimited fingering patterns',
+            'Unlock all features',
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 16,
@@ -588,7 +587,11 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           ),
           const SizedBox(height: 32),
 
-          // Features
+          // Features - everything unlocked
+          _buildFeatureRow(
+              Icons.music_note, 'Drone Mode - sustained chord practice'),
+          _buildFeatureRow(
+              Icons.piano, 'Multi-instrument & custom tunings'),
           _buildFeatureRow(
               Icons.cloud_upload, 'Save unlimited fingerings to the cloud'),
           _buildFeatureRow(
@@ -599,6 +602,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               Icons.explore, 'Discover fingerings from other guitarists'),
           _buildFeatureRow(Icons.favorite, 'Like and save your favorites'),
           _buildFeatureRow(Icons.sync, 'Sync across all your devices'),
+          _buildFeatureRow(
+              Icons.star, 'All premium features included'),
 
           const SizedBox(height: 32),
 
@@ -731,6 +736,25 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               style: const TextStyle(color: Colors.white, fontSize: 15),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExcludedFeatureRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey[600], size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: Colors.grey[500], fontSize: 15),
+            ),
+          ),
+          Icon(Icons.lock_outline, color: Colors.grey[600], size: 16),
         ],
       ),
     );

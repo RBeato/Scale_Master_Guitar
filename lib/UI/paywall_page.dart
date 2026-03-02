@@ -57,7 +57,7 @@ class _PaywallPageState extends State<PaywallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Premium Access')),
+      appBar: AppBar(title: const Text('Pro Access')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _offering == null
@@ -66,7 +66,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     const Text(
-                      'Upgrade to Premium',
+                      'Upgrade to Pro',
                       style:
                           TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),

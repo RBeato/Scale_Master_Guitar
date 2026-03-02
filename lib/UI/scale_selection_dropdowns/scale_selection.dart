@@ -56,7 +56,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                 const SizedBox(width: 6),
                 const Expanded(
                   child: Text(
-                    'Premium scales available - Upgrade to unlock all scales',
+                    'Pro scales available - Upgrade to unlock all scales',
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 11,
@@ -83,7 +83,7 @@ class _ScaleSelectorState extends ConsumerState<ScaleSelector> {
                     if (!FeatureRestrictionService.canAccessScale(newValue!, entitlement)) {
                       UpgradePrompt.showUpgradeAlert(
                         context,
-                        title: 'Premium Feature',
+                        title: 'Pro Feature',
                         message: FeatureRestrictionService.getScaleRestrictionMessage(),
                       );
                       return;

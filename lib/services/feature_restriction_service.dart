@@ -56,37 +56,37 @@ class FeatureRestrictionService {
 
   /// Get upgrade message for a restricted feature
   static String getUpgradeMessage(String featureName) {
-    return 'Upgrade to Premium to access $featureName';
+    return 'Upgrade to Pro to access $featureName';
   }
 
   /// Get scale restriction message
   static String getScaleRestrictionMessage() {
-    return 'Upgrade to Premium to access all scales. Free users can only use major scales.';
+    return 'Upgrade to Pro to access all scales. Free users can only use major scales.';
   }
 
   /// Get fretboard download restriction message
   static String getFretboardDownloadRestrictionMessage() {
-    return 'Upgrade to Premium to download fretboard images';
+    return 'Upgrade to Pro to download fretboard images';
   }
 
   /// Get audio feature restriction message
   static String getAudioRestrictionMessage() {
-    return 'Upgrade to Premium to use audio playback features';
+    return 'Upgrade to Pro to use audio playback features';
   }
 
   /// Get progression saving restriction message
   static String getProgressionSaveRestrictionMessage() {
-    return 'Upgrade to Premium to save and manage chord progressions';
+    return 'Upgrade to Pro to save and manage chord progressions';
   }
 
   /// Get fingerings library restriction message
   static String getFingeringsLibraryRestrictionMessage() {
-    return 'Subscribe to access the Fingerings Library - save, share, and discover fingering patterns';
+    return 'Upgrade to Pro to access the Fingerings Library - save, share, and discover fingering patterns';
   }
 
   /// Get fingerings library restriction message for lifetime users
   static String getFingeringsLibraryLifetimeMessage() {
-    return 'Subscribe to unlock the Fingerings Library, multi-instrument support, and custom tunings.';
+    return 'Upgrade to Pro Subscription to unlock the Fingerings Library, multi-instrument support, and custom tunings.';
   }
 
   /// Returns true if user is a lifetime purchaser
@@ -101,7 +101,17 @@ class FeatureRestrictionService {
 
   /// Get instrument/tuning restriction message
   static String getInstrumentRestrictionMessage() {
-    return 'Subscribe to access alternate tunings and instruments';
+    return 'Upgrade to Pro Subscription to access alternate tunings and instruments';
+  }
+
+  /// Returns true if user can use drone mode (subscribers only)
+  static bool canUseDroneMode(Entitlement entitlement) {
+    return entitlement.isSubscriber;
+  }
+
+  /// Get drone mode restriction message
+  static String getDroneModeRestrictionMessage() {
+    return 'Upgrade to Pro Subscription to unlock Drone Mode';
   }
 }
 
@@ -124,6 +134,8 @@ final featureRestrictionProvider = Provider.family<bool, String>((ref, feature) 
       return FeatureRestrictionService.canAccessFingeringsLibrary(entitlement);
     case 'instrument_tuning':
       return FeatureRestrictionService.canChangeInstrument(entitlement);
+    case 'drone_mode':
+      return FeatureRestrictionService.canUseDroneMode(entitlement);
     default:
       return false;
   }

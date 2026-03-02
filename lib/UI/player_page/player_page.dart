@@ -25,7 +25,14 @@ import '../fretboard/provider/beat_counter_provider.dart';
 import '../home_page/selection_page.dart';
 import '../paywall/unified_paywall.dart';
 import '../../services/feature_restriction_service.dart';
+import '../../revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import '../../services/default_progression_generator.dart';
+import '../../models/drone_chord.dart';
+import '../player_page/drone/drone_player_bar.dart';
+import '../player_page/drone/drone_service.dart';
+import '../player_page/provider/drone_providers.dart';
+import '../../constants/music_constants.dart';
+import '../../utils/music_utils.dart';
 
 class PlayerPage extends ConsumerWidget {
   final ProgressionModel? initialProgression;
@@ -209,6 +216,107 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
     }
   }
   
+  // --- Drone mode toggle ---
+
+  Widget _buildModeToggle(BuildContext context, WidgetRef ref, ChordScaleFingeringsModel data) {
+    final mode = ref.watch(playerModeProvider);
+    final entitlement = ref.watch(revenueCatProvider);
+    final canUseDrone = FeatureRestrictionService.canUseDroneMode(entitlement);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 40, right: 40, top: 4, bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _ModeButton(
+            label: 'Chords',
+            icon: Icons.queue_music,
+            isActive: mode == PlayerMode.chords,
+            onTap: () => _switchMode(context, ref, PlayerMode.chords, data),
+          ),
+          const SizedBox(width: 8),
+          _ModeButton(
+            label: 'Drone',
+            icon: Icons.music_note,
+            isActive: mode == PlayerMode.drone,
+            isRestricted: !canUseDrone,
+            onTap: () => _switchMode(context, ref, PlayerMode.drone, data),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _switchMode(BuildContext context, WidgetRef ref, PlayerMode newMode, ChordScaleFingeringsModel data) {
+    final currentMode = ref.read(playerModeProvider);
+    if (currentMode == newMode) return;
+
+    if (newMode == PlayerMode.drone) {
+      // Check subscription
+      final entitlement = ref.read(revenueCatProvider);
+      if (!FeatureRestrictionService.canUseDroneMode(entitlement)) {
+        Navigator.push(
+          context,
+          SlideRoute(page: const UnifiedPaywall(), direction: SlideDirection.fromBottom),
+        );
+        return;
+      }
+
+      // Stop progression playback
+      final sequencerManager = ref.read(sequencerManagerProvider);
+      if (sequencerManager.isPlaying && sequencerManager.sequence != null) {
+        sequencerManager.handleStop(sequencerManager.sequence!);
+      }
+      ref.read(isSequencerPlayingProvider.notifier).state = false;
+
+      // Set default drone chord from first diatonic chord
+      _setDefaultDroneChord(ref, data);
+    } else {
+      // Stop drone
+      DroneService().stop();
+      ref.read(isDronePlayingProvider.notifier).state = false;
+    }
+
+    ref.read(playerModeProvider.notifier).state = newMode;
+  }
+
+  void _setDefaultDroneChord(WidgetRef ref, ChordScaleFingeringsModel data) {
+    // Only set default if no chord is already selected
+    if (ref.read(droneChordProvider) != null) return;
+
+    if (data.scaleModel != null && data.scaleModel!.completeChordNames.isNotEmpty) {
+      try {
+        final chordNotes = MusicUtils.getChordInfo(data, 0);
+        final midiNotes = <int>[];
+        for (final note in chordNotes) {
+          final flat = MusicUtils.flatsAndSharpsToFlats(note);
+          final midi = MusicConstants.midiValues[flat];
+          if (midi != null) midiNotes.add(midi);
+        }
+
+        if (midiNotes.isEmpty) return;
+
+        // Bass note: root in octave 2
+        var rootName = MusicUtils.extractNoteName(
+          data.scaleModel!.completeChordNames[0],
+        );
+        rootName = MusicUtils.filterNoteNameWithSlash(rootName);
+        rootName = MusicUtils.flatsAndSharpsToFlats(rootName);
+        final bassMidi = MusicConstants.midiValues['${rootName}2'] ?? 36;
+
+        final drone = DroneChord(
+          displayName: data.scaleModel!.completeChordNames[0],
+          midiNotes: midiNotes,
+          bassMidiNote: bassMidi,
+        );
+        ref.read(droneChordProvider.notifier).state = drone;
+        debugPrint('[PlayerPage] Set default drone chord: ${drone.displayName}');
+      } catch (e) {
+        debugPrint('[PlayerPage] Error setting default drone chord: $e');
+      }
+    }
+  }
+
   // Helper method to clean up resources - but preserve user data
   Future<void> _cleanupResources() async {
     // Prevent multiple cleanup calls
@@ -233,7 +341,16 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
       
       // IMPORTANT: Don't clear chords! User data should persist across navigation
       // ref.read(selectedChordsProvider.notifier).removeAll(); // REMOVED - this was the bug!
-      
+
+      // Stop drone if playing and clean up
+      if (ref.read(isDronePlayingProvider)) {
+        debugPrint('[PlayerPage] Stopping drone during cleanup');
+        DroneService().stop();
+        ref.read(isDronePlayingProvider.notifier).state = false;
+      }
+      await DroneService().dispose();
+      ref.read(playerModeProvider.notifier).state = PlayerMode.chords;
+
       debugPrint('[PlayerPage] Cleanup completed');
     } catch (e, st) {
       debugPrint('[PlayerPage] Error during cleanup: $e\n$st');
@@ -400,7 +517,7 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                           },
                         ),
                         Expanded(
-                          flex: 6,
+                          flex: 5,
                           child: Center(
                             child: Builder(
                               builder: (context) {
@@ -413,10 +530,17 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                             ),
                           ),
                         ),
+                        // Mode toggle: Chords / Drone
+                        _buildModeToggle(context, ref, data),
+                        // Player area: conditional on mode
                         Expanded(
                           flex: 8,
-                          child: Builder(
-                            builder: (context) {
+                          child: Consumer(
+                            builder: (context, ref, _) {
+                              final mode = ref.watch(playerModeProvider);
+                              if (mode == PlayerMode.drone) {
+                                return const DronePlayerBar();
+                              }
                               debugPrint('[PlayerPage] Building PlayerWidget');
                               if (data.scaleModel != null && data.scaleModel!.settings != null) {
                                 return PlayerWidget(data.scaleModel!.settings!);
@@ -469,6 +593,70 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Toggle button for Chords/Drone mode selector
+class _ModeButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final bool isRestricted;
+  final VoidCallback onTap;
+
+  const _ModeButton({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    this.isRestricted = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isRestricted
+        ? Colors.white30
+        : isActive
+            ? Colors.orangeAccent
+            : Colors.white54;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive && !isRestricted ? Colors.orangeAccent.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isRestricted ? Colors.white24 : isActive ? Colors.orangeAccent : Colors.white24,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: color,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: isActive && !isRestricted ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            if (isRestricted) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.lock, size: 12, color: Colors.white30),
+            ],
+          ],
         ),
       ),
     );

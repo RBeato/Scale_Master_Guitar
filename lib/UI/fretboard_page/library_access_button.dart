@@ -26,8 +26,8 @@ class LibraryAccessButton extends ConsumerWidget {
 
   void _showPaywall(BuildContext context, {bool isLifetime = false}) {
     final message = isLifetime
-        ? 'Fingerings Library is not included in your lifetime purchase'
-        : 'Subscribe to access your fingerings library';
+        ? 'Fingerings Library requires a Pro Subscription'
+        : 'Upgrade to Pro to access your fingerings library';
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -35,7 +35,7 @@ class LibraryAccessButton extends ConsumerWidget {
         backgroundColor: isLifetime ? Colors.orange : Colors.blue,
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: 'Subscribe',
+          label: 'Upgrade',
           textColor: Colors.white,
           onPressed: () {
             Navigator.push(

@@ -14,7 +14,7 @@ class PaywallScreen extends ConsumerStatefulWidget {
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isLoading = false;
   String? _errorMessage;
-  String _priceText = 'Unlock Premium';
+  String _priceText = 'Get Lifetime Access';
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         final package = offering.availablePackages.first;
         if (mounted) {
           setState(() {
-            _priceText = 'Unlock Premium for ${package.storeProduct.priceString}';
+            _priceText = 'Get Lifetime Access for ${package.storeProduct.priceString}';
           });
         }
       }
@@ -51,11 +51,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         // Check if billing is unavailable (testing environment)
         if (PurchaseApi.isBillingUnavailable) {
           setState(() {
-            _errorMessage = 'In-app purchases are not available in this testing environment. Premium features work on real devices with Google Play Store.';
+            _errorMessage = 'In-app purchases are not available in this testing environment. Pro features work on real devices with Google Play Store.';
           });
         } else {
           setState(() {
-            _errorMessage = 'Premium offering not available. Please check your internet connection and try again.';
+            _errorMessage = 'Offering not available. Please check your internet connection and try again.';
           });
         }
         return;
@@ -71,7 +71,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       // Get the first available package and update price display
       final package = offering.availablePackages.first;
       setState(() {
-        _priceText = 'Unlock Premium for ${package.storeProduct.priceString}';
+        _priceText = 'Get Lifetime Access for ${package.storeProduct.priceString}';
       });
       
       final isPurchased = await PurchaseApi.purchasePackage(package);
@@ -84,7 +84,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           Navigator.of(context).pop(); // Close paywall
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Premium features unlocked!'),
+              content: Text('Lifetime features unlocked!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -141,7 +141,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Unlock Premium'),
+        title: const Text('Get Lifetime Access'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -165,7 +165,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Unlock All Premium Features',
+              'Unlock All Pro Features',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -226,7 +226,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Premium purchases work on real devices with Google Play Store'),
+                      content: Text('In-app purchases work on real devices with Google Play Store'),
                       backgroundColor: Colors.orange,
                     ),
                   );

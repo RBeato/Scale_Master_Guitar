@@ -61,4 +61,23 @@ post_install do |installer|
       config_file.save_as(xcconfig_path)
     end
   end
+
+  # Add script phase to generate dSYM for objective_c.framework (Dart native asset)
+  # This fixes App Store Connect warning about missing dSYM UUIDs
+  runner_project = Xcodeproj::Project.open(File.join(__dir__, 'Runner.xcodeproj'))
+  runner_target = runner_project.targets.find { |t| t.name == 'Runner' }
+  phase_name = 'Generate objective_c.framework dSYM'
+  unless runner_target.shell_script_build_phases.any? { |p| p.name == phase_name }
+    phase = runner_target.new_shell_script_build_phase(phase_name)
+    phase.shell_script = <<~SCRIPT
+      # Generate dSYM for objective_c.framework (Dart native asset missing dSYM)
+      OBJ_C_FW=$(find "${BUILD_DIR}" -path "*/native_assets/ios/objective_c.framework/objective_c" -type f 2>/dev/null | head -1)
+      if [ -n "$OBJ_C_FW" ] && [ -d "${DWARF_DSYM_FOLDER_PATH}" ]; then
+        echo "Generating dSYM for objective_c.framework..."
+        dsymutil "$OBJ_C_FW" -o "${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM" 2>/dev/null || true
+      fi
+    SCRIPT
+    runner_project.save
+    puts "[Podfile] Added '#{phase_name}' build phase to Runner target"
+  end
 end

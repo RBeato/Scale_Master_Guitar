@@ -267,7 +267,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Unlock Premium Features',
+                      'Unlock Pro Features',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 28,

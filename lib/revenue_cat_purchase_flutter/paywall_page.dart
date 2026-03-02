@@ -133,7 +133,7 @@ class _PaywallPageState extends State<PaywallPage> {
                             Icon(Icons.lock, color: Colors.yellow),
                             SizedBox(width: 8),
                             Text(
-                              'Premium',
+                              'Pro',
                               style: TextStyle(
                                 color: Colors.yellow,
                                 fontSize: 18,

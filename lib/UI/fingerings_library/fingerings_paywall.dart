@@ -62,7 +62,7 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Welcome to Fingerings Library!'),
+              content: Text('Welcome to Pro! All features unlocked.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -196,7 +196,7 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
 
           // Title
           const Text(
-            'Fingerings Library',
+            'Pro Subscription',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,

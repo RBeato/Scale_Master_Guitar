@@ -9,9 +9,9 @@ void _showUpgradeDialog(BuildContext context, String featureName) {
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Premium Feature', style: TextStyle(color: Colors.white)),
+        title: const Text('Pro Feature', style: TextStyle(color: Colors.white)),
         content: Text(
-            '$featureName is only available for premium users. Would you like to upgrade?',
+            '$featureName is only available for Pro users. Would you like to upgrade?',
             style: const TextStyle(color: Colors.white70)),
         actions: <Widget>[
           TextButton(

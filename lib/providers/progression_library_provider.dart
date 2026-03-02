@@ -97,7 +97,7 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
   Future<bool> saveProgression(ProgressionModel progression) async {
     if (!ProgressionStorageService.canSave(_currentEntitlement)) {
       state = state.copyWith(
-        error: 'Upgrade to Premium to save progressions',
+        error: 'Upgrade to Pro to save progressions',
       );
       return false;
     }
@@ -149,7 +149,7 @@ class ProgressionLibraryNotifier extends StateNotifier<ProgressionLibraryState> 
   Future<bool> updateProgression(ProgressionModel progression) async {
     if (!ProgressionStorageService.canSave(_currentEntitlement)) {
       state = state.copyWith(
-        error: 'Upgrade to Premium to update progressions',
+        error: 'Upgrade to Pro to update progressions',
       );
       return false;
     }

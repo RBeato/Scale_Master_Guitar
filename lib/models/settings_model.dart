@@ -13,6 +13,7 @@ class Settings extends Equatable {
   String keyboardSound;
   String bassSound;
   String drumsSound;
+  String droneSound;
 
   Settings({
     this.showScaleDegrees = false,
@@ -21,6 +22,7 @@ class Settings extends Equatable {
     this.keyboardSound = 'Rhodes',
     this.bassSound = 'Double Bass',
     this.drumsSound = 'Acoustic',
+    this.droneSound = 'Organ',
   });
 
   dynamic get(SettingsSelection settingsSelection) {
@@ -42,6 +44,9 @@ class Settings extends Equatable {
     if (settingsSelection == SettingsSelection.singleColor) {
       return isSingleColor;
     }
+    if (settingsSelection == SettingsSelection.droneSound) {
+      return droneSound;
+    }
   }
 
   @override
@@ -52,6 +57,7 @@ class Settings extends Equatable {
         keyboardSound,
         drumsSound,
         bassSound,
+        droneSound,
       ];
 
   @override
@@ -62,6 +68,7 @@ class Settings extends Equatable {
         '\n $isTonicUniversalBassNote'
         '\n $keyboardSound'
         '\n $drumsSound'
-        '\n $bassSound';
+        '\n $bassSound'
+        '\n $droneSound';
   }
 }
