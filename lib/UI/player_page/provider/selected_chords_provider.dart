@@ -31,10 +31,17 @@ class SelectedChords extends StateNotifier<List<ChordModel>> {
     List<ChordModel> temp = [...state];
 
     if (chordModel != null) {
+      // Voice only the new chord relative to the existing progression.
+      // This avoids re-voicing all existing chords with a new random
+      // inversion, which would destabilize voicings and increase the
+      // chance of shared notes at chord boundaries (causing playback
+      // issues on iOS Dart scheduling).
+      VoiceLeadingCreator.voiceNewChord(temp, chordModel);
       temp.add(chordModel);
+      state = temp;
+    } else {
+      updateProgression(temp);
     }
-
-    updateProgression(temp);
 
     int sum =
         state.fold(0, (previousValue, item) => previousValue + item.duration);

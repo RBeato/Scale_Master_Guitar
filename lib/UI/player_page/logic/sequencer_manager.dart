@@ -583,7 +583,11 @@ class SequencerManager {
         if (event is MidiEvent) {
           // Simple timing check (from working example)
           if ((currentBeat - event.beat).abs() < 0.1) {
-            final eventKey = '${track.id}-$_loopCycle-${event.beat}-${event.midiData1}';
+            // CRITICAL: Include midiStatus to distinguish note-on (0x90) from
+            // note-off (0x80). Without this, when consecutive chords share a
+            // note at their boundary, the note-off and note-on at the same
+            // beat get the same key, causing the note-on to be skipped.
+            final eventKey = '${track.id}-$_loopCycle-${event.beat}-${event.midiStatus}-${event.midiData1}';
 
             if (!_processedEvents.contains(eventKey)) {
               // Send event using NativeBridge (from working example)
