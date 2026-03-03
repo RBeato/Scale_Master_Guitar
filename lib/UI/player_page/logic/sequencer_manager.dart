@@ -193,14 +193,11 @@ class SequencerManager {
             }
           }
           track.clearEvents();
-
-          // Reset track state in native layer
-          try {
-            NativeBridge.resetTrack(track.id);
-            debugPrint('[SequencerManager] Reset track ${track.id} in native layer');
-          } catch (e) {
-            debugPrint('[SequencerManager] Warning: Could not reset track ${track.id}: $e');
-          }
+          // Note: we intentionally do NOT call NativeBridge.resetTrack() here.
+          // AudioUnitReset races with the audio render thread processing the
+          // noteOff events we just sent, causing a crash in the AUSampler's
+          // memory deallocator. Sending 128 noteOffs + clearEvents is sufficient
+          // to reset the track state without the dangerous native reset.
         }
       } else {
         // Recreate tracks when instruments have changed

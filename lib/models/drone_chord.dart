@@ -19,7 +19,9 @@ class DroneChord {
   /// All notes to play (bass + chord tones)
   List<int> get allMidiNotes => [bassMidiNote, ...midiNotes];
 
-  /// Build from an existing ChordModel (diatonic chord button tap)
+  /// Build from an existing ChordModel (diatonic chord button tap).
+  /// Uses spread voicing: the lowest chord tone is dropped an octave
+  /// for a wider, more resonant drone sound.
   factory DroneChord.fromChordModel(ChordModel chord) {
     // Extract MIDI notes from chord's inversion notes
     final List<int> chordMidi = [];
@@ -38,15 +40,21 @@ class DroneChord {
     rootName = MusicUtils.flatsAndSharpsToFlats(rootName);
     final bassMidi = MusicConstants.midiValues['${rootName}2'] ?? 36;
 
+    // Apply spread voicing: drop the lowest chord tone by one octave
+    // to create wider spacing between bass and upper voices
+    final spreadMidi = _applySpreadVoicing(chordMidi);
+
     return DroneChord(
       displayName: chord.completeChordName ?? chord.noteName,
-      midiNotes: chordMidi,
+      midiNotes: spreadMidi,
       bassMidiNote: bassMidi,
       color: chord.color,
     );
   }
 
-  /// Build from root note name + chord quality + octave
+  /// Build from root note name + chord quality + octave.
+  /// Uses spread voicing: root at octave 3, upper voices at octave 4,
+  /// creating a wider, more resonant drone sound.
   factory DroneChord.fromRootAndQuality(
     String root,
     String quality, {
@@ -59,16 +67,27 @@ class DroneChord {
     final rootFlat = MusicUtils.flatsAndSharpsToFlats(root);
     final rootMidi = MusicConstants.midiValues['$rootFlat$octave'];
     if (rootMidi == null) {
-      // Fallback to C4
+      // Fallback: spread C chord
       return DroneChord(
         displayName: '$root$quality',
-        midiNotes: [60, 64, 67],
+        midiNotes: [48, 64, 67], // C3, E4, G4
         bassMidiNote: 36,
         color: color,
       );
     }
 
-    final chordMidi = intervals.map((i) => rootMidi + i).toList();
+    // Spread voicing: root dropped to octave 3, upper voices at octave 4
+    final chordMidi = <int>[];
+    for (int i = 0; i < intervals.length; i++) {
+      if (i == 0) {
+        // Root: one octave below the default
+        chordMidi.add(rootMidi - 12 + intervals[i]);
+      } else {
+        // Upper voices: at the default octave
+        chordMidi.add(rootMidi + intervals[i]);
+      }
+    }
+
     final bassMidi = MusicConstants.midiValues['${rootFlat}2'] ?? (rootMidi - 24);
 
     // Build display name
@@ -112,6 +131,23 @@ class DroneChord {
     'Min6': 'm6',
     'Maj6': '6',
   };
+
+  /// Spread voicing: drop the lowest chord tone by one octave to widen
+  /// the spacing between bass and upper voices. Only drops if the lowest
+  /// note is at octave 4 or above (MIDI >= 60) to avoid going too low.
+  static List<int> _applySpreadVoicing(List<int> midiNotes) {
+    if (midiNotes.length < 2) return List.of(midiNotes);
+
+    final sorted = List<int>.of(midiNotes)..sort();
+    final lowest = sorted.first;
+
+    // Only drop if the lowest note is at octave 4+ (MIDI 60+)
+    if (lowest >= 60) {
+      sorted[0] = lowest - 12;
+    }
+
+    return sorted;
+  }
 
   static List<String> get availableQualities => _qualityIntervals.keys.toList();
 

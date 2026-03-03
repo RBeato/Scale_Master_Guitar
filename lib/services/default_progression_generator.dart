@@ -72,8 +72,6 @@ class DefaultProgressionGenerator {
     'Iwato': [0, 3], // same intervals as In-Sen
     'Kumoi': [0, 2], // gentle Japanese
     'Pelog': [0, 3], // Balinese gamelan
-    'Prometheus': [0, 3], // Scriabin-like
-    'Prometheus Neapolitan': [0, 3], // dark Prometheus
     'Prometheus Spanish': [0, 2], // Spanish variant
     'Ritusen': [0, 2], // same as Hirajoshi
     'Ryukyu': [0, 3], // Okinawan
@@ -99,6 +97,8 @@ class DefaultProgressionGenerator {
     'Minor Hexatonic': [1, 2], // near-diatonic minor
     'Ritsu Onkai': [0], // Japanese ceremonial, ambiguous
     'Raga Kumud': [1, 2], // near-major ii-iii
+    'Prometheus': [0, 3], // Scriabin-like
+    'Prometheus Neapolitan': [0, 3], // dark Prometheus
     'Mixolydian Hexatonic': [0, 3], // dominant feel
     'Phrygian Hexatonic': [0, 3], // Phrygian darkness
   };

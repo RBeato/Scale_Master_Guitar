@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -18,8 +19,7 @@ import '../../../models/drone_chord.dart';
 /// Supports multiple drone sounds (Organ, Atmospheric Pad) configurable
 /// from drawer settings.
 ///
-/// No retriggering, no crossfading, no timers. The SF2 instrument does
-/// the work natively.
+/// Includes an optional timer-based metronome click track (hi-hat).
 class DroneService {
   static final DroneService _instance = DroneService._internal();
   factory DroneService() => _instance;
@@ -30,8 +30,14 @@ class DroneService {
     'Atmospheric Pad': 'assets/sounds/sf2/atmospheric_pad.sf2',
   };
 
+  static const String _drumSf2 = 'assets/sounds/sf2/DrumsSlavo.sf2';
+  static const int _hiHatNote = 44; // Pedal Hi-Hat (GM)
+  static const double _clickVelocity = 0.53;
+  static const Duration _clickDuration = Duration(milliseconds: 80);
+
   Sequence? _sequence;
   Track? _padTrack;
+  Track? _clickTrack;
   bool _isInitialized = false;
   bool _isPlaying = false;
   DroneChord? _currentChord;
@@ -39,13 +45,19 @@ class DroneService {
   double _volume = 0.54;
   String _currentSound = 'Organ';
 
+  // Metronome state
+  Timer? _metronomeTimer;
+  bool _metronomeRunning = false;
+  double _metronomeBpm = 120.0;
+
   bool get isInitialized => _isInitialized;
   bool get isPlaying => _isPlaying;
   DroneChord? get currentChord => _currentChord;
   String get currentSound => _currentSound;
+  bool get isMetronomeRunning => _metronomeRunning;
 
   /// Initialize the drone audio engine with the given sound name.
-  /// Creates its own Sequence + single pad Track with the appropriate SF2.
+  /// Creates its own Sequence + pad Track + click Track.
   /// If already initialized with a different sound, disposes and reinitializes.
   Future<void> initialize({String soundName = 'Organ'}) async {
     // If already initialized with the same sound, skip
@@ -82,19 +94,30 @@ class DroneService {
       // Minimal sequence — we only use real-time note control
       _sequence = Sequence(tempo: 120.0, endBeat: 1.0);
 
-      final instrument = Sf2Instrument(
+      final padInstrument = Sf2Instrument(
         path: sf2Path,
         isAsset: true,
         presetIndex: 0,
       );
 
-      final tracks = await _sequence!.createTracks([instrument]);
+      final drumInstrument = Sf2Instrument(
+        path: _drumSf2,
+        isAsset: true,
+        presetIndex: 0,
+      );
+
+      final tracks = await _sequence!.createTracks([padInstrument, drumInstrument]);
       if (tracks.isEmpty) {
-        throw Exception('Failed to create drone track');
+        throw Exception('Failed to create drone tracks');
       }
 
       _padTrack = tracks[0];
       _padTrack!.changeVolumeNow(volume: _volume);
+
+      if (tracks.length >= 2) {
+        _clickTrack = tracks[1];
+        _clickTrack!.changeVolumeNow(volume: 0.7);
+      }
 
       _isInitialized = true;
       debugPrint('[DroneService] Initialized with $soundName');
@@ -103,6 +126,7 @@ class DroneService {
       _isInitialized = false;
       _sequence = null;
       _padTrack = null;
+      _clickTrack = null;
       rethrow;
     }
   }
@@ -139,9 +163,10 @@ class DroneService {
     _isPlaying = true;
   }
 
-  /// Stop the drone.
+  /// Stop the drone and metronome.
   void stop() {
     debugPrint('[DroneService] Stopping drone');
+    stopMetronome();
     _stopAllNotes();
     _isPlaying = false;
   }
@@ -188,6 +213,57 @@ class DroneService {
     _currentChord = newChord;
   }
 
+  // --- Metronome ---
+
+  /// Start the metronome click at the given BPM.
+  void startMetronome(double bpm) {
+    if (_clickTrack == null) return;
+    _metronomeBpm = bpm;
+    _metronomeTimer?.cancel();
+
+    final intervalMs = (60000.0 / bpm).round();
+    debugPrint('[DroneService] Starting metronome at $bpm BPM (${intervalMs}ms)');
+
+    // Fire first click immediately
+    _fireClick();
+
+    _metronomeTimer = Timer.periodic(
+      Duration(milliseconds: intervalMs),
+      (_) => _fireClick(),
+    );
+    _metronomeRunning = true;
+  }
+
+  /// Stop the metronome click.
+  void stopMetronome() {
+    _metronomeTimer?.cancel();
+    _metronomeTimer = null;
+    _metronomeRunning = false;
+  }
+
+  /// Update the metronome tempo. Restarts the timer if running.
+  void updateMetronomeTempo(double bpm) {
+    _metronomeBpm = bpm;
+    if (_metronomeRunning) {
+      startMetronome(bpm);
+    }
+  }
+
+  void _fireClick() {
+    if (_clickTrack == null) return;
+    try {
+      _clickTrack!.startNoteNow(noteNumber: _hiHatNote, velocity: _clickVelocity);
+      // Short note — stop after a brief duration
+      Future.delayed(_clickDuration, () {
+        try {
+          _clickTrack?.stopNoteNow(noteNumber: _hiHatNote);
+        } catch (_) {}
+      });
+    } catch (e) {
+      debugPrint('[DroneService] Error firing click: $e');
+    }
+  }
+
   /// Set volume in real-time.
   void setVolume(double volume) {
     _volume = volume.clamp(0.0, 1.0);
@@ -218,12 +294,16 @@ class DroneService {
     if (_sequence != null) {
       try {
         _sequence!.stop();
+        // Destroy the sequence to properly remove tracks from the native engine.
+        // Without this, orphaned AudioUnit tracks accumulate and leak memory.
+        _sequence!.destroy();
       } catch (e) {
-        debugPrint('[DroneService] Error stopping sequence: $e');
+        debugPrint('[DroneService] Error stopping/destroying sequence: $e');
       }
     }
 
     _padTrack = null;
+    _clickTrack = null;
     _sequence = null;
     _isInitialized = false;
     debugPrint('[DroneService] Disposed');

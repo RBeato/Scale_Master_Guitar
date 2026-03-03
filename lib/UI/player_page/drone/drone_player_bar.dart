@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../constants/app_theme.dart';
 import '../../drawer/models/settings_state.dart';
 import '../../drawer/provider/settings_state_notifier.dart';
+import '../metronome/metronome_display.dart';
+import '../metronome/metronome_icon.dart';
 import '../provider/drone_providers.dart';
+import '../provider/is_metronome_selected.dart';
+import '../provider/metronome_tempo_provider.dart';
 import 'drone_chord_selector.dart';
 import 'drone_service.dart';
 
@@ -40,6 +44,12 @@ class _DronePlayerBarState extends ConsumerState<DronePlayerBar> {
       try {
         await DroneService().play(chord, soundName: _getDroneSound());
         ref.read(isDronePlayingProvider.notifier).state = true;
+
+        // Start metronome if it's toggled on
+        if (ref.read(isMetronomeSelectedProvider)) {
+          final bpm = ref.read(metronomeTempoProvider);
+          DroneService().startMetronome(bpm);
+        }
       } catch (e) {
         debugPrint('[DronePlayerBar] Error starting drone: $e');
       } finally {
@@ -74,8 +84,26 @@ class _DronePlayerBarState extends ConsumerState<DronePlayerBar> {
   Widget build(BuildContext context) {
     final chord = ref.watch(droneChordProvider);
     final isPlaying = ref.watch(isDronePlayingProvider);
+    final tempo = ref.watch(metronomeTempoProvider);
     final isTablet = MediaQuery.of(context).size.width > 600;
     final double edgeInset = isTablet ? 20.0 : 0.0;
+
+    // Listen for metronome toggle changes
+    ref.listen<bool>(isMetronomeSelectedProvider, (previous, next) {
+      if (!ref.read(isDronePlayingProvider)) return;
+      if (next) {
+        DroneService().startMetronome(ref.read(metronomeTempoProvider));
+      } else {
+        DroneService().stopMetronome();
+      }
+    });
+
+    // Listen for tempo changes
+    ref.listen<double>(metronomeTempoProvider, (previous, next) {
+      if (previous != next) {
+        DroneService().updateMetronomeTempo(next);
+      }
+    });
 
     if (chord == null) {
       return Container(
@@ -123,6 +151,29 @@ class _DronePlayerBarState extends ConsumerState<DronePlayerBar> {
                   ),
               ],
             ),
+          ),
+
+          // Top-left: BPM display
+          Positioned(
+            top: 0,
+            left: edgeInset,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                width: 70,
+                height: 30.0,
+                child: MetronomeDisplay(
+                  selectedTempo: tempo,
+                ),
+              ),
+            ),
+          ),
+
+          // Top-right: Metronome toggle
+          Positioned(
+            top: 0,
+            right: edgeInset,
+            child: const MetronomeButton(),
           ),
 
           // Bottom-left: Play/Stop button
