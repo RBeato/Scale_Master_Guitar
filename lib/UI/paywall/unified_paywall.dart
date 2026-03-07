@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
@@ -22,6 +23,9 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // Current entitlement
+  Entitlement _currentEntitlement = Entitlement.free;
+
   // Premium tab state
   bool _isPremiumLoading = false;
   String? _premiumError;
@@ -33,6 +37,10 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
   String? _fingeringsError;
   Offering? _fingeringsOffering;
   Package? _selectedPackage;
+
+  // Trial state
+  bool _hasTrialAvailable = false;
+  String _trialDurationText = '';
 
   bool _isPurchasing = false;
 
@@ -81,6 +89,13 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
   }
 
   Future<void> _loadOfferings() async {
+    // Check current entitlement first to show "Already Purchased" states
+    try {
+      _currentEntitlement = await PurchaseApi.getUserEntitlement();
+    } catch (e) {
+      debugPrint('Error checking entitlement: $e');
+    }
+
     await Future.wait([
       _loadPremiumOffering(),
       _loadFingeringsOffering(),
@@ -123,6 +138,17 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               (p) => p.packageType == PackageType.annual,
               orElse: () => offering.availablePackages.first,
             );
+
+            // Detect free trial on any available package
+            for (final pkg in offering.availablePackages) {
+              final intro = pkg.storeProduct.introductoryPrice;
+              if (intro != null && intro.price == 0) {
+                _hasTrialAvailable = true;
+                final days = intro.periodNumberOfUnits;
+                _trialDurationText = '$days-Day Free Trial';
+                break;
+              }
+            }
           }
         });
       }
@@ -466,37 +492,70 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
               ),
             ),
 
-          // Purchase button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isPremiumLoading ? null : _handlePremiumPurchase,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          // Purchase button or Already Purchased state
+          if (_currentEntitlement.isLifetime) ...[
+            // Already has lifetime — show confirmation
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
-              child: _isPremiumLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      ),
-                    )
-                  : Text(
-                      _premiumPriceText,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: const Column(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  SizedBox(height: 8),
+                  Text(
+                    'Lifetime Access Active',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'You already own this! All lifetime features are unlocked.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isPremiumLoading ? null : _handlePremiumPurchase,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isPremiumLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                      )
+                    : Text(
+                        _premiumPriceText,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
@@ -576,6 +635,25 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
             ),
             textAlign: TextAlign.center,
           ),
+          if (_hasTrialAvailable) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                _trialDurationText,
+                style: const TextStyle(
+                  color: Colors.greenAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             'Unlock all features',
@@ -642,8 +720,38 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 24),
 
-          // Subscribe button
-          if (_selectedPackage != null)
+          // Subscribe button or Already Subscribed state
+          if (_currentEntitlement.isSubscriber) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  SizedBox(height: 8),
+                  Text(
+                    'Pro Subscription Active',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'You already have an active subscription! All Pro features are unlocked.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_selectedPackage != null) ...[
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -668,7 +776,9 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                         ),
                       )
                     : Text(
-                        'Subscribe for ${_selectedPackage!.storeProduct.priceString}',
+                        _hasTrialAvailable
+                            ? 'Start $_trialDurationText'
+                            : 'Subscribe for ${_selectedPackage!.storeProduct.priceString}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -676,6 +786,15 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                       ),
               ),
             ),
+            if (_hasTrialAvailable) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Then ${_selectedPackage!.storeProduct.priceString} per ${_selectedPackage!.packageType == PackageType.annual ? 'year' : 'month'}',
+                style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
 
           const SizedBox(height: 16),
 
@@ -692,8 +811,12 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           // Terms
           Text(
-            'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
-            'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.',
+            _hasTrialAvailable
+                ? 'Free trial automatically converts to a paid subscription unless canceled at least 24 hours before the trial ends. '
+                  'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
+                  'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.'
+                : 'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
+                  'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.',
             style: TextStyle(color: Colors.grey[600], fontSize: 11),
             textAlign: TextAlign.center,
           ),
@@ -768,6 +891,8 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
     String periodLabel = '';
     String? savingsLabel;
+    final intro = product.introductoryPrice;
+    final hasFreeTrial = intro != null && intro.price == 0;
 
     if (isMonthly) {
       periodLabel = '/month';
@@ -864,6 +989,17 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                     product.description,
                     style: TextStyle(color: Colors.grey[400], fontSize: 13),
                   ),
+                  if (hasFreeTrial) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${intro.periodNumberOfUnits}-day free trial',
+                      style: const TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

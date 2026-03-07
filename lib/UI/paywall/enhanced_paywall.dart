@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 import 'package:scalemasterguitar/utils/audio_state_manager.dart';
@@ -21,6 +22,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   Package? monthlyPackage;
   Package? yearlyPackage;
   Package? lifetimePackage;
+  Entitlement _currentEntitlement = Entitlement.free;
 
   @override
   void initState() {
@@ -31,7 +33,15 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   Future<void> _fetchOfferings() async {
     setState(() => isLoading = true);
     try {
+      // Check current entitlement first
+      try {
+        _currentEntitlement = await PurchaseApi.getUserEntitlement();
+      } catch (e) {
+        debugPrint('[Paywall] Error checking entitlement: $e');
+      }
+
       if (kDebugMode) {
+        debugPrint('[Paywall] Current entitlement: $_currentEntitlement');
         debugPrint('[Paywall] Fetching offerings...');
       }
       offering = await PurchaseApi.fetchPremiumOffering();
@@ -121,6 +131,15 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
 
       // Handle specific error codes with user-friendly messages
       switch (e.code) {
+        case 'ALREADY_PURCHASED':
+          _showError(e.message ?? 'You already own this product!');
+          // Refresh entitlement state
+          try {
+            _currentEntitlement = await PurchaseApi.getUserEntitlement();
+            if (mounted) setState(() {});
+          } catch (_) {}
+          break;
+
         case 'PURCHASE_CANCELLED':
         case 'PURCHASES_ERROR_PURCHASE_CANCELLED':
           // User cancelled, no error message needed
@@ -400,6 +419,40 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
   }
 
   Widget _buildPurchaseOptions() {
+    // If user already has premium, show confirmation instead
+    if (_currentEntitlement.isPremium) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              _currentEntitlement.isSubscriber
+                  ? 'Pro Subscription Active'
+                  : 'Lifetime Access Active',
+              style: const TextStyle(
+                color: Colors.green,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'All premium features are already unlocked!',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         // Monthly subscription
@@ -411,9 +464,9 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
             package: monthlyPackage!,
             isPopular: false,
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Yearly subscription
         if (yearlyPackage != null)
           _buildPurchaseCard(
@@ -423,9 +476,9 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
             package: yearlyPackage!,
             isPopular: true,
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Lifetime purchase
         if (lifetimePackage != null)
           _buildPurchaseCard(

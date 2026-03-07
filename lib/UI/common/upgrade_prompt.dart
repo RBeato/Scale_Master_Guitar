@@ -10,13 +10,25 @@ class UpgradePrompt {
     String message, {
     bool showPaywallAction = true,
   }) {
+    // Capture navigator before showing SnackBar — the widget context may be
+    // unmounted by the time the user taps "Upgrade" (e.g. page transition).
+    final navigator = Navigator.of(context);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         action: showPaywallAction
             ? SnackBarAction(
                 label: 'Upgrade',
-                onPressed: () => showUpgradeDialog(context),
+                onPressed: () {
+                  navigator.push(
+                    SlideRoute(
+                      page: const UnifiedPaywall(),
+                      direction: SlideDirection.fromBottom,
+                      fullscreenDialog: true,
+                    ),
+                  );
+                },
               )
             : null,
         duration: const Duration(seconds: 4),

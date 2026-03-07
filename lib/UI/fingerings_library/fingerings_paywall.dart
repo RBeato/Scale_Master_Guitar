@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:scalemasterguitar/constants/app_theme.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/provider/revenue_cat_provider.dart';
 
@@ -17,6 +18,7 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
   bool _isLoading = true;
   bool _isPurchasing = false;
   String? _error;
+  Entitlement _currentEntitlement = Entitlement.free;
 
   @override
   void initState() {
@@ -31,6 +33,13 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
     });
 
     try {
+      // Check current entitlement first
+      try {
+        _currentEntitlement = await PurchaseApi.getUserEntitlement();
+      } catch (e) {
+        debugPrint('Error checking entitlement: $e');
+      }
+
       final offering = await PurchaseApi.fetchFingeringsLibraryOffering();
       if (mounted) {
         setState(() {
@@ -224,34 +233,67 @@ class _FingeringsPaywallState extends ConsumerState<FingeringsPaywall> {
 
           const SizedBox(height: 32),
 
-          // Packages
-          if (_offering != null && _offering!.availablePackages.isNotEmpty)
-            ..._offering!.availablePackages.map((package) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildPackageCard(package),
-                )),
-
-          if (_offering == null || _offering!.availablePackages.isEmpty)
+          // Already subscribed state or package cards
+          if (_currentEntitlement.isSubscriber) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Colors.green.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
-              child: Column(
+              child: const Column(
                 children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  SizedBox(height: 8),
                   Text(
-                    'Subscription options not available',
-                    style: TextStyle(color: Colors.grey[400]),
+                    'Pro Subscription Active',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 4),
                   Text(
-                    'Please check back later or contact support',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    'You already have an active subscription! All Pro features are unlocked.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
+          ] else ...[
+            // Packages
+            if (_offering != null && _offering!.availablePackages.isNotEmpty)
+              ..._offering!.availablePackages.map((package) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildPackageCard(package),
+                  )),
+
+            if (_offering == null || _offering!.availablePackages.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Subscription options not available',
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please check back later or contact support',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+          ],
 
           const SizedBox(height: 24),
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scalemasterguitar/revenue_cat_purchase_flutter/entitlement.dart';
 import 'package:scalemasterguitar/revenue_cat_purchase_flutter/purchase_api.dart';
 import 'package:scalemasterguitar/UI/home_page/selection_page.dart';
 import 'package:scalemasterguitar/utils/slide_route.dart';
@@ -15,6 +16,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String _priceText = 'Get Lifetime Access';
+  Entitlement _currentEntitlement = Entitlement.free;
 
   @override
   void initState() {
@@ -24,6 +26,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _loadPricing() async {
     try {
+      // Check current entitlement first
+      try {
+        _currentEntitlement = await PurchaseApi.getUserEntitlement();
+        if (mounted) setState(() {});
+      } catch (e) {
+        debugPrint('Error checking entitlement: $e');
+      }
+
       final offering = await PurchaseApi.fetchPremiumOffering();
       if (offering != null && offering.availablePackages.isNotEmpty) {
         final package = offering.availablePackages.first;
@@ -192,27 +202,52 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handlePurchase,
-              style: ElevatedButton.styleFrom(
+            if (_currentEntitlement.isPremium)
+              Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.blue,
-                disabledBackgroundColor: Colors.blue.withValues(alpha: 0.5),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      _priceText,
-                      style: const TextStyle(fontSize: 18, color: Colors.white),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 32),
+                    SizedBox(height: 8),
+                    Text(
+                      'Already Purchased!',
+                      style: TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-            ),
+                    SizedBox(height: 4),
+                    Text(
+                      'All premium features are unlocked.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handlePurchase,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.blue,
+                  disabledBackgroundColor: Colors.blue.withValues(alpha: 0.5),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        _priceText,
+                        style: const TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+              ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: _isLoading ? null : _handleRestore,

@@ -11,9 +11,13 @@ import 'fretboard_options.dart';
 class WidgetToPngExporter extends ConsumerStatefulWidget {
   final Widget child;
   final bool isDegreeSelected;
+  final Future<Uint8List?> Function()? fullCaptureCallback;
 
   const WidgetToPngExporter(
-      {super.key, required this.isDegreeSelected, required this.child});
+      {super.key,
+      required this.isDegreeSelected,
+      required this.child,
+      this.fullCaptureCallback});
 
   @override
   _WidgetToPngExporterState createState() => _WidgetToPngExporterState();
@@ -30,6 +34,12 @@ class _WidgetToPngExporterState extends ConsumerState<WidgetToPngExporter> {
 
   Future<Uint8List?> capturePng() async {
     try {
+      // Prefer full off-screen render (captures entire fretboard)
+      if (widget.fullCaptureCallback != null) {
+        return await widget.fullCaptureCallback!();
+      }
+
+      // Fallback: capture visible portion via RepaintBoundary
       RenderRepaintBoundary boundary = _globalKey.currentContext!
           .findRenderObject() as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);

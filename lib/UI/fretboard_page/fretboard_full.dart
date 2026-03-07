@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart';
@@ -55,6 +59,68 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
           dotPositions,
           dotColors,
         );
+  }
+
+  /// Render the full fretboard off-screen to a PNG image.
+  /// This captures the entire fretboard regardless of scroll position.
+  Future<Uint8List?> _renderFullFretboard({
+    required FretboardSharpFlat? flatSharpSelection,
+    required Color fretboardColor,
+    required bool hideNotes,
+    required List<List<String>> notesSharps,
+    required List<List<String>> notesFlats,
+  }) async {
+    try {
+      const double pixelRatio = 3.0;
+      const double baseWidth = 400.0;
+
+      final painterSize = Size(baseWidth * 0.8, baseWidth);
+
+      // Calculate canvas size to fit all fretboard drawing
+      final double fretWidth = painterSize.width * 4 / fretCount;
+      final double padding = fretWidth;
+      final double canvasWidth = painterSize.width * 4.3 + padding;
+      final double canvasHeight = painterSize.width * 1.0 + padding;
+
+      final painter = CustomFretboardPainter(
+        size: painterSize,
+        stringCount: stringCount,
+        fretCount: fretCount,
+        fingeringsModel: widget.fingeringsModel,
+        dotPositions: dotPositions,
+        dotColors: dotColors,
+        flatSharpSelection: flatSharpSelection,
+        hideNotes: hideNotes,
+        fretboardColor: fretboardColor,
+        notesSharps: notesSharps,
+        notesFlats: notesFlats,
+      );
+
+      // Output is rotated 90° CW to match on-screen orientation
+      final double outputWidth = canvasHeight;
+      final double outputHeight = canvasWidth;
+
+      final recorder = ui.PictureRecorder();
+      final canvas =
+          Canvas(recorder, Rect.fromLTWH(0, 0, outputWidth, outputHeight));
+      canvas.translate(canvasHeight, 0);
+      canvas.rotate(math.pi / 2);
+      canvas.translate(padding / 2, padding / 2);
+      painter.paint(canvas, Size(canvasWidth, canvasHeight));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(
+        (outputWidth * pixelRatio).ceil(),
+        (outputHeight * pixelRatio).ceil(),
+      );
+
+      final byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error rendering full fretboard: $e');
+      return null;
+    }
   }
 
   List<List<bool>> createDotPositions(
@@ -131,6 +197,13 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
     return WidgetToPngExporter(
       isDegreeSelected:
           widget.fingeringsModel.scaleModel!.settings!.showScaleDegrees,
+      fullCaptureCallback: () => _renderFullFretboard(
+        flatSharpSelection: flatSharpSelection,
+        fretboardColor: fretboardColor,
+        hideNotes: hideNotes,
+        notesSharps: notesSharps,
+        notesFlats: notesFlats,
+      ),
       child: LayoutBuilder(builder: (context, constraints) {
         Size size = constraints.biggest;
         debugPrint("Layout builder width ${size.width} height ${size.height}");

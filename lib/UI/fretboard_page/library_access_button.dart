@@ -29,6 +29,10 @@ class LibraryAccessButton extends ConsumerWidget {
         ? 'Fingerings Library requires a Pro Subscription'
         : 'Upgrade to Pro to access your fingerings library';
 
+    // Capture navigator before showing SnackBar — the widget context may be
+    // unmounted by the time the user taps "Upgrade" (e.g. page transition).
+    final navigator = Navigator.of(context);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -38,8 +42,7 @@ class LibraryAccessButton extends ConsumerWidget {
           label: 'Upgrade',
           textColor: Colors.white,
           onPressed: () {
-            Navigator.push(
-              context,
+            navigator.push(
               SlideRoute(page: const UnifiedPaywall(initialTab: 1), direction: SlideDirection.fromBottom),
             );
           },

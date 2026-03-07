@@ -152,19 +152,14 @@ class PurchaseApi {
         premiumOffering = offerings.all[_oldPremiumOfferingId];
       }
 
-      // If still not found, try current offering or first available
-      if (premiumOffering == null && offerings.current != null) {
-        debugPrint('Premium offering not found, using current offering: ${offerings.current!.identifier}');
-        premiumOffering = offerings.current;
+      // IMPORTANT: Do NOT fall back to offerings.current or first available.
+      // This is a unified Hub project with GPG/SMG/ENP offerings — the default
+      // offering is likely a GPG product, not an SMG product.
+      if (premiumOffering == null) {
+        debugPrint('WARNING: SMG premium offering not found. Available: ${offerings.all.keys.toList()}');
+        debugPrint('Current/default offering: ${offerings.current?.identifier} — NOT using it (may be GPG)');
       }
-      
-      // If still null, try the first available offering
-      if (premiumOffering == null && offerings.all.isNotEmpty) {
-        final firstKey = offerings.all.keys.first;
-        debugPrint('Using first available offering: $firstKey');
-        premiumOffering = offerings.all[firstKey];
-      }
-      
+
       return premiumOffering;
     } on PlatformException catch (e) {
       debugPrint('Error fetching premium offering: ${e.message}');
@@ -178,8 +173,67 @@ class PurchaseApi {
     }
   }
 
+  /// Check if user already has the entitlement that a package would grant.
+  /// Returns a message string if already purchased, or null if safe to proceed.
+  static Future<String?> checkAlreadyPurchased(Package package) async {
+    try {
+      final productId = package.storeProduct.identifier;
+
+      // Check if this is a lifetime/premium product
+      final isLifetimeProduct = productId == 'premium' ||
+          productId == 'com.rbsoundz.scalemasterguitar.premium' ||
+          package.packageType == PackageType.lifetime;
+
+      // Check if this is a subscription product
+      final isSubscriptionProduct = productId.contains('smg_fingerings') ||
+          productId.contains('fingerings') ||
+          package.packageType == PackageType.monthly ||
+          package.packageType == PackageType.annual;
+
+      // Check raw RC entitlements directly (not derived enum) because
+      // getUserEntitlement() returns subscription when user has BOTH lifetime
+      // + subscription, which would miss the lifetime check.
+      final customerInfo = await getCustomerInfo();
+      final active = customerInfo.entitlements.active;
+
+      if (isLifetimeProduct) {
+        if (active.containsKey(_premiumOneTimeEntitlementId) ||
+            active.containsKey(_oldPremiumOneTimeEntitlementId)) {
+          return 'You already have Lifetime access! No need to purchase again.';
+        }
+      }
+
+      if (isSubscriptionProduct) {
+        if (active.containsKey(_subscriptionEntitlementId) ||
+            active.containsKey(_oldSubscriptionEntitlementId)) {
+          return 'You already have an active Pro subscription!';
+        }
+      }
+
+      // If user has all_access (RiffRoutine ELITE), they already have everything
+      if (active.containsKey('all_access')) {
+        return 'All features are included with your RiffRoutine ELITE subscription!';
+      }
+
+      return null; // Safe to proceed with purchase
+    } catch (e) {
+      debugPrint('Error checking existing entitlement: $e');
+      return null; // Allow purchase attempt if check fails
+    }
+  }
+
   static Future<bool> purchasePackage(Package package) async {
     try {
+      // Guard: prevent duplicate purchases
+      final alreadyPurchased = await checkAlreadyPurchased(package);
+      if (alreadyPurchased != null) {
+        debugPrint('Purchase blocked: $alreadyPurchased');
+        throw PlatformException(
+          code: 'ALREADY_PURCHASED',
+          message: alreadyPurchased,
+        );
+      }
+
       final purchaserInfo = await Purchases.purchasePackage(package);
       // Check for any entitlement (new prefixed + old fallback + all_access)
       return purchaserInfo.entitlements.active.containsKey(_premiumOneTimeEntitlementId) ||
@@ -192,6 +246,10 @@ class PurchaseApi {
 
       // Handle specific purchase errors with improved messaging
       switch (e.code) {
+        case 'ALREADY_PURCHASED':
+          // Re-throw with the descriptive message from checkAlreadyPurchased
+          rethrow;
+
         case 'PURCHASE_CANCELLED':
         case 'PURCHASES_ERROR_PURCHASE_CANCELLED':
           debugPrint('Purchase was cancelled by user');
