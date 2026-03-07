@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/palette_color_provider.dart';
 import 'package:scalemasterguitar/UI/fretboard_page/provider/fretboard_state_provider.dart';
@@ -61,8 +62,7 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
         );
   }
 
-  /// Render the full fretboard off-screen to a PNG image.
-  /// This captures the entire fretboard regardless of scroll position.
+  /// Render a polished horizontal fretboard image with branding.
   Future<Uint8List?> _renderFullFretboard({
     required FretboardSharpFlat? flatSharpSelection,
     required Color fretboardColor,
@@ -73,14 +73,57 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
     try {
       const double pixelRatio = 3.0;
       const double baseWidth = 400.0;
+      const double pad = 30.0;
 
       final painterSize = Size(baseWidth * 0.8, baseWidth);
+      final double pw = painterSize.width; // 320
 
-      // Calculate canvas size to fit all fretboard drawing
-      final double fretWidth = painterSize.width * 4 / fretCount;
-      final double padding = fretWidth;
-      final double canvasWidth = painterSize.width * 4.3 + padding;
-      final double canvasHeight = painterSize.width * 1.0 + padding;
+      // Painter geometry
+      final double fretWidth = pw * 4 / fretCount;
+      final double dotRadius = fretWidth / 2.7;
+
+      // Fretboard content bounds (horizontal, no rotation)
+      final double contentW = math.max(
+        (fretCount + 1) * fretWidth,
+        pw * 4.17,
+      );
+      final double yOvershoot = dotRadius + 5;
+      final double contentH = yOvershoot + pw * 0.92 + 20;
+
+      // Layout sections
+      const double headerH = 60.0;
+      const double gap = 16.0;
+      const double footerH = 30.0;
+
+      final double totalW = contentW + pad * 2;
+      final double totalH =
+          pad + headerH + gap + contentH + gap + footerH + pad;
+
+      // --- Load logo ---
+      ui.Image? logoImage;
+      try {
+        final logoData =
+            await rootBundle.load('assets/images/smg_icon.png');
+        final logoBytes = logoData.buffer.asUint8List();
+        final codec = await ui.instantiateImageCodec(
+          logoBytes,
+          targetWidth: 150,
+          targetHeight: 150,
+        );
+        final frame = await codec.getNextFrame();
+        logoImage = frame.image;
+      } catch (e) {
+        debugPrint('Could not load logo: $e');
+      }
+
+      // --- Scale name ---
+      final scaleModel = widget.fingeringsModel.scaleModel;
+      String scaleName = '';
+      if (scaleModel != null) {
+        final key = scaleModel.parentScaleKey;
+        final name = scaleModel.scale ?? '';
+        scaleName = '$key $name'.trim();
+      }
 
       final painter = CustomFretboardPainter(
         size: painterSize,
@@ -96,22 +139,124 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
         notesFlats: notesFlats,
       );
 
-      // Output is rotated 90° CW to match on-screen orientation
-      final double outputWidth = canvasHeight;
-      final double outputHeight = canvasWidth;
-
       final recorder = ui.PictureRecorder();
       final canvas =
-          Canvas(recorder, Rect.fromLTWH(0, 0, outputWidth, outputHeight));
-      canvas.translate(canvasHeight, 0);
-      canvas.rotate(math.pi / 2);
-      canvas.translate(padding / 2, padding / 2);
-      painter.paint(canvas, Size(canvasWidth, canvasHeight));
+          Canvas(recorder, Rect.fromLTWH(0, 0, totalW * pixelRatio, totalH * pixelRatio));
+      // Scale canvas so logical coordinates map to high-res pixels
+      canvas.scale(pixelRatio, pixelRatio);
+
+      // No background — transparent PNG
+
+      // ── Header ──
+      double curY = pad;
+      const double logoSize = 42.0;
+      final double textX = pad + (logoImage != null ? logoSize + 14 : 0);
+
+      if (logoImage != null) {
+        canvas.drawImageRect(
+          logoImage,
+          Rect.fromLTWH(0, 0, logoImage.width.toDouble(),
+              logoImage.height.toDouble()),
+          Rect.fromLTWH(pad, curY + (headerH - logoSize) / 2, logoSize,
+              logoSize),
+          Paint()..filterQuality = FilterQuality.high,
+        );
+      }
+
+      if (scaleName.isNotEmpty) {
+        // Scale name (primary)
+        final namePainter = TextPainter(
+          text: TextSpan(
+            text: scaleName,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        namePainter.layout();
+        namePainter.paint(canvas, Offset(textX, curY + 8));
+
+        // App name (subtitle)
+        final subPainter = TextPainter(
+          text: TextSpan(
+            text: 'Scale Master Guitar',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 12,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        subPainter.layout();
+        subPainter.paint(
+            canvas, Offset(textX, curY + 10 + namePainter.height + 2));
+      } else {
+        final titlePainter = TextPainter(
+          text: const TextSpan(
+            text: 'Scale Master Guitar',
+            style: TextStyle(
+              color: Colors.orange,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        titlePainter.layout();
+        titlePainter.paint(canvas,
+            Offset(textX, curY + (headerH - titlePainter.height) / 2));
+      }
+
+      curY += headerH;
+
+      // Thin accent divider
+      final dividerPaint = Paint()
+        ..color = Colors.orange.withValues(alpha: 0.25)
+        ..strokeWidth = 1.0;
+      canvas.drawLine(
+          Offset(pad, curY), Offset(totalW - pad, curY), dividerPaint);
+
+      curY += gap;
+
+      // ── Fretboard ──
+      canvas.save();
+      canvas.translate(pad, curY + yOvershoot);
+      painter.paint(canvas, painterSize);
+      canvas.restore();
+
+      curY += contentH + gap;
+
+      // Thin accent divider
+      canvas.drawLine(
+          Offset(pad, curY), Offset(totalW - pad, curY), dividerPaint);
+
+      // ── Footer ──
+      final brandPainter = TextPainter(
+        text: TextSpan(
+          text: 'riffroutine.com',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.35),
+            fontSize: 12,
+            fontWeight: FontWeight.w300,
+            letterSpacing: 0.5,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      brandPainter.layout();
+      brandPainter.paint(
+        canvas,
+        Offset(totalW - pad - brandPainter.width,
+            curY + (footerH - brandPainter.height) / 2),
+      );
 
       final picture = recorder.endRecording();
       final image = await picture.toImage(
-        (outputWidth * pixelRatio).ceil(),
-        (outputHeight * pixelRatio).ceil(),
+        (totalW * pixelRatio).ceil(),
+        (totalH * pixelRatio).ceil(),
       );
 
       final byteData =
