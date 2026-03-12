@@ -7,14 +7,23 @@ String flatsOnlyNoteNomenclature(String noteSubString) {
     case 'C♯':
       noteSubString = 'D♭';
       break;
+    case 'C♯♯':
+      noteSubString = 'D';
+      break;
     case 'D𝄫':
       noteSubString = 'C';
       break;
     case 'D♯':
       noteSubString = 'E♭';
       break;
+    case 'D♯♯':
+      noteSubString = 'E';
+      break;
     case 'E𝄫':
       noteSubString = 'D';
+      break;
+    case 'E♯':
+      noteSubString = 'F';
       break;
     case 'F♭':
       noteSubString = 'E';
@@ -22,11 +31,17 @@ String flatsOnlyNoteNomenclature(String noteSubString) {
     case 'F♯':
       noteSubString = 'G♭';
       break;
+    case 'F♯♯':
+      noteSubString = 'G';
+      break;
     case 'G𝄫':
       noteSubString = 'F';
       break;
     case 'G♯':
       noteSubString = 'A♭';
+      break;
+    case 'G♯♯':
+      noteSubString = 'A';
       break;
     case 'A𝄫':
       noteSubString = 'G';
@@ -34,8 +49,14 @@ String flatsOnlyNoteNomenclature(String noteSubString) {
     case 'A♯':
       noteSubString = 'B♭';
       break;
+    case 'A♯♯':
+      noteSubString = 'B';
+      break;
     case 'B𝄫':
       noteSubString = 'A';
+      break;
+    case 'B♯':
+      noteSubString = 'C';
       break;
   }
 

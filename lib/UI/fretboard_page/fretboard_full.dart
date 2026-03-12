@@ -121,8 +121,8 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
       String scaleName = '';
       if (scaleModel != null) {
         final key = scaleModel.parentScaleKey;
-        final name = scaleModel.scale ?? '';
-        scaleName = '$key $name'.trim();
+        final mode = scaleModel.mode ?? scaleModel.scale ?? '';
+        scaleName = '$key $mode'.trim();
       }
 
       final painter = CustomFretboardPainter(
@@ -351,7 +351,6 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
       ),
       child: LayoutBuilder(builder: (context, constraints) {
         Size size = constraints.biggest;
-        debugPrint("Layout builder width ${size.width} height ${size.height}");
         return SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: GestureDetector(
@@ -369,8 +368,6 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
 
               int string = (rotatedPosition.dy / stringHeight).floor();
               int fret = (rotatedPosition.dx / fretWidth).floor();
-              debugPrint("Fret $fret String $string");
-
               if (string < 0 ||
                   string > stringCount ||
                   fret < 0 ||

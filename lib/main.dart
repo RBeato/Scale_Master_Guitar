@@ -55,9 +55,9 @@ Future<void> _initAudioSession() async {
   try {
     const methodChannel = MethodChannel('flutter_sequencer');
     await methodChannel.invokeMethod('initializeAudioSession');
-    print('Audio session initialized successfully');
+    debugPrint('Audio session initialized successfully');
   } catch (e) {
-    print('Error initializing audio session: $e');
+    debugPrint('Error initializing audio session: $e');
   }
 }
 
@@ -70,7 +70,7 @@ void main() async {
       
       // Initialize audio session with proper settings for flutter_sequencer
       if (Platform.isIOS) {
-        print('Running on iOS ${Platform.operatingSystemVersion}');
+        debugPrint('Running on iOS ${Platform.operatingSystemVersion}');
         await _initAudioSession();
       }
       

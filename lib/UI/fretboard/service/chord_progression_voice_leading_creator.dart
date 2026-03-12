@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:scalemasterguitar/constants/music_constants.dart';
 import 'package:scalemasterguitar/models/chord_model.dart';
 import 'package:scalemasterguitar/utils/music_utils.dart';
@@ -37,7 +38,7 @@ class VoiceLeadingCreator {
         _voiceNextChord(selectedChords[i], selectedChords[i - 1]);
       }
     } catch (e) {
-      print('[VoiceLeadingCreator] ERROR in buildProgression: $e');
+      debugPrint('[VoiceLeadingCreator] ERROR in buildProgression: $e');
     }
 
     return selectedChords;
@@ -61,7 +62,7 @@ class VoiceLeadingCreator {
         }
       }
     } catch (e) {
-      print('[VoiceLeadingCreator] ERROR in voiceNewChord: $e');
+      debugPrint('[VoiceLeadingCreator] ERROR in voiceNewChord: $e');
       // Fallback: assign ascending octaves from octave 3
       if (newChord.selectedChordPitches != null) {
         newChord.chordNotesInversionWithIndexes =
@@ -74,7 +75,7 @@ class VoiceLeadingCreator {
   static void _voiceFirstChord(ChordModel chordModel) {
     if (chordModel.selectedChordPitches == null ||
         chordModel.selectedChordPitches!.isEmpty) {
-      print('[VoiceLeadingCreator] ERROR: First chord has no pitches');
+      debugPrint('[VoiceLeadingCreator] ERROR: First chord has no pitches');
       return;
     }
 
@@ -96,7 +97,7 @@ class VoiceLeadingCreator {
 
       chordModel.chordNotesInversionWithIndexes = voiced;
     } catch (e) {
-      print('[VoiceLeadingCreator] ERROR in _voiceFirstChord: $e');
+      debugPrint('[VoiceLeadingCreator] ERROR in _voiceFirstChord: $e');
       if (chordModel.selectedChordPitches != null) {
         chordModel.chordNotesInversionWithIndexes =
             _assignAscendingOctaves(List.from(chordModel.selectedChordPitches!), 3);

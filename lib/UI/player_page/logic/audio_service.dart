@@ -26,48 +26,29 @@ class AudioService {
     required double endBeat,
     bool forceReinitialize = false,
   }) async {
-    debugPrint('[AudioService] Initialize: tempo=$tempo, endBeat=$endBeat');
-
-    if (_isInitialized && !forceReinitialize) {
-      debugPrint('[AudioService] Already initialized');
-      return;
-    }
+    if (_isInitialized && !forceReinitialize) return;
 
     try {
-      // STEP 1: Initialize audio session for iOS (from working example)
+      // iOS audio session setup
       if (Platform.isIOS) {
         try {
-          debugPrint('[AudioService] Initializing iOS audio session');
           await const MethodChannel('flutter_sequencer').invokeMethod('initializeAudioSession');
-          debugPrint('[AudioService] iOS audio session initialized');
         } catch (e) {
           debugPrint('[AudioService] iOS audio session init failed: $e');
         }
       }
 
-      // STEP 2: Keep engine running (from working examples)
       GlobalState().setKeepEngineRunning(true);
 
-      // STEP 3: Platform-specific scheduling setup (from flutter_sequencer_plus example)
+      // Platform-specific scheduling
       if (Platform.isIOS) {
-        // iOS: Use Dart scheduling (like working example)
         GlobalState().setIosNativeSchedulingEnabled(false);
-        debugPrint('[AudioService] iOS: Dart scheduling enabled');
-      } else {
-        // Android: Use native scheduling (default)
-        debugPrint('[AudioService] Android: Native scheduling enabled');
       }
 
-      // STEP 4: Create sequence (simple like working examples)
       _sequence = Sequence(tempo: tempo, endBeat: endBeat);
-      debugPrint('[AudioService] Sequence created successfully');
-
       _isInitialized = true;
-      debugPrint('[AudioService] Initialization completed successfully');
-
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('[AudioService] Initialization failed: $e');
-      debugPrint('[AudioService] Stack trace: $stackTrace');
       _isInitialized = false;
       _sequence = null;
       rethrow;
@@ -80,69 +61,30 @@ class AudioService {
       throw Exception('AudioService not initialized');
     }
 
-    if (kDebugMode) {
-      debugPrint('[AudioService] 🎵 CREATE TRACKS DEBUG:');
-      debugPrint('[AudioService]   Number of instruments: ${instruments.length}');
-      for (int i = 0; i < instruments.length; i++) {
-        debugPrint('[AudioService]   Instrument $i: ${instruments[i].runtimeType}');
-        if (instruments[i] is Sf2Instrument) {
-          final sf2 = instruments[i] as Sf2Instrument;
-          debugPrint('[AudioService]     SF2 Path: ${sf2.idOrPath}');
-          debugPrint('[AudioService]     Preset Index: ${sf2.presetIndex}');
-          debugPrint('[AudioService]     Is Asset: ${sf2.isAsset}');
-        }
-      }
-    }
-
-    // Check if we're in TestFlight/Release mode for enhanced error handling
     final isTestFlight = Platform.isIOS && kReleaseMode;
 
     if (!isTestFlight) {
-      // Development/Debug mode - use simple approach
-      try {
-        debugPrint('[AudioService] Calling sequence.createTracks()...');
-        final tracks = await _sequence!.createTracks(instruments);
-
-        if (tracks.isEmpty) {
-          debugPrint('[AudioService] ❌ ERROR: No tracks created - instrument loading failed');
-          throw Exception('No tracks created - instrument loading failed');
-        }
-
-        if (kDebugMode) {
-          debugPrint('[AudioService] ✅ Created ${tracks.length} tracks successfully:');
-          for (int i = 0; i < tracks.length; i++) {
-            debugPrint('[AudioService]   Track $i: ID=${tracks[i].id}, Type=${tracks[i].runtimeType}');
-          }
-        }
-        return tracks;
-      } catch (e, stackTrace) {
-        debugPrint('[AudioService] ❌ Track creation failed: $e');
-        debugPrint('[AudioService] Stack trace: $stackTrace');
-        rethrow;
+      final tracks = await _sequence!.createTracks(instruments);
+      if (tracks.isEmpty) {
+        throw Exception('No tracks created - instrument loading failed');
       }
+      return tracks;
     }
 
-    // TestFlight/Release mode - use progressive fallback strategy
     return await _createTracksWithTestFlightFallback(instruments);
   }
 
   /// TestFlight-specific track creation with progressive fallback strategy
   Future<List<Track>> _createTracksWithTestFlightFallback(List<Instrument> instruments) async {
-    debugPrint('[AudioService] 🚀 TESTFLIGHT MODE: Using progressive fallback strategy');
-
     // Strategy 1: Try original instruments
     try {
       final tracks = await _sequence!.createTracks(instruments);
-      if (tracks.isNotEmpty) {
-        debugPrint('[AudioService] ✅ Strategy 1 SUCCESS: Original instruments loaded');
-        return tracks;
-      }
+      if (tracks.isNotEmpty) return tracks;
     } catch (e) {
-      debugPrint('[AudioService] ❌ Strategy 1 FAILED: $e');
+      debugPrint('[AudioService] Strategy 1 failed: $e');
     }
 
     // Strategy 2: Try minimal SF2 fallback
-    debugPrint('[AudioService] Strategy 2: Minimal SF2 fallback');
     try {
       final minimalInstruments = [
         Sf2Instrument(
@@ -152,17 +94,13 @@ class AudioService {
         ),
       ];
       final tracks = await _sequence!.createTracks(minimalInstruments);
-      if (tracks.isNotEmpty) {
-        debugPrint('[AudioService] ✅ Strategy 2 SUCCESS: Minimal SF2 loaded');
-        return tracks;
-      }
+      if (tracks.isNotEmpty) return tracks;
     } catch (e) {
-      debugPrint('[AudioService] ❌ Strategy 2 FAILED: $e');
+      debugPrint('[AudioService] Strategy 2 failed: $e');
     }
 
     // Strategy 3: iOS AudioUnit fallback
     if (Platform.isIOS) {
-      debugPrint('[AudioService] Strategy 3: iOS AudioUnit fallback');
       try {
         final audioUnitInstruments = [
           AudioUnitInstrument(
@@ -171,30 +109,20 @@ class AudioService {
           ),
         ];
         final tracks = await _sequence!.createTracks(audioUnitInstruments);
-        if (tracks.isNotEmpty) {
-          debugPrint('[AudioService] ✅ Strategy 3 SUCCESS: iOS AudioUnit loaded');
-          return tracks;
-        }
+        if (tracks.isNotEmpty) return tracks;
       } catch (e) {
-        debugPrint('[AudioService] ❌ Strategy 3 FAILED: $e');
+        debugPrint('[AudioService] Strategy 3 failed: $e');
       }
     }
 
-    debugPrint('[AudioService] 💥 ALL STRATEGIES FAILED - No audio tracks created');
     throw Exception('All fallback strategies failed - audio engine not available');
   }
 
   /// Safe disposal with iOS-specific handling and navigation safety checks
   Future<void> dispose() async {
-    debugPrint('[AudioService] Disposing...');
-
-    // Check if we're in a navigation state that could cause crashes
     final audioStateManager = AudioStateManager();
     if (!audioStateManager.canSafelyDisposeAudio && Platform.isIOS) {
-      debugPrint('[AudioService] iOS: Unsafe to dispose audio during paywall navigation - deferring');
       audioStateManager.setDisposingAudio(true);
-
-      // Defer disposal until navigation is complete
       Future.delayed(const Duration(milliseconds: 1000), () {
         if (!audioStateManager.isNavigatingFromPaywall) {
           _performActualDisposal();
@@ -207,16 +135,10 @@ class AudioService {
   }
 
   Future<void> _performActualDisposal() async {
-    debugPrint('[AudioService] Performing actual disposal...');
-
     try {
       if (_sequence != null) {
-        debugPrint('[AudioService] Stopping sequence...');
         _sequence!.stop();
-
-        // iOS-specific: Give audio engine time to cleanup SoundFont resources
         if (Platform.isIOS) {
-          debugPrint('[AudioService] iOS: Waiting for audio cleanup...');
           await Future.delayed(const Duration(milliseconds: 200));
         }
       }
@@ -225,17 +147,10 @@ class AudioService {
     }
 
     try {
-      debugPrint('[AudioService] Releasing engine...');
-
-      // iOS-specific: More graceful engine release
       if (Platform.isIOS) {
-        // Only release engine if we're not in a critical navigation state
         final audioStateManager = AudioStateManager();
         if (audioStateManager.canSafelyDisposeAudio) {
           GlobalState().setKeepEngineRunning(false);
-          debugPrint('[AudioService] iOS: Engine released safely');
-        } else {
-          debugPrint('[AudioService] iOS: Keeping engine running during navigation');
         }
       } else {
         GlobalState().setKeepEngineRunning(false);
@@ -247,7 +162,5 @@ class AudioService {
     _sequence = null;
     _isInitialized = false;
     AudioStateManager().setDisposingAudio(false);
-
-    debugPrint('[AudioService] Disposal completed');
   }
 }

@@ -79,12 +79,6 @@ class SequencerManager {
         if (isPlaying != sequenceIsPlaying) {
           isPlaying = sequenceIsPlaying;
           _ref.read(isSequencerPlayingProvider.notifier).update((state) => sequenceIsPlaying);
-
-          if (sequenceIsPlaying) {
-            debugPrint("[SequencerManager] updatePosition: Sequence started playing at beat $currentBeat");
-          } else {
-            debugPrint("[SequencerManager] updatePosition: Sequence stopped at beat $currentBeat");
-          }
         }
       } catch (e) {
         // Ignore position read errors during playback
@@ -130,11 +124,7 @@ class SequencerManager {
     this.playAllInstruments = playAllInstruments;
     this.tempo = tempo;
     tonicAsUniversalBassNote = isScaleTonicSelected;
-    debugPrint('[SequencerManager] isScaleTonicSelected (tonicAsUniversalBassNote): $isScaleTonicSelected');
     this.isMetronomeSelected = isMetronomeSelected;
-
-    // Initialize audio service with proper lifecycle management - based on working guitar_progression_generator
-    debugPrint('[SequencerManager] Initializing AudioService...');
 
     try {
       // Initialize AudioService with sequence parameters
@@ -144,12 +134,9 @@ class SequencerManager {
         forceReinitialize: false,
       );
 
-      // Get the properly initialized sequence from AudioService
       this.sequence = _audioService.sequence!;
-      debugPrint('[SequencerManager] AudioService initialized successfully');
     } catch (e, stackTrace) {
-      debugPrint('[SequencerManager] AudioService initialization failed: $e');
-      debugPrint('[SequencerManager] Stack trace: $stackTrace');
+      debugPrint('[SequencerManager] AudioService init failed: $e\n$stackTrace');
       throw Exception('Failed to initialize audio engine: $e');
     }
 
@@ -164,14 +151,12 @@ class SequencerManager {
                             forceRecreateTracksForInstrumentChange;
 
       if (!needsRecreation) {
-        // Check if instruments have actually changed by comparing SF2 paths
         for (int i = 0; i < this.tracks.length; i++) {
           final currentInstrument = this.tracks[i].instrument;
           final newInstrument = instruments[i];
 
           if (currentInstrument.idOrPath != newInstrument.idOrPath ||
               currentInstrument.presetIndex != newInstrument.presetIndex) {
-            debugPrint('[SequencerManager] Instrument change detected: track $i changed from ${currentInstrument.idOrPath} to ${newInstrument.idOrPath}');
             needsRecreation = true;
             break;
           }
@@ -181,7 +166,6 @@ class SequencerManager {
       final shouldReuseExistingTracks = !needsRecreation;
 
       if (shouldReuseExistingTracks) {
-        debugPrint('[SequencerManager] Reusing existing ${this.tracks.length} tracks (preventing native crash)');
         // Stop all notes and clear events from existing tracks
         for (Track track in this.tracks) {
           // Stop all possible notes to prevent sustaining
@@ -200,16 +184,8 @@ class SequencerManager {
           // to reset the track state without the dangerous native reset.
         }
       } else {
-        // Recreate tracks when instruments have changed
-        if (forceRecreateTracksForInstrumentChange) {
-          debugPrint('[SequencerManager] 🔄 INSTRUMENT CHANGE DETECTED: Force recreating ${instruments.length} tracks with new instruments...');
-        } else {
-          debugPrint('[SequencerManager] Creating ${instruments.length} tracks via AudioService...');
-        }
-
         // Stop and clear old tracks before creating new ones
         if (this.tracks.isNotEmpty) {
-          debugPrint('[SequencerManager] Stopping old tracks before recreation...');
           for (Track track in this.tracks) {
             try {
               // Stop all notes
@@ -226,53 +202,15 @@ class SequencerManager {
         }
 
         List<Track> createdTracks = await _audioService.createTracks(instruments);
-        debugPrint('[SequencerManager] AudioService created ${createdTracks.length} tracks successfully');
-
         this.tracks = createdTracks;
       }
       selectedTrack = this.tracks[0];
 
-      if (kDebugMode) {
-        debugPrint('[SequencerManager] 🎼 TRACK ASSIGNMENT DEBUG:');
-        debugPrint('[SequencerManager]   Total tracks created: ${this.tracks.length}');
-        debugPrint('[SequencerManager]   Expected: 3 tracks (onlyKeys=true: all piano, or Drums/Piano/Bass)');
-      }
-
       for (int i = 0; i < this.tracks.length; i++) {
         Track track = this.tracks[i];
-        trackVolumes[track.id] = 0.54; // Reduced from 0.6 to 0.54 to soften output
+        trackVolumes[track.id] = 0.54;
         trackStepSequencerStates[track.id] = StepSequencerState();
-
-        // Ensure track volume is properly set
-        track.changeVolumeNow(volume: 0.54); // 54% volume to prevent clipping/distortion
-
-        if (kDebugMode) {
-          debugPrint('[SequencerManager] 📍 Track $i Details:');
-          debugPrint('[SequencerManager]   Track ID: ${track.id}');
-          debugPrint('[SequencerManager]   Volume: ${trackVolumes[track.id]}');
-          debugPrint('[SequencerManager]   Type: ${track.runtimeType}');
-
-          // Identify which track this is
-          if (i == 0) {
-            debugPrint('[SequencerManager]   Role: DRUMS (or Piano if onlyKeys=true)');
-          } else if (i == 1) {
-            debugPrint('[SequencerManager]   Role: 🎹 PIANO/KEYBOARD (THIS IS THE MAIN TRACK!)');
-          } else if (i == 2) {
-            debugPrint('[SequencerManager]   Role: BASS (or Piano if onlyKeys=true)');
-          }
-
-          // Try to get instrument info if available
-          try {
-            debugPrint('[SequencerManager]   Instrument: ${instruments[i].runtimeType}');
-            if (instruments[i] is Sf2Instrument) {
-              final sf2 = instruments[i] as Sf2Instrument;
-              debugPrint('[SequencerManager]   SF2 Path: ${sf2.idOrPath}');
-              debugPrint('[SequencerManager]   SF2 Preset: ${sf2.presetIndex}');
-            }
-          } catch (e) {
-            debugPrint('[SequencerManager]   Could not get instrument info: $e');
-          }
-        }
+        track.changeVolumeNow(volume: 0.54);
       }
 
       // Create project state
@@ -283,16 +221,7 @@ class SequencerManager {
         playAllInstruments: playAllInstruments,
       );
 
-      // Load project state
-      debugPrint('[SequencerManager] About to load project state');
       loadProjectState(project!, this.tracks, this.sequence!);
-      
-      // Debug tracks after loading project state
-      debugPrint('[SequencerManager] After loadProjectState - checking track events:');
-      for (int i = 0; i < this.tracks.length; i++) {
-        final track = this.tracks[i];
-        debugPrint('[SequencerManager] Track $i (id=${track.id}): ${track.events.length} events');
-      }
     } catch (e, stackTrace) {
       debugPrint('Error during initialization: $e');
       debugPrint(stackTrace.toString());
@@ -310,26 +239,17 @@ class SequencerManager {
   }) async {
     ProjectState project = ProjectState.empty(stepCount);
 
-    debugPrint("Creating project with ${selectedChords.length} chords");
-
     for (int i = 0; i < selectedChords.length; i++) {
       ChordModel chord = selectedChords[i];
-      debugPrint("Chord ${i + 1}: ${chord.completeChordName}");
-      debugPrint("  Position: ${chord.position}");
-      debugPrint("  Notes with inversions: ${chord.chordNotesInversionWithIndexes}");
-      
+
       if (chord.chordNotesInversionWithIndexes == null || chord.chordNotesInversionWithIndexes!.isEmpty) {
-        debugPrint("  WARNING: No chord notes found for piano! This will result in no sound.");
         continue;
       }
-      
+
       for (var note in chord.chordNotesInversionWithIndexes!) {
         final midiValue = MusicConstants.midiValues[note];
         if (midiValue != null) {
-          project.pianoState.setVelocity(chord.position, midiValue, 0.68); // Reduced from 0.75 to 0.68 to soften output
-          debugPrint("  Added piano note: $note (MIDI: $midiValue)");
-        } else {
-          debugPrint("  ERROR: No MIDI value found for note: $note");
+          project.pianoState.setVelocity(chord.position, midiValue, 0.68);
         }
       }
 
@@ -353,38 +273,8 @@ class SequencerManager {
       }
 
       var bassMidiValue = MusicConstants.midiValues["$note$index"]!;
-      debugPrint("Adding bass note: Chord ${i + 1}/${selectedChords.length}");
-      debugPrint("  Position: ${chord.position}");
-      debugPrint("  Note: $note");
-      debugPrint("  MIDI Value: $bassMidiValue");
-
-      project.bassState.setVelocity(
-          chord.position, bassMidiValue, 0.68); // Reduced from 0.75 to 0.68 to soften output
-
-      // Verify if the note was added successfully
-      double? addedVelocity =
-          project.bassState.getVelocity(chord.position, bassMidiValue);
-      debugPrint("  Bass note added successfully. Velocity: $addedVelocity");
-
-      debugPrint(""); //
+      project.bassState.setVelocity(chord.position, bassMidiValue, 0.68);
     }
-    
-    // Debug the project state before returning
-    debugPrint("[SequencerManager] Project state summary:");
-    debugPrint("  Step count: ${project.stepCount}");
-    
-    // Count events in each state
-    int pianoEventCount = 0;
-    int bassEventCount = 0;
-    project.pianoState.iterateEvents((step, noteNumber, velocity) {
-      if (velocity > 0) pianoEventCount++;
-    });
-    project.bassState.iterateEvents((step, noteNumber, velocity) {
-      if (velocity > 0) bassEventCount++;
-    });
-    
-    debugPrint("  Piano state events: $pianoEventCount");
-    debugPrint("  Bass state events: $bassEventCount");
 
     if (isMetronomeSelected && playAllInstruments) {
       for (int i = 0; i < nBeats; i++) {
@@ -395,100 +285,46 @@ class SequencerManager {
   }
 
   Future<void> playPianoNote(String note, List<Track> tracks, Sequence sequence) async {
-    final String method = 'SequencerManager.playPianoNote';
     final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
 
-    // Prevent concurrent note operations
-    if (_noteOperationInProgress) {
-      debugPrint('[$method] Note operation already in progress. Skipping $note.');
-      return;
-    }
+    if (_noteOperationInProgress) return;
+    if (tracks.length <= 1) return;
 
-    // Ensure tracks list is not empty and has the piano track at the expected index
-    if (tracks.length <= 1) {
-      debugPrint('[$method] ❌ Tracks list too short or piano track not available (length: ${tracks.length}). Cannot play note $note.');
-      return;
-    }
-    final pianoTrack = tracks[1]; // Assuming piano is always track 1
+    final pianoTrack = tracks[1];
     final trackId = pianoTrack.id;
-
-    if (kDebugMode) {
-      debugPrint('[$method] 🎹 PLAYING NOTE DEBUG:');
-      debugPrint('[$method]   Note: $note → MIDI: $midiValue');
-      debugPrint('[$method]   Using track index: 1 (Piano track)');
-      debugPrint('[$method]   Track ID: $trackId');
-      debugPrint('[$method]   Total tracks: ${tracks.length}');
-    }
 
     _noteOperationInProgress = true;
     try {
-      // Initialize track note set if needed
       _trackActiveNotes.putIfAbsent(trackId, () => <int>{});
-      
-      debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Track $trackId active notes: ${_trackActiveNotes[trackId]}');
+      if (_trackActiveNotes[trackId]!.contains(midiValue)) return;
 
-      if (_trackActiveNotes[trackId]!.contains(midiValue)) {
-        debugPrint('[$method] Note $midiValue already active on track $trackId. SKIPPING startNoteNow.');
-        return;
-      }
-      
-      final Stopwatch stopwatch = Stopwatch()..start();
-      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.63); // Reduced from 0.7 to 0.63 to soften output
-      stopwatch.stop();
-      
-      // Only add to tracking AFTER successful start
+      pianoTrack.startNoteNow(noteNumber: midiValue, velocity: 0.63);
       _trackActiveNotes[trackId]!.add(midiValue);
-      debugPrint('[$method] COMPLETED - pianoTrack.startNoteNow for $midiValue on track $trackId. Duration: ${stopwatch.elapsedMicroseconds} us.');
-      debugPrint('[$method] Track $trackId active notes now: ${_trackActiveNotes[trackId]}');
-    } catch (e, stackTrace) {
-      debugPrint('[$method] ERROR calling pianoTrack.startNoteNow for $midiValue: $e\n$stackTrace');
-      // Don't add to tracking if start failed
+    } catch (e) {
+      debugPrint('[SequencerManager] Error starting note $midiValue: $e');
     } finally {
       _noteOperationInProgress = false;
     }
   }
 
   Future<void> stopPianoNote(String note, List<Track> tracks, Sequence sequence) async {
-    final String method = 'SequencerManager.stopPianoNote';
     final midiValue = MusicConstants.midiValues[MusicUtils.filterNoteNameWithSlash(note)]!;
-    
-    // Prevent concurrent note operations
-    if (_noteOperationInProgress) {
-      debugPrint('[$method] Note operation already in progress. Skipping $note.');
-      return;
-    }
-    
-    // Ensure tracks list is not empty and has the piano track at the expected index
-    if (tracks.length <= 1) {
-      debugPrint('[$method] Tracks list too short or piano track not available (length: ${tracks.length}). Cannot stop note $note.');
-      return;
-    }
-    final pianoTrack = tracks[1]; // Assuming piano is always track 1
+
+    if (_noteOperationInProgress) return;
+    if (tracks.length <= 1) return;
+
+    final pianoTrack = tracks[1];
     final trackId = pianoTrack.id;
 
     _noteOperationInProgress = true;
     try {
-      // Initialize track note set if needed
       _trackActiveNotes.putIfAbsent(trackId, () => <int>{});
-      
-      debugPrint('[$method] CALLED - Note: $note, MIDI: $midiValue. Track $trackId active notes: ${_trackActiveNotes[trackId]}');
+      if (!_trackActiveNotes[trackId]!.contains(midiValue)) return;
 
-      if (!_trackActiveNotes[trackId]!.contains(midiValue)) {
-        debugPrint('[$method] Note $midiValue was NOT active on track $trackId. SKIPPING stopNoteNow (might have been stopped already or never started on this track).');
-        return;
-      }
-      
-      final Stopwatch stopwatch = Stopwatch()..start();
       pianoTrack.stopNoteNow(noteNumber: midiValue);
-      stopwatch.stop();
-      
-      // Only remove from tracking AFTER successful stop
       _trackActiveNotes[trackId]!.remove(midiValue);
-      debugPrint('[$method] COMPLETED - pianoTrack.stopNoteNow for $midiValue on track $trackId. Duration: ${stopwatch.elapsedMicroseconds} us.');
-      debugPrint('[$method] Track $trackId active notes now: ${_trackActiveNotes[trackId]}');
-    } catch (e, stackTrace) {
-      debugPrint('[$method] ERROR calling pianoTrack.stopNoteNow for $midiValue: $e\n$stackTrace');
-      // Remove from tracking even if stop failed to prevent stale state
+    } catch (e) {
+      debugPrint('[SequencerManager] Error stopping note $midiValue: $e');
       _trackActiveNotes[trackId]?.remove(midiValue);
     } finally {
       _noteOperationInProgress = false;
@@ -496,22 +332,14 @@ class SequencerManager {
   }
 
   Future<void> handleTogglePlayStop(Sequence sequence) async {
-    debugPrint("[SequencerManager] Toggle play/stop - current playing: $isPlaying");
-
     if (isPlaying) {
-      // STOP completely (not pause) for immediate audio cutoff
-      debugPrint("[SequencerManager] Stopping sequence completely...");
       _stopPlayback(sequence);
     } else {
-      // Start fresh playback (always from beginning)
-      debugPrint("[SequencerManager] Starting fresh playback...");
       _startPlayback(sequence);
     }
   }
 
-  /// Simple playback system based on working flutter_sequencer_plus example
   void _startPlayback(Sequence sequence) {
-    debugPrint("[SequencerManager] Starting playback...");
 
     // Reset state like working example
     _processedEvents.clear();
@@ -528,14 +356,11 @@ class SequencerManager {
     sequence.setBeat(0.0);
     sequence.play();
 
-    // Start simple timer for iOS Dart scheduling (like working example)
     if (!_useNativeScheduling) {
       _playbackTimer = Timer.periodic(const Duration(milliseconds: 1), (timer) {
         _processPlayback(sequence);
       });
     }
-
-    debugPrint("[SequencerManager] Playback started");
   }
 
   // Removed pause/resume methods since we use immediate stop/start
@@ -555,8 +380,7 @@ class SequencerManager {
       // Detect loop wrap (simplified from working example)
       if (_lastProcessedBeat! > 0.1 && currentBeat < (_lastProcessedBeat! - 0.5)) {
         _loopCycle++;
-        _processedEvents.clear(); // Allow events to retrigger
-        debugPrint("[SequencerManager] Loop wrap detected - cycle $_loopCycle");
+        _processedEvents.clear();
       }
     }
     _lastProcessedBeat = currentBeat;
@@ -566,9 +390,7 @@ class SequencerManager {
       _processEventsAtBeat(currentBeat);
     }
 
-    // Stop if reached end (non-looping)
     if (!isTrackLooping && currentBeat >= stepCount) {
-      debugPrint("[SequencerManager] Reached end - stopping");
       _stopPlayback(sequence);
     }
   }
@@ -602,35 +424,25 @@ class SequencerManager {
     }
   }
 
-  /// Immediate stop method for responsive UI
   void _stopPlayback(Sequence sequence) {
-    debugPrint("[SequencerManager] Stopping playback immediately...");
-
-    // STEP 1: Stop timers immediately
     _playbackTimer?.cancel();
     _playbackTimer = null;
 
-    // STEP 2: Stop sequence immediately
     sequence.stop();
-    sequence.setBeat(0.0); // Reset to beginning
+    sequence.setBeat(0.0);
 
-    // STEP 3: Send aggressive note-offs immediately (prevent audio hanging)
     try {
       for (final track in tracks) {
-        // Stop all possible notes immediately for complete silence
-        for (int note = 21; note <= 108; note++) { // Full piano range
+        for (int note = 21; note <= 108; note++) {
           try {
             track.stopNoteNow(noteNumber: note);
-          } catch (_) {
-            // Ignore individual failures - not all notes are active
-          }
+          } catch (_) {}
         }
       }
     } catch (e) {
       debugPrint("[SequencerManager] Error stopping notes: $e");
     }
 
-    // STEP 4: Update state immediately
     isPlaying = false;
     isPaused = false;
     position = 0.0;
@@ -638,103 +450,43 @@ class SequencerManager {
     _processedEvents.clear();
     _trackActiveNotes.clear();
 
-    // STEP 5: Update UI state
     _ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
-
-    debugPrint("[SequencerManager] Playback stopped immediately");
   }
-  
+
   void _stopAllActiveNotes() {
-    debugPrint("🛑 [SequencerManager] Stopping all active notes from both tracking systems");
-    
-    // ANDROID OPTIMIZATION: Stop all notes aggressively
-    // On Android, we need to be more thorough to prevent hanging notes
-    debugPrint("🛑 [SequencerManager] Stopping all notes aggressively for Android");
-    
-    // First, try to stop all possible notes on all tracks
+    // Android: aggressive bulk stop
     if (Platform.isAndroid) {
       for (final track in tracks) {
         try {
-          // Stop common note ranges that might be playing
-          // Piano/Bass range: 24-96 (C1 to C7)
-          // Drums: 35-81 (common drum kit range)
           for (int note = 24; note < 97; note++) {
-            try {
-              track.stopNoteNow(noteNumber: note);
-            } catch (_) {
-              // Silently continue - not all notes are playing
-            }
+            try { track.stopNoteNow(noteNumber: note); } catch (_) {}
           }
-          debugPrint("🛑 [SequencerManager] Aggressive stop sent to track ${track.id}");
-        } catch (e) {
-          debugPrint("🛑 [SequencerManager] Error in aggressive stop: $e");
-        }
+        } catch (_) {}
       }
     }
-    
-    // Then stop individual notes for cleanup
-    // 1. Stop notes from custom playback system - simplified
-    int customNotesCount = 0; // Not tracked anymore in simplified system
-    
-    // 2. Stop notes from piano tracking system (_trackActiveNotes) 
-    int pianoNotesCount = 0;
+
+    // Stop tracked notes
     _trackActiveNotes.forEach((trackId, noteSet) {
-      pianoNotesCount += noteSet.length;
       final track = tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
-      
-      // Convert to list to avoid concurrent modification
-      final notesToStop = noteSet.toList();
-      for (final noteNumber in notesToStop) {
-        try {
-          track.stopNoteNow(noteNumber: noteNumber);
-          debugPrint("🛑 [SequencerManager] Stopped piano tracked note $noteNumber on track $trackId");
-        } catch (e) {
-          debugPrint("🛑 [SequencerManager] Error stopping piano tracked note $noteNumber: $e");
-        }
+      for (final noteNumber in noteSet.toList()) {
+        try { track.stopNoteNow(noteNumber: noteNumber); } catch (_) {}
       }
       noteSet.clear();
     });
-    
-    debugPrint("🛑 [SequencerManager] Stopped $customNotesCount custom notes and $pianoNotesCount piano notes");
-    
-    // 3. Send "All Notes Off" MIDI command (CC 123) to each track as emergency stop
-    debugPrint("🛑 [SequencerManager] Sending All Notes Off MIDI command to all tracks");
+
+    // Send "All Notes Off" MIDI CC 123 to each track
     for (final track in tracks) {
       try {
-        // Send "All Notes Off" control change message (CC 123, value 0)
-        // This should stop all sustaining notes immediately at the native level
         final allNotesOffEvent = MidiEvent(
           beat: 0.0,
-          midiStatus: 0xB0, // Control Change on channel 0
-          midiData1: 123,   // All Notes Off controller
-          midiData2: 0      // Value 0
+          midiStatus: 0xB0,
+          midiData1: 123,
+          midiData2: 0,
         );
-        
         NativeBridge.handleEventsNow(
-          track.id, 
-          [allNotesOffEvent], 
-          GlobalState().sampleRate!, 
-          tempo
+          track.id, [allNotesOffEvent], GlobalState().sampleRate!, tempo,
         );
-        debugPrint("🛑 [SequencerManager] Sent All Notes Off to track ${track.id}");
-      } catch (e) {
-        debugPrint("🛑 [SequencerManager] Error sending All Notes Off to track ${track.id}: $e");
-      }
-    }
-    
-    // 4. Fallback: Emergency stop for common sustaining notes if tracking failed
-    if (customNotesCount + pianoNotesCount > 5) {
-      debugPrint("🛑 [SequencerManager] Emergency stop: many notes were active, doing bulk individual stop");
-      for (final track in tracks) {
-        try {
-          // Stop common piano notes (C3-C6 range) + bass notes (C2-B2)
-          for (int noteNumber = 24; noteNumber <= 96; noteNumber++) {
-            track.stopNoteNow(noteNumber: noteNumber);
-          }
-        } catch (e) {
-          // Ignore errors for bulk emergency stop
-        }
-      }
+      } catch (_) {}
     }
   }
 
@@ -770,7 +522,6 @@ class SequencerManager {
       // Use simple stop method
       _stopPlayback(sequence);
 
-      debugPrint('[SequencerManager] Stop completed successfully');
     } catch (e, st) {
       debugPrint('[SequencerManager] Error in handleStop: $e\n$st');
       // Don't rethrow to prevent crashes, just log the error
@@ -778,17 +529,12 @@ class SequencerManager {
   }
 
   void _handleSetLoop(bool nextIsLooping, Sequence sequence) {
-    // Set native looping like working examples
     if (nextIsLooping) {
       sequence.setLoop(0, stepCount.toDouble());
-      debugPrint('[SequencerManager] Native looping enabled: 0 to $stepCount beats');
     } else {
       sequence.unsetLoop();
-      debugPrint('[SequencerManager] Native looping disabled');
     }
-
     isTrackLooping = nextIsLooping;
-    debugPrint('[SequencerManager] Loop set to: $nextIsLooping');
   }
 
   void handleToggleLoop(bool isLooping, Sequence sequence) {
@@ -823,19 +569,11 @@ class SequencerManager {
   }
 
   void handleTempoChange(double nextTempo, Sequence sequence) {
-    if (nextTempo <= 0) {
-        debugPrint('[SequencerManager] Invalid tempo: $nextTempo. Must be > 0.');
-        return;
-    }
-    if (kDebugMode) {
-      debugPrint('[SequencerManager] handleTempoChange: $nextTempo BPM');
-    }
+    if (nextTempo <= 0) return;
     tempo = nextTempo;
 
     if (isPlaying) {
-      // Save current beat position before tempo change
       final currentBeat = sequence.getBeat();
-      debugPrint('[SequencerManager] Tempo change during playback: beat=$currentBeat, newTempo=$nextTempo');
 
       // Update tempo (adjusts engineStartFrame and frame calculations)
       sequence.setTempo(nextTempo);
@@ -911,12 +649,6 @@ class SequencerManager {
 
           if (currentEventChord != null) {
             durationBeats = currentEventChord.duration.toDouble();
-          } else {
-            // This situation (a note in stepState at a step that isn't a chord start)
-            // should ideally not happen for piano/bass if stepState is built correctly from chords.
-            // If it does, it means there are orphaned notes or a mismatch.
-            // For safety, we use a default, but it might indicate an issue in _createProject or state management.
-            debugPrint('[SequencerManager._syncTrack] Warning: Note (MIDI: $noteNumber) at step $step for track ${track.id} does not align with a chord start. Using default duration 1.0 beat.');
           }
 
           track.addNote(
@@ -952,7 +684,6 @@ class SequencerManager {
       });
     }
     track.syncBuffer();
-    debugPrint('[SequencerManager._syncTrack] Synced track ID ${track.id}. Events in plugin track: ${track.events.length}');
   }
 
   loadProjectState(
@@ -1043,65 +774,30 @@ class SequencerManager {
   }
   
   void _cleanupStaleNotes() {
-    // Debug current state of active notes
-    for (final trackId in _trackActiveNotes.keys.toList()) {
-      final activeNotes = _trackActiveNotes[trackId] ?? <int>{};
-      if (activeNotes.isNotEmpty) {
-        debugPrint('[SequencerManager] Track $trackId has ${activeNotes.length} active notes: $activeNotes');
-      }
-    }
+    // Periodic check — no-op unless stale notes need clearing
   }
 
   Future<void> dispose() async {
-    debugPrint('[SequencerManager] Disposing: stopping sequence and clearing resources');
     try {
-      // Stop cleanup timer first to prevent any interference
       _cleanupTimer?.cancel();
       _cleanupTimer = null;
-      
-      // Clean up custom playback timer
       _playbackTimer?.cancel();
       _playbackTimer = null;
       _processedEvents.clear();
-      
+
       if (sequence != null) {
-        debugPrint('[SequencerManager] Stopping sequence');
-        
-        // Use handleStop but with extra safety
-        try {
-          await handleStop(sequence!);
-        } catch (e) {
-          debugPrint('[SequencerManager] Error in handleStop during dispose: $e');
-          // Continue with manual cleanup
-        }
+        try { await handleStop(sequence!); } catch (_) {}
       }
-      
-      // Dispose AudioService properly
-      try {
-        debugPrint('[SequencerManager] Disposing AudioService');
-        await _audioService.dispose();
-        debugPrint('[SequencerManager] AudioService disposed successfully');
-      } catch (e) {
-        debugPrint('[SequencerManager] Error disposing AudioService: $e');
-      }
-      
-      // Clear all state regardless of previous errors
-      try {
-        trackStepSequencerStates.clear();
-        trackVolumes.clear();
-        _trackActiveNotes.clear();
-        _lastChords.clear();
-        _processedEvents.clear();
-      } catch (e) {
-        debugPrint('[SequencerManager] Error clearing state: $e');
-      }
-      
-      debugPrint('[SequencerManager] State cleared');
-    } catch (e, st) {
-      debugPrint('[SequencerManager] Error during dispose: $e\n$st');
-      // Don't rethrow to prevent app crashes during cleanup
-    } finally {
-      debugPrint('[SequencerManager] Disposal complete');
+
+      try { await _audioService.dispose(); } catch (_) {}
+
+      trackStepSequencerStates.clear();
+      trackVolumes.clear();
+      _trackActiveNotes.clear();
+      _lastChords.clear();
+      _processedEvents.clear();
+    } catch (e) {
+      debugPrint('[SequencerManager] Error during dispose: $e');
     }
   }
 }
