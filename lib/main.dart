@@ -71,7 +71,11 @@ void main() async {
       // Initialize audio session with proper settings for flutter_sequencer
       if (Platform.isIOS) {
         debugPrint('Running on iOS ${Platform.operatingSystemVersion}');
-        await _initAudioSession();
+        try {
+          await _initAudioSession().timeout(const Duration(seconds: 5));
+        } catch (e) {
+          debugPrint('⚠️ Audio session init failed (non-fatal): $e');
+        }
       }
       
       // Set up error handling for the entire app
@@ -100,7 +104,8 @@ void main() async {
       
       // Configure audio session early for flutter_sequencer compatibility
       try {
-        final session = await AudioSession.instance;
+        final session = await AudioSession.instance
+            .timeout(const Duration(seconds: 5));
         // Use playback configuration to ignore silent mode switch
         await session.configure(const AudioSessionConfiguration(
           avAudioSessionCategory: AVAudioSessionCategory.playback,
@@ -153,7 +158,13 @@ void main() async {
       await InAppReviewService().trackAppOpen();
 
       // Initialize Supabase for fingerings library
-      final supabaseInitialized = await SupabaseService.instance.initialize();
+      bool supabaseInitialized = false;
+      try {
+        supabaseInitialized = await SupabaseService.instance.initialize()
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint('[SMG] Supabase init failed (non-fatal): $e');
+      }
       if (supabaseInitialized) {
         debugPrint('Supabase initialized successfully');
       } else {
@@ -161,10 +172,16 @@ void main() async {
       }
 
       // Initialize RevenueCat
-      if (Platform.isIOS || Platform.isMacOS) {
-        await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '');
-      } else if (Platform.isAndroid) {
-        await PurchaseApi.init(dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? '');
+      try {
+        if (Platform.isIOS || Platform.isMacOS) {
+          await PurchaseApi.init(dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '')
+              .timeout(const Duration(seconds: 10));
+        } else if (Platform.isAndroid) {
+          await PurchaseApi.init(dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? '')
+              .timeout(const Duration(seconds: 10));
+        }
+      } catch (e) {
+        debugPrint('[SMG] RevenueCat init failed (non-fatal): $e');
       }
 
       // Auto-login with previously linked RiffRoutine email
@@ -173,7 +190,8 @@ void main() async {
         final linkedEmail = prefs.getString('riffroutine_linked_email');
         if (linkedEmail != null && linkedEmail.isNotEmpty) {
           debugPrint('[SMG] Auto-login with linked email: $linkedEmail');
-          final loginResult = await Purchases.logIn(linkedEmail);
+          final loginResult = await Purchases.logIn(linkedEmail)
+              .timeout(const Duration(seconds: 5));
           final activeEntitlements = loginResult.customerInfo.entitlements.active;
           debugPrint('[SMG] Auto-login success. Entitlements: ${activeEntitlements.keys.toList()}');
 
@@ -201,7 +219,12 @@ void main() async {
 
       final container = ProviderContainer();
       await container.read(settingsStateNotifierProvider.notifier).settings;
-      await container.read(chordModelFretboardFingeringProvider.future);
+      try {
+        await container.read(chordModelFretboardFingeringProvider.future)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint('[SMG] Fingering provider init failed (non-fatal): $e');
+      }
       
       // Debug testing mode DISABLED — use real RevenueCat entitlements for testing
       // To manually enable premium in debug, use the Developer Tools toggle in the drawer

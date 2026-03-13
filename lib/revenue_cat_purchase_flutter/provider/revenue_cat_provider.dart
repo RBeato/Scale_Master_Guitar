@@ -63,7 +63,8 @@ class RevenueCatNotifier extends StateNotifier<Entitlement> {
   // Initialize RevenueCat and set up a listener for customer info updates
   Future<void> init() async {
     try {
-      await updatePurchaseStatus();
+      await updatePurchaseStatus()
+          .timeout(const Duration(seconds: 10));
       _hasLoaded = true;
       _ref.read(entitlementLoadedProvider.notifier).state = true;
       // Set up listener for purchase updates
