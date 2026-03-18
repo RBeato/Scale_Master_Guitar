@@ -96,6 +96,16 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
       debugPrint('Error checking entitlement: $e');
     }
 
+    // If lifetime user arrived at the generic paywall (tab 0),
+    // redirect to Pro tab since that's the only meaningful upgrade.
+    if (_currentEntitlement.isLifetime && widget.initialTab == 0 && _tabController.index == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _tabController.animateTo(1);
+        }
+      });
+    }
+
     await Future.wait([
       _loadPremiumOffering(),
       _loadFingeringsOffering(),
@@ -111,7 +121,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           if (offering != null && offering.availablePackages.isNotEmpty) {
             final package = offering.availablePackages.first;
             _premiumPriceText =
-                'Get Lifetime Access for ${package.storeProduct.priceString}';
+                'Get Lifetime Essentials for ${package.storeProduct.priceString}';
           }
         });
       }
@@ -367,7 +377,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
             fontWeight: FontWeight.w500,
           ),
           tabs: const [
-            Tab(text: 'Lifetime'),
+            Tab(text: 'Essentials'),
             Tab(text: 'Pro Subscription'),
           ],
         ),
@@ -405,7 +415,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           // Title
           const Text(
-            'Lifetime',
+            'Lifetime Essentials',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -415,16 +425,75 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           ),
           const SizedBox(height: 8),
           Text(
-            'One-time purchase, forever yours',
+            'Core features, one-time payment',
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 16,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Prominent "not everything" callout — shown BEFORE features
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              children: [
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Does not include all features',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Drone Mode, multi-instrument, and cloud features require a Pro Subscription.',
+                  style: TextStyle(
+                    color: Colors.orange[200],
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    _tabController.animateTo(1);
+                  },
+                  child: const Text(
+                    'See Pro Subscription for everything ›',
+                    style: TextStyle(
+                      color: Colors.lightBlueAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.lightBlueAccent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
 
           // Included features
+          _buildSectionLabel('Included with Lifetime:'),
+          const SizedBox(height: 8),
           _buildFeatureRow(Icons.block, 'Remove all advertisements'),
           _buildFeatureRow(Icons.music_note, 'Access to all scales and modes'),
           _buildFeatureRow(Icons.volume_up, 'Audio playback & chord progressions'),
@@ -433,51 +502,13 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 20),
 
-          // Subscriber-only features (not included)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Requires subscription:',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          // Subscriber-only features (NOT included)
+          _buildSectionLabel('Not included — requires Pro Subscription:', color: Colors.orange),
           const SizedBox(height: 8),
           _buildExcludedFeatureRow(Icons.music_note, 'Drone Mode'),
           _buildExcludedFeatureRow(Icons.piano, 'Multi-instrument & custom tunings'),
           _buildExcludedFeatureRow(Icons.cloud_upload, 'Cloud Fingerings Library'),
           _buildExcludedFeatureRow(Icons.sync, 'Cross-device sync'),
-
-          const SizedBox(height: 16),
-
-          // Note about subscription
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'For Drone Mode, multi-instrument support, and cloud features, upgrade to Pro Subscription.',
-                    style: TextStyle(
-                      color: Colors.orange[200],
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
           const SizedBox(height: 32),
 
@@ -605,6 +636,15 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
       return _buildFingeringsErrorState();
     }
 
+    // Personalized view for lifetime users
+    if (_currentEntitlement.isLifetime) {
+      return _buildLifetimeUpgradeTab();
+    }
+
+    return _buildDefaultFingeringsTab();
+  }
+
+  Widget _buildDefaultFingeringsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -685,73 +725,136 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 32),
 
-          // Packages - selectable options
-          if (_fingeringsOffering != null &&
-              _fingeringsOffering!.availablePackages.isNotEmpty)
-            ..._fingeringsOffering!.availablePackages.map(
-              (package) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildPackageCard(package),
-              ),
-            ),
-
-          if (_fingeringsOffering == null ||
-              _fingeringsOffering!.availablePackages.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Subscription options not available',
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please check back later or contact support',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
+          ..._buildPackageCards(),
 
           const SizedBox(height: 24),
 
-          // Subscribe button or Already Subscribed state
-          if (_currentEntitlement.isSubscriber) ...[
+          ..._buildSubscribeButton(),
+
+          const SizedBox(height: 16),
+
+          ..._buildRestoreAndTerms(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLifetimeUpgradeTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Acknowledgment banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'You have Lifetime Essentials',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Your lifetime features remain active regardless.',
+                        style: TextStyle(color: Colors.white60, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Icon
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.lightBlueAccent.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.rocket_launch,
+              size: 56,
+              color: Colors.lightBlueAccent,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Title
+          const Text(
+            'Unlock Pro Features',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add these features to your Lifetime plan:',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 15,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          if (_hasTrialAvailable) ...[
+            const SizedBox(height: 12),
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                color: Colors.greenAccent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
               ),
-              child: const Column(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 32),
-                  SizedBox(height: 8),
-                  Text(
-                    'Pro Subscription Active',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'You already have an active subscription! All Pro features are unlocked.',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+              child: Text(
+                _trialDurationText,
+                style: const TextStyle(
+                  color: Colors.greenAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ] else if (_selectedPackage != null) ...[
+          ],
+          const SizedBox(height: 28),
+
+          // Only the ADDITIONAL features (not what they already have)
+          _buildFeatureRow(Icons.music_note, 'Drone Mode — sustained chord practice'),
+          _buildFeatureRow(Icons.piano, 'Multi-instrument & custom tunings'),
+          _buildFeatureRow(Icons.cloud_upload, 'Cloud Fingerings Library'),
+          _buildFeatureRow(Icons.public, 'Share fingerings with the community'),
+          _buildFeatureRow(Icons.explore, 'Discover fingerings from other guitarists'),
+          _buildFeatureRow(Icons.sync, 'Sync across all your devices'),
+
+          const SizedBox(height: 32),
+
+          ..._buildPackageCards(),
+
+          const SizedBox(height: 24),
+
+          // Subscribe button — with "Add Pro" framing
+          if (_selectedPackage != null) ...[
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -778,7 +881,7 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
                     : Text(
                         _hasTrialAvailable
                             ? 'Start $_trialDurationText'
-                            : 'Subscribe for ${_selectedPackage!.storeProduct.priceString}',
+                            : 'Add Pro for ${_selectedPackage!.storeProduct.priceString}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -798,31 +901,150 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
 
           const SizedBox(height: 16),
 
-          // Restore purchases
-          TextButton(
-            onPressed: _isPurchasing ? null : _handleRestore,
-            child: Text(
-              'Restore Purchases',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Terms
-          Text(
-            _hasTrialAvailable
-                ? 'Free trial automatically converts to a paid subscription unless canceled at least 24 hours before the trial ends. '
-                  'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
-                  'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.'
-                : 'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
-                  'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.',
-            style: TextStyle(color: Colors.grey[600], fontSize: 11),
-            textAlign: TextAlign.center,
-          ),
+          ..._buildRestoreAndTerms(),
         ],
       ),
     );
+  }
+
+  /// Shared package cards used by both default and lifetime upgrade tabs
+  List<Widget> _buildPackageCards() {
+    return [
+      if (_fingeringsOffering != null &&
+          _fingeringsOffering!.availablePackages.isNotEmpty)
+        ..._fingeringsOffering!.availablePackages.map(
+          (package) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildPackageCard(package),
+          ),
+        ),
+      if (_fingeringsOffering == null ||
+          _fingeringsOffering!.availablePackages.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Text(
+                'Subscription options not available',
+                style: TextStyle(color: Colors.grey[400]),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please check back later or contact support',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  /// Shared subscribe button used by the default fingerings tab
+  List<Widget> _buildSubscribeButton() {
+    return [
+      if (_currentEntitlement.isSubscriber) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+          ),
+          child: const Column(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 32),
+              SizedBox(height: 8),
+              Text(
+                'Pro Subscription Active',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'You already have an active subscription! All Pro features are unlocked.',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ] else if (_selectedPackage != null) ...[
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isPurchasing
+                ? null
+                : () => _handleFingeringsPurchase(_selectedPackage!),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.lightBlueAccent,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _isPurchasing
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                : Text(
+                    _hasTrialAvailable
+                        ? 'Start $_trialDurationText'
+                        : 'Subscribe for ${_selectedPackage!.storeProduct.priceString}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ),
+        if (_hasTrialAvailable) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Then ${_selectedPackage!.storeProduct.priceString} per ${_selectedPackage!.packageType == PackageType.annual ? 'year' : 'month'}',
+            style: TextStyle(color: Colors.grey[400], fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    ];
+  }
+
+  /// Shared restore button and terms text
+  List<Widget> _buildRestoreAndTerms() {
+    return [
+      TextButton(
+        onPressed: _isPurchasing ? null : _handleRestore,
+        child: Text(
+          'Restore Purchases',
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        _hasTrialAvailable
+            ? 'Free trial automatically converts to a paid subscription unless canceled at least 24 hours before the trial ends. '
+              'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
+              'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.'
+            : 'Subscriptions will be charged to your payment method through your App Store or Play Store account. '
+              'Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period.',
+        style: TextStyle(color: Colors.grey[600], fontSize: 11),
+        textAlign: TextAlign.center,
+      ),
+    ];
   }
 
   Widget _buildFingeringsErrorState() {
@@ -874,11 +1096,46 @@ class _UnifiedPaywallState extends ConsumerState<UnifiedPaywall>
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: Colors.grey[500], fontSize: 15),
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 15,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: Colors.grey[600],
+              ),
             ),
           ),
-          Icon(Icons.lock_outline, color: Colors.grey[600], size: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.lightBlueAccent.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.4)),
+            ),
+            child: const Text(
+              'PRO',
+              style: TextStyle(
+                color: Colors.lightBlueAccent,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text, {Color? color}) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color ?? Colors.greenAccent,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
