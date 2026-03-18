@@ -301,6 +301,20 @@ class OtherAppsPromoWidget extends StatelessWidget {
         androidUrl: 'https://play.google.com/store/apps/details?id=com.romeubeato.chord_generator_for_guitar_v2&hl=en',
         isComingSoon: false,
       ),
+      AppInfo(
+        id: 'polyrhythmic_metronome',
+        name: 'Polyrhythmic Metronome',
+        description: 'Master complex rhythms with polyrhythmic patterns',
+        icon: Icons.all_inclusive_rounded,
+        iconAssetPath: 'assets/images/polyrhythm_icon.png',
+        gradientColors: [
+          const Color(0xFF6C63FF),
+          const Color(0xFFFF6584),
+        ],
+        iosUrl: 'https://apps.apple.com/app/polyrhythmic-metronome/id0000000000',
+        androidUrl: 'https://play.google.com/store/apps/details?id=com.riffroutine.polyrhythmicmetronome',
+        isComingSoon: true,
+      ),
     ];
 
     // Filter out current app
