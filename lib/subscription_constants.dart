@@ -1,12 +1,12 @@
 const entitlementID = 'premium';
 
-const footerText = """Subscription Terms and Conditions for AffirmME
+const footerText = """Subscription Terms and Conditions for Scale Master Guitar
 1. Subscription Information
-Your subscription entitles you to access premium features of AffirmME on a recurring basis, depending on the plan you choose:
+Your subscription entitles you to access premium features of Scale Master Guitar on a recurring basis, depending on the plan you choose:
 
 Subscription Title: Premium
 Length of Subscription: Monthly
-Price of Subscription: 7.99 USD
+Price of Subscription: 3.99 USD
 Trial Period: 7 days
 
 2. Payment and Renewal

@@ -471,7 +471,7 @@ class _EnhancedPaywallPageState extends ConsumerState<EnhancedPaywallPage> {
         if (yearlyPackage != null)
           _buildPurchaseCard(
             title: 'Yearly Subscription',
-            subtitle: 'Best value! Save 50%',
+            subtitle: 'Best value! Save 58%',
             price: yearlyPackage!.storeProduct.priceString,
             package: yearlyPackage!,
             isPopular: true,

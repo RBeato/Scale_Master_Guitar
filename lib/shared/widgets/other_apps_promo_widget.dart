@@ -311,9 +311,9 @@ class OtherAppsPromoWidget extends StatelessWidget {
           const Color(0xFF6C63FF),
           const Color(0xFFFF6584),
         ],
-        iosUrl: 'https://apps.apple.com/app/polyrhythmic-metronome/id0000000000',
+        iosUrl: 'https://apps.apple.com/pt/app/polyrhythmic-metronome/id6760353853',
         androidUrl: 'https://play.google.com/store/apps/details?id=com.riffroutine.polyrhythmicmetronome',
-        isComingSoon: true,
+        isComingSoon: false,
       ),
     ];
 

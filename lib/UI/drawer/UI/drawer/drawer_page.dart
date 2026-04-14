@@ -217,24 +217,46 @@ class _DrawerPageState extends ConsumerState<DrawerPage> {
               const SizedBox(height: 8),
 
               // Link RiffRoutine Account
-              Card(
-                color: _linkedEmail != null
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : Colors.purple.withValues(alpha: 0.1),
-                child: ListTile(
-                  leading: Icon(
-                    _linkedEmail != null ? Icons.check_circle : Icons.link,
-                    color: _linkedEmail != null ? Colors.green : Colors.purple,
-                  ),
-                  title: Text(
-                    _linkedEmail != null ? 'RiffRoutine Linked' : 'Link RiffRoutine Account',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    _linkedEmail != null ? _linkedEmail! : 'Unlock Pro with your web subscription',
-                  ),
-                  onTap: () => _showLinkAccountSheet(context),
-                ),
+              Builder(
+                builder: (context) {
+                  final isLinked = _linkedEmail != null;
+                  final isActive = isLinked && entitlement.isPremium;
+                  final Color cardColor;
+                  final Color iconColor;
+                  final IconData icon;
+                  final String title;
+                  final String subtitle;
+
+                  if (!isLinked) {
+                    cardColor = Colors.purple.withValues(alpha: 0.1);
+                    iconColor = Colors.purple;
+                    icon = Icons.link;
+                    title = 'Link RiffRoutine Account';
+                    subtitle = 'Unlock Pro with your web subscription';
+                  } else if (isActive) {
+                    cardColor = Colors.green.withValues(alpha: 0.1);
+                    iconColor = Colors.green;
+                    icon = Icons.check_circle;
+                    title = 'RiffRoutine Linked';
+                    subtitle = _linkedEmail!;
+                  } else {
+                    cardColor = Colors.orange.withValues(alpha: 0.1);
+                    iconColor = Colors.orange;
+                    icon = Icons.warning_amber_rounded;
+                    title = 'RiffRoutine Linked';
+                    subtitle = 'Subscription inactive — resubscribe to unlock';
+                  }
+
+                  return Card(
+                    color: cardColor,
+                    child: ListTile(
+                      leading: Icon(icon, color: iconColor),
+                      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      subtitle: Text(subtitle),
+                      onTap: () => _showLinkAccountSheet(context),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 12),

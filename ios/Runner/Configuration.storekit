@@ -5,7 +5,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "4.89",
+      "displayPrice" : "24.99",
       "familyShareable" : false,
       "identifier" : "premium",
       "internalID" : "6532168475",
@@ -49,7 +49,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "0.99",
+          "displayPrice" : "3.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "identifier" : "smg_fingerings_monthly",
@@ -75,7 +75,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "4.99",
+          "displayPrice" : "19.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "identifier" : "smg_fingerings_yearly",
