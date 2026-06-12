@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scalemasterguitar/UI/player_page/provider/selected_chords_provider.dart';
 
@@ -19,6 +20,45 @@ import '../utils/debouncing.dart';
 import 'info_about_chords_button.dart';
 
 enum Taps { single, double }
+
+/// Chord button with press-scale feedback and a light haptic on tap.
+class _ChordButton extends StatefulWidget {
+  const _ChordButton({
+    required this.onTap,
+    required this.onDoubleTap,
+    required this.child,
+  });
+
+  final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
+  final Widget child;
+
+  @override
+  State<_ChordButton> createState() => _ChordButtonState();
+}
+
+class _ChordButtonState extends State<_ChordButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      onDoubleTap: widget.onDoubleTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.93 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: widget.child,
+      ),
+    );
+  }
+}
 
 class Chords extends ConsumerWidget {
   const Chords({super.key});
@@ -60,7 +100,7 @@ class Chords extends ConsumerWidget {
                         child: SizedBox(
                           width: 45,
                           height: 45,
-                          child: GestureDetector(
+                          child: _ChordButton(
                             onTap: () {
                               Debouncer.handleButtonPress(() {
                                 if (playerMode == PlayerMode.drone) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,6 +89,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> {
         setState(() {
           _currentRotation = closestStop * _rotationPerStop;
         });
+        HapticFeedback.mediumImpact();
         // Call the provider to update after the user releases their finger
         ref.read(topNoteProvider.notifier).update((state) => getTopNote());
       },

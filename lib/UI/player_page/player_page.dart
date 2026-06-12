@@ -567,15 +567,23 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
                           child: Consumer(
                             builder: (context, ref, _) {
                               final mode = ref.watch(playerModeProvider);
+                              final Widget playerArea;
                               if (mode == PlayerMode.drone) {
-                                return const DronePlayerBar();
-                              }
-                              debugPrint('[PlayerPage] Building PlayerWidget');
-                              if (data.scaleModel != null && data.scaleModel!.settings != null) {
-                                return PlayerWidget(data.scaleModel!.settings!);
+                                playerArea = const DronePlayerBar();
                               } else {
-                                return const Center(child: Text('Error: Missing settings.'));
+                                debugPrint('[PlayerPage] Building PlayerWidget');
+                                if (data.scaleModel != null && data.scaleModel!.settings != null) {
+                                  playerArea = PlayerWidget(data.scaleModel!.settings!);
+                                } else {
+                                  playerArea = const Center(child: Text('Error: Missing settings.'));
+                                }
                               }
+                              return AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(opacity: animation, child: child),
+                                child: playerArea,
+                              );
                             },
                           ),
                         ),

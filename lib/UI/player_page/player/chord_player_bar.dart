@@ -108,7 +108,7 @@ class ChordPlayerBarState extends ConsumerState<ChordPlayerBar> {
                 onTap: widget.handleTogglePlayStop,
                 child: Icon(
                   widget.isPlaying ? Icons.stop : Icons.play_arrow,
-                  color: Colors.white70,
+                  color: Colors.orangeAccent,
                   size: 40,
                 ),
               ),
