@@ -30,29 +30,8 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
   late AnimationController _snapController;
   Animation<double>? _snapAnimation;
 
-  // Add these class fields
-  int _tickCount = 0;
-  DateTime? _lastTickTime;
-
   void _onSnapControllerTick() {
     if (!mounted) return;
-    
-    // Track timing between ticks
-    final now = DateTime.now();
-    final frameTime = _lastTickTime != null 
-        ? now.difference(_lastTickTime!).inMilliseconds 
-        : 0;
-    _lastTickTime = now;
-    
-    _tickCount++;
-    
-    debugPrint('[WheelSnapDebug] Tick #$_tickCount (${frameTime}ms) - '
-      'isAnimating: ${_snapController.isAnimating}, '
-      'value: ${_snapController.value.toStringAsFixed(4)}, '
-      'status: ${_snapController.status}, '
-      'animation value: ${_snapAnimation?.value?.toStringAsFixed(4) ?? 'null'}'
-    );
-    
     setState(() {
       _currentRotation = _snapAnimation?.value ?? _currentRotation;
       ref.read(wheelRotationProvider.notifier).update((state) => _currentRotation);
@@ -87,7 +66,6 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     scaleIntervals = Scales.data[widget.scaleModel.scale]
         [widget.scaleModel.mode]['scaleDegrees']!;
     chromaticNotes = getChromaticNotes();
-    debugPrint('[ChromaticWheel] Updated scale data for ${widget.scaleModel.scale} - ${widget.scaleModel.mode}');
   }
 
   @override
@@ -96,8 +74,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     // Check if the scale model has changed
     if (oldWidget.scaleModel.scale != widget.scaleModel.scale ||
         oldWidget.scaleModel.mode != widget.scaleModel.mode) {
-      debugPrint('[ChromaticWheel] Scale model changed from ${oldWidget.scaleModel.scale}-${oldWidget.scaleModel.mode} to ${widget.scaleModel.scale}-${widget.scaleModel.mode}');
-      _updateScaleData();
+        _updateScaleData();
       // Trigger a rebuild to update the visual representation
       setState(() {});
     }
@@ -114,8 +91,6 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     List temp = [];
 
     var scaleDegrees = List<String>.from(widget.scaleModel.degreeFunction);
-    debugPrint("Degrees : $scaleDegrees");
-
     for (int i = 0; i < scaleIntervals.length; i++) {
       if (scaleIntervals[i] != null) {
         temp.add(scaleDegrees.first.toString());
@@ -142,15 +117,14 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
 
   void _animateSnap(double targetRotation) {
     if (!mounted) return;
-    debugPrint('[WheelSnapDebug] _animateSnap: currentRotation (begin) = $_currentRotation, targetRotation (end) = $targetRotation');
-    
+
     // Calculate the minimal difference considering circular nature
     double diff = (targetRotation - _currentRotation) % (2 * math.pi);
     if (diff > math.pi) diff -= 2 * math.pi;
     if (diff < -math.pi) diff += 2 * math.pi;
-    
+
     // For very small adjustments, just snap immediately without animation
-    if (diff.abs() < 0.01) { // ~0.57 degrees
+    if (diff.abs() < 0.01) {
       if (mounted) {
         setState(() {
           _currentRotation = targetRotation;
@@ -161,45 +135,37 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
       }
       return;
     }
-    
+
     // Calculate dynamic duration based on distance (max 150ms, min 50ms)
     final double distance = diff.abs();
-    final double normalizedDistance = distance / (math.pi / 6); // Normalize to 30 degrees
+    final double normalizedDistance = distance / (math.pi / 6);
     final int durationMs = (50 + (100 * normalizedDistance.clamp(0.0, 1.0))).round();
-    
-    // Reset the controller and remove any existing listeners
+
     _snapController.duration = Duration(milliseconds: durationMs);
     _snapController
       ..reset()
       ..removeListener(_onSnapControllerTick);
-      
-    // Create a new animation with a very precise curve
+
     _snapAnimation = Tween<double>(
       begin: _currentRotation,
-      end: _currentRotation + diff, // Direct path, no wrapping
+      end: _currentRotation + diff,
     ).animate(CurvedAnimation(
       parent: _snapController,
-      curve: Curves.easeOutQuad, // More subtle than cubic
+      curve: Curves.easeOutQuad,
     ));
-    
-    // Add the listener back
+
     _snapController.addListener(_onSnapControllerTick);
-    
-    // Start the animation
+
     _snapController.forward().then((_) {
       if (mounted) {
-        // Ensure we land exactly on the target rotation
         setState(() {
           _currentRotation = targetRotation;
           ref.read(wheelRotationProvider.notifier).update((state) => _currentRotation);
           final String finalTopNote = _calculateTopNoteForRotation(targetRotation);
           ref.read(topNoteProvider.notifier).update((state) => finalTopNote);
         });
-        debugPrint('[WheelSnapDebug] Animation completed! Final rotation: ${_currentRotation.toStringAsFixed(6)}');
       }
     });
-    
-    debugPrint('[WheelSnapDebug] _animateSnap: after forward(), controller.isAnimating = ${_snapController.isAnimating}');
   }
 
   /// Converts a note to the preferred sharp or flat notation
@@ -225,49 +191,33 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
     return rawNote;
   }
 
+  /// Shared note index calculation — uses .round() to avoid floating point
+  /// errors where values like 8.9999999 would be floored to 8 instead of 9,
+  /// causing the wrong note (one semitone off) to be selected.
+  int _noteIndexForAngle(double topPositionAngle) {
+    final double notePosition = (topPositionAngle / _rotationPerStop) % numStops;
+    return (numStops - notePosition.round()) % numStops;
+  }
+
   String getTopNote() {
-    // Get the current rotation from the provider to ensure consistency
-    final currentRotation = _snapController.isAnimating 
-        ? _snapAnimation?.value ?? _currentRotation 
+    final currentRotation = _snapController.isAnimating
+        ? _snapAnimation?.value ?? _currentRotation
         : _currentRotation;
-        
-    // Adjust the angle calculation to accurately reflect the top of the wheel
+
     double topPositionAngle = (currentRotation + math.pi / 2) % (2 * math.pi);
     if (topPositionAngle < 0) topPositionAngle += 2 * math.pi;
 
-    // Determine the index of the note at this angle with better rounding
-    final double notePosition = (topPositionAngle / _rotationPerStop) % numStops;
-    int noteIndex = (numStops - notePosition.floor() - 1) % numStops;
-    
-    // Apply a small bias to handle floating point precision issues
-    const double epsilon = 1e-10;
-    if ((notePosition % 1.0).abs() < epsilon) {
-      noteIndex = (noteIndex + 1) % numStops;
-    }
-
-    String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
-    
-    // Convert to user's preferred notation (sharp or flat)
+    String rawNote = MusicConstants.notesWithFlatsAndSharps[_noteIndexForAngle(topPositionAngle)];
     return _convertNoteToPreferredNotation(rawNote);
   }
 
   String _calculateTopNoteForRotation(double rotation) {
-    // Adjust the angle calculation to accurately reflect the top of the wheel
     double topPositionAngle = (rotation + math.pi / 2) % (2 * math.pi);
     if (topPositionAngle < 0) topPositionAngle += 2 * math.pi;
 
-    // Determine the index of the note at this angle
-    int noteIndex = (numStops -
-            ((topPositionAngle / _rotationPerStop) % numStops).floor()) %
-        numStops;
-
+    int noteIndex = _noteIndexForAngle(topPositionAngle);
     String rawNote = MusicConstants.notesWithFlatsAndSharps[noteIndex];
-    debugPrint('[TopNote] Raw note from wheel: $rawNote at index $noteIndex');
-    
-    // Convert to user's preferred notation (sharp or flat)
-    String convertedNote = _convertNoteToPreferredNotation(rawNote);
-    debugPrint('[TopNote] Converted $rawNote to $convertedNote');
-    return convertedNote;
+    return _convertNoteToPreferredNotation(rawNote);
   }
 
   @override
@@ -295,8 +245,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
       },
       onPanEnd: (details) {
         if (!mounted) return;
-        debugPrint('[WheelSnapDebug] onPanEnd: _currentRotation before snap = $_currentRotation');
-        
+
         // Calculate the closest stop with high precision
         final double normalizedRotation = (_currentRotation % (2 * math.pi) + 2 * math.pi) % (2 * math.pi);
         final double stopPosition = (normalizedRotation / _rotationPerStop).roundToDouble();
@@ -311,13 +260,7 @@ class _ChromaticWheelState extends ConsumerState<ChromaticWheel> with SingleTick
         if (diffToCurrent.abs() < snapThreshold) {
           snappedRotation = normalizedRotation;
         }
-        
-        debugPrint('[WheelSnapDebug] onPanEnd: stopPosition = $stopPosition, snappedRotation = $snappedRotation');
-        
-        // Don't update the top note provider here - let the animation completion handle it
-        // to avoid race conditions between the animation and the provider update
-        
-        // Only animate if still mounted after potential async gaps from provider update
+
         if (mounted) {
           _animateSnap(snappedRotation);
         }

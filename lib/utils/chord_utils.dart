@@ -104,6 +104,32 @@ class ChordUtils {
     }
     if (chordPattern == 'P1,A5,M7') {
       return 'aug Maj7';
+    }
+    // 4-note chords for Barry Harris / 8-note scales
+    if (chordPattern == 'P1,M3,P5,M6') {
+      return '6';
+    }
+    if (chordPattern == 'P1,m3,P5,M6') {
+      return 'm6';
+    }
+    if (chordPattern == 'P1,m3,d5,M6') {
+      // dim7 (M6 is enharmonic to d7 = 9 semitones)
+      return '°7';
+    }
+    if (chordPattern == 'P1,M3,P5,m7') {
+      return '7';
+    }
+    if (chordPattern == 'P1,m3,P5,m7') {
+      return 'm7';
+    }
+    if (chordPattern == 'P1,m3,d5,m7') {
+      return 'ø7';
+    }
+    if (chordPattern == 'P1,M3,P5,M7') {
+      return 'Maj7';
+    }
+    if (chordPattern == 'P1,m3,P5,M7') {
+      return 'mMaj7';
     } else {
       return 'UNKNOWN';
     }
@@ -196,6 +222,12 @@ class ChordUtils {
       return Interval.P1;
     }
     if (type == '°') {
+      return Interval.P1;
+    }
+    if (type == '°7') {
+      return Interval.P1;
+    }
+    if (type == 'Maj7') {
       return Interval.P1;
     }
     if (type == '+') {

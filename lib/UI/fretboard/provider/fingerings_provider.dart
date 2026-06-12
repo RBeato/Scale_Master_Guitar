@@ -59,7 +59,37 @@ final chordModelFretboardFingeringProvider =
 
   item.modesScalarTonicIntervals = modesScalarTonicIntervals;
 
-  MusicUtils.getTriadsNames(item, modesScalarTonicIntervals);
+  // Barry Harris: hardcode the alternating chord pattern (6/°7, m6/°7, 7/°7)
+  // instead of computing from intervals, since inversions produce non-standard
+  // interval combinations that can't be recognized as chord types.
+  if (scale == 'Barry Harris') {
+    String mainType;
+    switch (mode) {
+      case 'Major 6th Diminished':
+        mainType = '6';
+        break;
+      case 'Minor 6th Diminished':
+        mainType = 'm6';
+        break;
+      case 'Dominant 7th Diminished':
+        mainType = '7';
+        break;
+      default:
+        mainType = '6';
+    }
+    List<String> chordTypes = [];
+    List<String> chordNames = [];
+    for (int i = 0; i < scaleNotesNames.length; i++) {
+      String type = (i % 2 == 0) ? mainType : '°7';
+      String note = MusicUtils.extractNoteName(scaleNotesNames[i]);
+      chordTypes.add(type);
+      chordNames.add('$note$type');
+    }
+    item.chordTypes = chordTypes;
+    item.completeChordNames = chordNames;
+  } else {
+    MusicUtils.getTriadsNames(item, modesScalarTonicIntervals);
+  }
 
   ChordScaleFingeringsModel fingering =
       FingeringsCreator().createChordsScales(item, settings, tuning: tuning);

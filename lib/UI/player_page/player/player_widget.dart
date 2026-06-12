@@ -294,7 +294,7 @@ class PlayerPageShowcaseState extends ConsumerState<PlayerWidget>
         try {
           // Use synchronous stop to avoid async issues in dispose
           sequencerManager.sequence!.stop();
-          ref.read(isSequencerPlayingProvider.notifier).update((state) => false);
+          // Don't update provider state here — ref is invalid during dispose
         } catch (e) {
           debugPrint('[PlayerWidget] Error stopping sequence: $e');
         }

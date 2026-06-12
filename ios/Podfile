@@ -67,17 +67,54 @@ post_install do |installer|
   runner_project = Xcodeproj::Project.open(File.join(__dir__, 'Runner.xcodeproj'))
   runner_target = runner_project.targets.find { |t| t.name == 'Runner' }
   phase_name = 'Generate objective_c.framework dSYM'
-  unless runner_target.shell_script_build_phases.any? { |p| p.name == phase_name }
-    phase = runner_target.new_shell_script_build_phase(phase_name)
-    phase.shell_script = <<~SCRIPT
-      # Generate dSYM for objective_c.framework (Dart native asset missing dSYM)
-      OBJ_C_FW=$(find "${BUILD_DIR}" -path "*/native_assets/ios/objective_c.framework/objective_c" -type f 2>/dev/null | head -1)
-      if [ -n "$OBJ_C_FW" ] && [ -d "${DWARF_DSYM_FOLDER_PATH}" ]; then
-        echo "Generating dSYM for objective_c.framework..."
-        dsymutil "$OBJ_C_FW" -o "${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM" 2>/dev/null || true
-      fi
-    SCRIPT
-    runner_project.save
-    puts "[Podfile] Added '#{phase_name}' build phase to Runner target"
+  # Remove old version if it exists (to update the script)
+  runner_target.shell_script_build_phases.select { |p| p.name == phase_name }.each do |p|
+    runner_target.build_phases.delete(p)
   end
+  phase = runner_target.new_shell_script_build_phase(phase_name)
+  phase.shell_script = <<~SCRIPT
+    # Generate dSYM for objective_c.framework (Dart native asset missing dSYM)
+    # Search in multiple locations: embedded frameworks in app bundle, and BUILD_DIR
+    FW_BINARY=""
+
+    # 1. Check the app's embedded Frameworks folder (most reliable for archive builds)
+    APP_FW="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/objective_c.framework/objective_c"
+    if [ -f "$APP_FW" ]; then
+      FW_BINARY="$APP_FW"
+      echo "[dSYM] Found objective_c in app bundle: $APP_FW"
+    fi
+
+    # 2. Fallback: search BUILD_DIR for native_assets path
+    if [ -z "$FW_BINARY" ]; then
+      FW_BINARY=$(find "${BUILD_DIR}" -name "objective_c" -path "*/objective_c.framework/*" -type f 2>/dev/null | head -1)
+      if [ -n "$FW_BINARY" ]; then
+        echo "[dSYM] Found objective_c in BUILD_DIR: $FW_BINARY"
+      fi
+    fi
+
+    # 3. Fallback: search CODESIGNING_FOLDER_PATH (archive products)
+    if [ -z "$FW_BINARY" ] && [ -n "${CODESIGNING_FOLDER_PATH}" ]; then
+      FW_BINARY=$(find "${CODESIGNING_FOLDER_PATH}" -name "objective_c" -path "*/objective_c.framework/*" -type f 2>/dev/null | head -1)
+      if [ -n "$FW_BINARY" ]; then
+        echo "[dSYM] Found objective_c in CODESIGNING_FOLDER_PATH: $FW_BINARY"
+      fi
+    fi
+
+    if [ -n "$FW_BINARY" ] && [ -d "${DWARF_DSYM_FOLDER_PATH}" ]; then
+      echo "[dSYM] Generating dSYM for objective_c.framework..."
+      dsymutil "$FW_BINARY" -o "${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM" 2>/dev/null || true
+      if [ -d "${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM" ]; then
+        echo "[dSYM] Success: created objective_c.framework.dSYM"
+      else
+        echo "[dSYM] Warning: dsymutil did not produce a dSYM bundle"
+      fi
+    else
+      echo "[dSYM] objective_c.framework binary not found or DWARF_DSYM_FOLDER_PATH not set"
+      echo "[dSYM] BUILT_PRODUCTS_DIR=${BUILT_PRODUCTS_DIR}"
+      echo "[dSYM] FRAMEWORKS_FOLDER_PATH=${FRAMEWORKS_FOLDER_PATH}"
+      echo "[dSYM] BUILD_DIR=${BUILD_DIR}"
+    fi
+  SCRIPT
+  runner_project.save
+  puts "[Podfile] Updated '#{phase_name}' build phase on Runner target"
 end

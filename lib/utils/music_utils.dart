@@ -22,8 +22,25 @@ class MusicUtils {
 
   static List<String> getChordInfo(
       ChordScaleFingeringsModel fingeringsModel, int chordIndex) {
-    Map<String, int> chordIntervals = _getNotesScaleNotes(
-        fingeringsModel.scaleModel!.modesScalarTonicIntervals[chordIndex]);
+    final modeIntervals =
+        fingeringsModel.scaleModel!.modesScalarTonicIntervals[chordIndex];
+
+    // 8-note scales (Barry Harris, Octatonics): pick every-other interval
+    // directly to avoid Map deduplication (e.g. m3 and M3 both map to '3').
+    if (modeIntervals.length == 8) {
+      String baseNote = extractNoteName(
+          fingeringsModel.scaleModel!.scaleNotesNames[chordIndex]);
+      String noteToFlats = flatsOnlyNoteNomenclature(baseNote);
+      var basePitch = Pitch.parse("${noteToFlats}3");
+      List<String> chordNotes = [];
+      for (int i = 0; i < 8; i += 2) {
+        int midiNumber = basePitch.midiNumber + modeIntervals[i].semitones;
+        chordNotes.add(Pitch.fromMidiNumber(midiNumber).toString());
+      }
+      return chordNotes;
+    }
+
+    Map<String, int> chordIntervals = _getNotesScaleNotes(modeIntervals);
 
     String baseNote = extractNoteName(
         fingeringsModel.scaleModel!.scaleNotesNames[chordIndex]);
@@ -136,6 +153,7 @@ class MusicUtils {
         scaleDegrees[0]!,
         scaleDegrees[2]!,
         scaleDegrees[4]!,
+        scaleDegrees[6]!,
       ]);
       // if (scaleDegrees.contains(Interval.M3) &&
       //     scaleDegrees.contains(Interval.m3)) {
@@ -243,6 +261,41 @@ class MusicUtils {
         ];
       }
       // scaleDegrees = removePassingTones(scaleDegrees);
+    }
+
+    // Barry Harris: 8-note asymmetric scales need all 8 rotations.
+    // Use semitone arithmetic to avoid tonic library's interval subtraction
+    // failures when wrapping past the octave (e.g. P1 - M7 throws).
+    if (scaleModel.scale == 'Barry Harris' && scaleDegrees.length == 8) {
+      final semitoneToInterval = [
+        Interval.P1, // 0
+        Interval.m2, // 1
+        Interval.M2, // 2
+        Interval.m3, // 3
+        Interval.M3, // 4
+        Interval.P4, // 5
+        Interval.d5, // 6
+        Interval.P5, // 7
+        Interval.m6, // 8
+        Interval.M6, // 9
+        Interval.m7, // 10
+        Interval.M7, // 11
+      ];
+      List<int> semitones =
+          scaleDegrees.map((i) => i.semitones).toList();
+
+      for (int i = 0; i < 8; i++) {
+        List<Interval> modeIntervals = [];
+        for (int j = 0; j < 8; j++) {
+          int st = (semitones[(j + i) % 8] - semitones[i] + 12) % 12;
+          modeIntervals.add(semitoneToInterval[st]);
+        }
+        orderedScaleDegrees.add(modeIntervals);
+      }
+
+      scaleModel.notesIntervalsRelativeToTonicForBuildingChordsList =
+          scaleDegrees;
+      return orderedScaleDegrees;
     }
 
     if (scaleModel.scale == 'Octatonics' && scaleDegrees.length == 8) {

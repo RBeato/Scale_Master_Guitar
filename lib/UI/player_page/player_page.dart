@@ -31,7 +31,6 @@ import '../../models/drone_chord.dart';
 import '../player_page/drone/drone_player_bar.dart';
 import '../player_page/drone/drone_service.dart';
 import '../player_page/provider/drone_providers.dart';
-import '../../constants/music_constants.dart';
 import '../../utils/music_utils.dart';
 
 class PlayerPage extends ConsumerWidget {
@@ -286,34 +285,62 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
 
     if (data.scaleModel != null && data.scaleModel!.completeChordNames.isNotEmpty) {
       try {
-        final chordNotes = MusicUtils.getChordInfo(data, 0);
-        final midiNotes = <int>[];
-        for (final note in chordNotes) {
-          final flat = MusicUtils.flatsAndSharpsToFlats(note);
-          final midi = MusicConstants.midiValues[flat];
-          if (midi != null) midiNotes.add(midi);
-        }
-
-        if (midiNotes.isEmpty) return;
-
-        // Bass note: root in octave 2
+        // Extract root note name from the first diatonic chord
         var rootName = MusicUtils.extractNoteName(
           data.scaleModel!.completeChordNames[0],
         );
         rootName = MusicUtils.filterNoteNameWithSlash(rootName);
-        rootName = MusicUtils.flatsAndSharpsToFlats(rootName);
-        final bassMidi = MusicConstants.midiValues['${rootName}2'] ?? 36;
 
-        final drone = DroneChord(
-          displayName: data.scaleModel!.completeChordNames[0],
-          midiNotes: midiNotes,
-          bassMidiNote: bassMidi,
-        );
+        // Map the chord type abbreviation to DroneChord quality
+        final chordTypeAbbr = data.scaleModel!.chordTypes.isNotEmpty
+            ? data.scaleModel!.chordTypes[0]
+            : 'M';
+        final quality = _mapChordTypeToQuality(chordTypeAbbr);
+
+        final drone = DroneChord.fromRootAndQuality(rootName, quality);
         ref.read(droneChordProvider.notifier).state = drone;
         debugPrint('[PlayerPage] Set default drone chord: ${drone.displayName}');
       } catch (e) {
         debugPrint('[PlayerPage] Error setting default drone chord: $e');
       }
+    }
+  }
+
+  /// Maps chord type abbreviations (from tonic / ChordUtils) to
+  /// DroneChord quality names used by [DroneChord.fromRootAndQuality].
+  String _mapChordTypeToQuality(String abbr) {
+    switch (abbr) {
+      case 'M':
+      case '':
+        return 'Major';
+      case 'm':
+        return 'Minor';
+      case 'dim':
+        return 'Dim';
+      case 'aug':
+        return 'Aug';
+      case '7':
+        return 'Dom7';
+      case 'M7':
+      case 'maj7':
+        return 'Maj7';
+      case 'm7':
+        return 'Min7';
+      case 'sus2':
+        return 'Sus2';
+      case 'sus4':
+        return 'Sus4';
+      case '°7':
+      case 'dim7':
+        return 'Dim7';
+      case 'm6':
+        return 'Min6';
+      case '6':
+        return 'Maj6';
+      default:
+        // For exotic chord types (inversions, slash chords, etc.),
+        // fall back to Major — sounds neutral as a drone
+        return 'Major';
     }
   }
 
@@ -350,6 +377,8 @@ class _PlayerPageContentState extends ConsumerState<_PlayerPageContent> {
       }
       await DroneService().dispose();
       ref.read(playerModeProvider.notifier).state = PlayerMode.chords;
+      // Reset drone chord so it re-derives from the (possibly new) scale next time
+      ref.read(droneChordProvider.notifier).state = null;
 
       debugPrint('[PlayerPage] Cleanup completed');
     } catch (e, st) {

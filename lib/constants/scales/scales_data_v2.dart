@@ -5,6 +5,7 @@ import 'scales_modes/harmonic_minor_modes.dart';
 import 'scales_modes/pentatonics.dart';
 import 'scales_modes/octatonics.dart';
 import 'scales_modes/hexatonics.dart';
+import 'scales_modes/barry_harris_modes.dart';
 
 class Scales {
   static Map<String, dynamic> data = {
@@ -15,5 +16,6 @@ class Scales {
     'Pentatonics': pentatonics,
     'Hexatonics': hexatonics,
     'Octatonics': octatonics,
+    'Barry Harris': barryHarrisModes,
   };
 }

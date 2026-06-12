@@ -26,6 +26,8 @@ class DefaultProgressionGenerator {
       return _generateHexatonicProgression(scaleFingerings, mode);
     } else if (scale == 'Pentatonics') {
       return _generatePentatonicProgression(scaleFingerings, mode);
+    } else if (scale == 'Barry Harris') {
+      return _generateBarryHarrisProgression(scaleFingerings, mode);
     }
 
     return [];
@@ -115,6 +117,21 @@ class DefaultProgressionGenerator {
   static List<ChordModel> _generateOctatonicProgression(
       ChordScaleFingeringsModel scaleFingerings) {
     return _buildChordsFromIndices(scaleFingerings, [0, 1]);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Barry Harris: I chord + passing tone dim7 chord
+  // ---------------------------------------------------------------------------
+  static const Map<String, List<int>> _barryHarrisIndices = {
+    'Major 6th Diminished': [0, 1],
+    'Minor 6th Diminished': [0, 1],
+    'Dominant 7th Diminished': [0, 1],
+  };
+
+  static List<ChordModel> _generateBarryHarrisProgression(
+      ChordScaleFingeringsModel scaleFingerings, String mode) {
+    final indices = _barryHarrisIndices[mode] ?? [0, 1];
+    return _buildChordsFromIndices(scaleFingerings, indices);
   }
 
   // ---------------------------------------------------------------------------
