@@ -170,6 +170,9 @@ class CustomFretboardPainter extends CustomPainter {
         if (oldDelegate.dotPositions[i][j] != dotPositions[i][j]) {
           return true;
         }
+        if (oldDelegate.dotColors[i][j] != dotColors[i][j]) {
+          return true;
+        }
       }
     }
     if (oldDelegate.flatSharpSelection != flatSharpSelection) {

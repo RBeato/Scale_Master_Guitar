@@ -382,17 +382,31 @@ class _FretboardFullState extends ConsumerState<FretboardFull> {
                 (i) => List.generate(
                     dotPositions[i].length, (j) => dotPositions[i][j]),
               );
-              updatedDotPositions[string][fret] =
-                  !updatedDotPositions[string][fret];
+              final updatedDotColors = List.generate(
+                dotColors.length,
+                (i) => List.generate(
+                    dotColors[i].length, (j) => dotColors[i][j]),
+              );
 
-              if (!updatedDotPositions[string][fret]) {
-                dotColors[string][fret] = null;
+              final dotExists = updatedDotPositions[string][fret];
+              final currentColor = updatedDotColors[string][fret] ?? Colors.blueGrey;
+
+              if (dotExists && currentColor != selectedColor) {
+                // Dot exists with a different color (or no color yet) → change color only
+                updatedDotColors[string][fret] = selectedColor;
+              } else if (dotExists) {
+                // Dot exists with same color → remove it
+                updatedDotPositions[string][fret] = false;
+                updatedDotColors[string][fret] = null;
               } else {
-                dotColors[string][fret] = selectedColor;
+                // No dot → add it with selected color
+                updatedDotPositions[string][fret] = true;
+                updatedDotColors[string][fret] = selectedColor;
               }
 
               setState(() {
                 dotPositions = updatedDotPositions;
+                dotColors = updatedDotColors;
               });
 
               // Sync updated state to provider

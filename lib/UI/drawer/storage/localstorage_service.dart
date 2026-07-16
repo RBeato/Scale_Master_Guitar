@@ -64,6 +64,15 @@ class LocalStorageService {
       await preferences.setBool(migrationKey, true);
     }
 
+    // Migration: Re-enable tonicUniversalBassNote by default (now free for all users)
+    const String bassNoteMigrationKey2 = 'migration_bass_note_default_on';
+    final bool hasBassNoteMigrated2 = preferences.getBool(bassNoteMigrationKey2) ?? false;
+
+    if (!hasBassNoteMigrated2) {
+      await preferences.setBool(SettingsSelection.tonicUniversalBassNote.toString(), true);
+      await preferences.setBool(bassNoteMigrationKey2, true);
+    }
+
     // Migration: Reset keyboardSound to 'Rhodes' for existing installations
     // Version 1.0.31 changed the default from 'Piano' to 'Rhodes'
     const String keyboardMigrationKey = 'migration_v1.0.31_keyboard_rhodes';
@@ -80,7 +89,7 @@ class LocalStorageService {
         preferences.getBool(SettingsSelection.singleColor.toString()) ?? false;
     bool isTonicUniversalBassNote = preferences
             .getBool(SettingsSelection.tonicUniversalBassNote.toString()) ??
-        false;
+        true;
 
     String keyboardSound =
         preferences.getString(SettingsSelection.keyboardSound.toString()) ??
